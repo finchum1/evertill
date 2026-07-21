@@ -155,9 +155,24 @@ export interface PipelineNote {
 // Deals move through a FIXED set of stages (unlike Leads/Pipeline's
 // user-customizable columns) and carry milestone dates + money/terms
 // fields instead of contact tags.
-export const DEAL_STATUSES = ["Active", "Under Contract", "Pending", "Closed"] as const;
+export const DEAL_STATUSES = ["Active", "In Escrow", "Inspections", "Pre-Closing", "Closed"] as const;
 export type DealStatus = (typeof DEAL_STATUSES)[number];
 export type DealType = "Buyer" | "Listing";
+
+// Color per status, reused by the stat cards, status pill, and Value view —
+// mapped onto the same named palette as list/column colors (not separate hex
+// values) so the Value view's generic BoardValueView component works
+// unmodified with statuses treated as pseudo-columns.
+export const DEAL_STATUS_LIST_COLOR: Record<DealStatus, ListColor> = {
+  Active: "blue",
+  "In Escrow": "indigo",
+  Inspections: "orange",
+  "Pre-Closing": "purple",
+  Closed: "slate",
+};
+export const DEAL_STATUS_COLOR: Record<DealStatus, string> = Object.fromEntries(
+  DEAL_STATUSES.map((s) => [s, LIST_COLOR_HEX[DEAL_STATUS_LIST_COLOR[s]]])
+) as Record<DealStatus, string>;
 
 export interface Deal {
   id: string;
@@ -165,6 +180,7 @@ export interface Deal {
   address: string;
   type: DealType;
   status: DealStatus;
+  agent_name: string | null;
   value: number;
   price: number;
   earnest_money: number;

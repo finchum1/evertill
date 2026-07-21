@@ -22,11 +22,15 @@ import { BoardValueView } from "./components/BoardValueView";
 import { BoardCalendarView } from "./components/BoardCalendarView";
 import { useDeals } from "./hooks/useDeals";
 import { DealsBoard } from "./components/DealsBoard";
+import { DealsListView } from "./components/DealsListView";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import type { CreateType } from "./components/CreateMenu";
+import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
 import type { Page, View } from "./types";
+
+const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
 
 type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
@@ -305,6 +309,7 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
 
   const [openDealId, setOpenDealId] = useState<string | null>(null);
   const [showNewDeal, setShowNewDeal] = useState(false);
+  const [subView, setSubView] = useState<BoardSubView>("list");
 
   if (loading) {
     return (
@@ -316,9 +321,58 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
 
   const openDeal = openDealId ? deals.find((d) => d.id === openDealId) : undefined;
 
+  // Flatten each deal's 4 milestone dates into synthetic calendar items so
+  // the shared BoardCalendarView (built for one-due-date-per-item) can be
+  // reused as-is instead of writing a bespoke Deals calendar.
+  const milestoneItems = deals.flatMap((d) => {
+    const milestones: { key: string; label: string; date: string | null }[] = [
+      { key: "acceptance", label: "Acceptance", date: d.acceptance_date },
+      { key: "inspection", label: "Inspection", date: d.inspection_date },
+      { key: "appraisal", label: "Appraisal", date: d.appraisal_date },
+      { key: "closing", label: "Closing", date: d.closing_date },
+    ];
+    return milestones
+      .filter((m): m is { key: string; label: string; date: string } => !!m.date)
+      .map((m) => ({ id: `${d.id}:${m.key}`, title: `${m.label}: ${d.address}`, due_date: m.date, dealId: d.id }));
+  });
+
+  // Statuses treated as pseudo-columns so the shared BoardValueView (built
+  // for user-defined Lead/Pipeline columns) works for Deals' fixed statuses too.
+  const statusColumns = DEAL_STATUSES.map((status) => ({ id: status, label: status, color: DEAL_STATUS_LIST_COLOR[status] }));
+  const statusValueCards = deals.map((d) => ({ column_id: d.status, value: d.value }));
+
   return (
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
-      <DealsBoard deals={deals} onAddDeal={() => setShowNewDeal(true)} onOpenDeal={setOpenDealId} />
+      <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>Deals</h1>
+          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>Every transaction you have access to.</p>
+        </div>
+        <button onClick={() => setShowNewDeal(true)} style={newDealButtonStyle}>
+          + New Deal
+        </button>
+      </div>
+      <div style={{ padding: "0 24px" }}>
+        <ViewTabs active={subView} onChange={setSubView} order={DEALS_VIEW_ORDER} />
+      </div>
+      {subView === "list" && <DealsListView deals={deals} onOpenDeal={setOpenDealId} />}
+      {subView === "board" && <DealsBoard deals={deals} onOpenDeal={setOpenDealId} />}
+      {subView === "calendar" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardCalendarView
+            cards={milestoneItems}
+            onOpenCard={(syntheticId) => {
+              const item = milestoneItems.find((i) => i.id === syntheticId);
+              if (item) setOpenDealId(item.dealId);
+            }}
+          />
+        </div>
+      )}
+      {subView === "value" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardValueView columns={statusColumns} cards={statusValueCards} itemNoun="deal" />
+        </div>
+      )}
       {showNewDeal && (
         <NewDealModal
           onClose={() => setShowNewDeal(false)}
@@ -547,6 +601,17 @@ function App() {
 }
 
 export default App;
+
+const newDealButtonStyle = {
+  background: "#4f46e5",
+  border: "none",
+  borderRadius: 8,
+  color: "#fff",
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "8px 16px",
+  cursor: "pointer",
+};
 
 const ctaButtonStyle = {
   background: "#6366f1",

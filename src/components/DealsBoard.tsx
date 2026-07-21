@@ -1,24 +1,15 @@
-import type { CSSProperties } from "react";
 import { DEAL_STATUSES } from "../types";
 import type { Deal } from "../types";
 import { DealCardMini } from "./DealCardMini";
 
 interface DealsBoardProps {
   deals: Deal[];
-  onAddDeal: () => void;
   onOpenDeal: (id: string) => void;
 }
 
-export function DealsBoard({ deals, onAddDeal, onOpenDeal }: DealsBoardProps) {
+export function DealsBoard({ deals, onOpenDeal }: DealsBoardProps) {
   return (
-    <div style={{ padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>Deals</h1>
-        <button onClick={onAddDeal} style={primaryButtonStyle}>
-          + New Deal
-        </button>
-      </div>
-
+    <div style={{ padding: "0 24px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12 }}>
         {DEAL_STATUSES.map((status) => {
           const statusDeals = deals.filter((d) => d.status === status);
@@ -50,14 +41,3 @@ export function DealsBoard({ deals, onAddDeal, onOpenDeal }: DealsBoardProps) {
     </div>
   );
 }
-
-const primaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
-  border: "none",
-  borderRadius: 8,
-  color: "#fff",
-  fontSize: 13,
-  fontWeight: 600,
-  padding: "8px 16px",
-  cursor: "pointer",
-};

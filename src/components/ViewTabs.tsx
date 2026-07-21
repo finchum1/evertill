@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 export type BoardSubView = "board" | "list" | "calendar" | "value";
 
-const SUB_VIEWS: BoardSubView[] = ["board", "list", "calendar", "value"];
+const DEFAULT_ORDER: BoardSubView[] = ["board", "list", "calendar", "value"];
 const LABELS: Record<BoardSubView, string> = {
   board: "Board",
   list: "List",
@@ -10,10 +10,18 @@ const LABELS: Record<BoardSubView, string> = {
   value: "Value",
 };
 
-export function ViewTabs({ active, onChange }: { active: BoardSubView; onChange: (view: BoardSubView) => void }) {
+export function ViewTabs({
+  active,
+  onChange,
+  order = DEFAULT_ORDER,
+}: {
+  active: BoardSubView;
+  onChange: (view: BoardSubView) => void;
+  order?: BoardSubView[];
+}) {
   return (
     <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-      {SUB_VIEWS.map((view) => (
+      {order.map((view) => (
         <button key={view} onClick={() => onChange(view)} style={tabButtonStyle(active === view)}>
           {LABELS[view]}
         </button>

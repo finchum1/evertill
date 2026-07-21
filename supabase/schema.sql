@@ -331,7 +331,8 @@ create table if not exists deals (
   address text not null default 'New Deal',
   type text not null default 'Buyer' check (type in ('Buyer', 'Listing')),
   status text not null default 'Active'
-    check (status in ('Active', 'Under Contract', 'Pending', 'Closed')),
+    check (status in ('Active', 'In Escrow', 'Inspections', 'Pre-Closing', 'Closed')),
+  agent_name text,
   value numeric not null default 0,
   price numeric not null default 0,
   earnest_money numeric not null default 0,
@@ -347,6 +348,15 @@ create table if not exists deals (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migration for an already-existing deals table (this project's live database
+-- already had the old 4-value status enum before this change): adds the new
+-- agent_name column and swaps the status check constraint to the 5 new
+-- stage names. Safe to re-run.
+alter table deals add column if not exists agent_name text;
+alter table deals drop constraint if exists deals_status_check;
+alter table deals add constraint deals_status_check
+  check (status in ('Active', 'In Escrow', 'Inspections', 'Pre-Closing', 'Closed'));
 
 create table if not exists deal_notes (
   id uuid primary key default gen_random_uuid(),

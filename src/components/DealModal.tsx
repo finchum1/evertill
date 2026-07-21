@@ -20,6 +20,7 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
   const [earnestMoney, setEarnestMoney] = useState(String(deal.earnest_money || ""));
   const [concessions, setConcessions] = useState(String(deal.concessions || ""));
   const [loanType, setLoanType] = useState(deal.loan_type ?? "");
+  const [agentName, setAgentName] = useState(deal.agent_name ?? "");
   const [newNote, setNewNote] = useState("");
 
   return (
@@ -79,6 +80,17 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
             </select>
           </label>
         </div>
+
+        <label style={labelStyle}>
+          Agent
+          <input
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            onBlur={() => onUpdate(deal.id, { agent_name: agentName.trim() || null })}
+            placeholder="Agent name…"
+            style={inputStyle}
+          />
+        </label>
 
         <div>
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Milestone dates</div>
