@@ -12,10 +12,11 @@ interface TaskListViewProps {
   subtasks: TodoSubtask[];
   onAddTodo: (listId: string, title: string, dueDate: string | null) => void;
   onToggleComplete: (id: string) => void;
+  onToggleSubtask: (id: string) => void;
   onOpenTodo: (id: string) => void;
 }
 
-export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggleComplete, onOpenTodo }: TaskListViewProps) {
+export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggleComplete, onToggleSubtask, onOpenTodo }: TaskListViewProps) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
 
@@ -103,6 +104,7 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
             todo={t}
             subtasks={subtasks.filter((s) => s.todo_id === t.id)}
             onToggleComplete={onToggleComplete}
+            onToggleSubtask={onToggleSubtask}
             onOpen={onOpenTodo}
           />
         ))}

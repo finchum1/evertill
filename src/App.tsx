@@ -88,6 +88,7 @@ function TasksDashboard({ tasks }: { tasks: TasksData }) {
           subtasks={subtasks}
           onOpenTodo={setOpenTodoId}
           onToggleComplete={toggleTodoComplete}
+          onToggleSubtask={toggleSubtask}
           onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
         />
       ) : (
@@ -98,6 +99,7 @@ function TasksDashboard({ tasks }: { tasks: TasksData }) {
           subtasks={subtasks}
           onAddTodo={addTodo}
           onToggleComplete={toggleTodoComplete}
+          onToggleSubtask={toggleSubtask}
           onOpenTodo={setOpenTodoId}
         />
       )}

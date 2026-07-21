@@ -12,12 +12,13 @@ interface CalendarViewProps {
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onToggleSubtask: (id: string) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, onDropTodoOnDate }: CalendarViewProps) {
+export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, onToggleSubtask, onDropTodoOnDate }: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
   const [anchor, setAnchor] = useState(() => new Date());
 
@@ -81,7 +82,14 @@ export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, on
         <WeekGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} onDropTodoOnDate={onDropTodoOnDate} />
       )}
       {subView === "day" && (
-        <DayList day={anchor} todosByDay={todosByDay} subtasks={subtasks} onOpenTodo={onOpenTodo} onToggleComplete={onToggleComplete} />
+        <DayList
+          day={anchor}
+          todosByDay={todosByDay}
+          subtasks={subtasks}
+          onOpenTodo={onOpenTodo}
+          onToggleComplete={onToggleComplete}
+          onToggleSubtask={onToggleSubtask}
+        />
       )}
     </div>
   );
@@ -287,12 +295,14 @@ function DayList({
   subtasks,
   onOpenTodo,
   onToggleComplete,
+  onToggleSubtask,
 }: {
   day: Date;
   todosByDay: Map<string, Todo[]>;
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onToggleSubtask: (id: string) => void;
 }) {
   const dayTodos = todosByDay.get(dateToKey(day)) ?? [];
 
@@ -308,6 +318,7 @@ function DayList({
           todo={t}
           subtasks={subtasks.filter((s) => s.todo_id === t.id)}
           onToggleComplete={onToggleComplete}
+          onToggleSubtask={onToggleSubtask}
           onOpen={onOpenTodo}
         />
       ))}
