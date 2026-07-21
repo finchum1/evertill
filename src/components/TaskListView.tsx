@@ -30,11 +30,17 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
   } else if (view === "upcoming") {
     shown = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey);
     heading = "Upcoming";
+  } else if (view === "completed") {
+    shown = todos.filter((t) => t.completed);
+    heading = "Completed";
   } else {
     shown = todos.filter((t) => t.list_id === view && !t.completed);
     heading = list?.name ?? "List";
   }
-  shown = [...shown].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  shown =
+    view === "completed"
+      ? [...shown].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))
+      : [...shown].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,23 +57,29 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
     <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: "0 0 16px" }}>{heading}</h1>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={view === "today" ? "Add a task for today…" : "Add a task…"}
-          style={{ ...inputStyle, flex: 1 }}
-        />
-        {view !== "today" && view !== "upcoming" && (
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} />
-        )}
-        <button type="submit" style={primaryButtonStyle}>
-          Add
-        </button>
-      </form>
+      {view !== "completed" && (
+        <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={view === "today" ? "Add a task for today…" : "Add a task…"}
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          {view !== "today" && view !== "upcoming" && (
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} />
+          )}
+          <button type="submit" style={primaryButtonStyle}>
+            Add
+          </button>
+        </form>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {shown.length === 0 && <div style={{ color: "#475569", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing here yet.</div>}
+        {shown.length === 0 && (
+          <div style={{ color: "#475569", fontSize: 13, padding: "24px 0", textAlign: "center" }}>
+            {view === "completed" ? "No completed tasks." : "Nothing here yet."}
+          </div>
+        )}
         {shown.map((t) => (
           <TaskRow
             key={t.id}

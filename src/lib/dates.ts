@@ -20,3 +20,22 @@ export function formatDueDate(dateStr: string): string {
 export function isOverdue(dateStr: string): boolean {
   return dateStr < todayKey();
 }
+
+export function addDays(d: Date, days: number): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+export function addMonths(d: Date, months: number): Date {
+  const copy = new Date(d);
+  copy.setMonth(copy.getMonth() + months);
+  return copy;
+}
+
+export function startOfWeek(d: Date): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() - copy.getDay());
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}

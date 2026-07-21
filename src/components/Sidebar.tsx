@@ -32,6 +32,7 @@ export function Sidebar({
   const tkey = todayKey();
   const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
   const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
+  const completedCount = todos.filter((t) => t.completed).length;
 
   const inbox = lists.find((l) => l.is_inbox);
   const unfiledLists = lists.filter((l) => !l.folder_id && !l.is_inbox);
@@ -94,10 +95,19 @@ export function Sidebar({
         <span>Upcoming</span>
         {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "#e0e7ff" : "#475569" }}>{upcomingCount}</span>}
       </button>
+      <button onClick={() => onSetView("calendar")} style={navButtonStyle(view === "calendar")}>
+        <span>Calendar</span>
+      </button>
 
       {inbox && (
         <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #1e293b" }}>
           {listRow(inbox)}
+          <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
+            <span>Completed</span>
+            {completedCount > 0 && (
+              <span style={{ fontSize: 11, color: view === "completed" ? "#e0e7ff" : "#475569" }}>{completedCount}</span>
+            )}
+          </button>
         </div>
       )}
 

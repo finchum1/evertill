@@ -8,6 +8,7 @@ import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
 import { TaskListView } from "./components/TaskListView";
 import { TaskModal } from "./components/TaskModal";
+import { CalendarView } from "./components/CalendarView";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { PipelineBoard } from "./components/PipelineBoard";
@@ -77,15 +78,24 @@ function TasksDashboard({ userId }: { userId: string }) {
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
       />
-      <TaskListView
-        view={view}
-        lists={lists}
-        todos={todos}
-        subtasks={subtasks}
-        onAddTodo={addTodo}
-        onToggleComplete={toggleTodoComplete}
-        onOpenTodo={setOpenTodoId}
-      />
+      {view === "calendar" ? (
+        <CalendarView
+          todos={todos}
+          subtasks={subtasks}
+          onOpenTodo={setOpenTodoId}
+          onToggleComplete={toggleTodoComplete}
+        />
+      ) : (
+        <TaskListView
+          view={view}
+          lists={lists}
+          todos={todos}
+          subtasks={subtasks}
+          onAddTodo={addTodo}
+          onToggleComplete={toggleTodoComplete}
+          onOpenTodo={setOpenTodoId}
+        />
+      )}
       {openTodo && (
         <TaskModal
           todo={openTodo}
