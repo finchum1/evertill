@@ -25,9 +25,15 @@ import { DealsBoard } from "./components/DealsBoard";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
+import type { CreateType } from "./components/CreateMenu";
 import type { Page, View } from "./types";
 
-function TasksDashboard({ userId }: { userId: string }) {
+type TasksData = ReturnType<typeof useTasks>;
+type LeadsData = ReturnType<typeof useLeads>;
+type PipelineData = ReturnType<typeof usePipeline>;
+type DealsData = ReturnType<typeof useDeals>;
+
+function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () => void }) {
   const {
     folders,
     lists,
@@ -47,11 +53,10 @@ function TasksDashboard({ userId }: { userId: string }) {
     addSubtask,
     toggleSubtask,
     deleteSubtask,
-  } = useTasks(userId);
+  } = tasks;
 
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   if (loading) {
     return (
@@ -87,7 +92,7 @@ function TasksDashboard({ userId }: { userId: string }) {
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
         onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
-        onNewTask={() => setQuickAddOpen(true)}
+        onNewTask={onNewTask}
       />
       {view === "calendar" ? (
         <CalendarView
@@ -123,21 +128,11 @@ function TasksDashboard({ userId }: { userId: string }) {
           onDeleteSubtask={deleteSubtask}
         />
       )}
-      {quickAddOpen && (
-        <QuickAddTaskModal
-          lists={lists}
-          onClose={() => setQuickAddOpen(false)}
-          onCreate={(listId, title, dueDate) => {
-            addTodo(listId, title, dueDate);
-            setQuickAddOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }
 
-function LeadsDashboard({ userId }: { userId: string }) {
+function LeadsDashboard({ leads }: { leads: LeadsData }) {
   const {
     columns,
     cards,
@@ -151,7 +146,7 @@ function LeadsDashboard({ userId }: { userId: string }) {
     deleteCard,
     addNote,
     deleteNote,
-  } = useLeads(userId);
+  } = leads;
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
@@ -221,7 +216,7 @@ function LeadsDashboard({ userId }: { userId: string }) {
   );
 }
 
-function PipelineDashboard({ userId }: { userId: string }) {
+function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
   const {
     columns,
     cards,
@@ -235,7 +230,7 @@ function PipelineDashboard({ userId }: { userId: string }) {
     deleteCard,
     addNote,
     deleteNote,
-  } = usePipeline(userId);
+  } = pipeline;
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
@@ -305,8 +300,8 @@ function PipelineDashboard({ userId }: { userId: string }) {
   );
 }
 
-function DealsDashboard({ userId }: { userId: string }) {
-  const { deals, notes, loading, addDeal, updateDeal, deleteDeal, addNote, deleteNote } = useDeals(userId);
+function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
+  const { deals, notes, loading, addDeal, updateDeal, deleteDeal, addNote, deleteNote } = dealsData;
 
   const [openDealId, setOpenDealId] = useState<string | null>(null);
   const [showNewDeal, setShowNewDeal] = useState(false);
@@ -382,16 +377,30 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-function PageContent({ page, userId }: { page: Page; userId: string }) {
+function PageContent({
+  page,
+  tasksData,
+  leadsData,
+  pipelineData,
+  dealsData,
+  onNewTask,
+}: {
+  page: Page;
+  tasksData: TasksData;
+  leadsData: LeadsData;
+  pipelineData: PipelineData;
+  dealsData: DealsData;
+  onNewTask: () => void;
+}) {
   switch (page) {
     case "tasks":
-      return <TasksDashboard userId={userId} />;
+      return <TasksDashboard tasks={tasksData} onNewTask={onNewTask} />;
     case "leads":
-      return <LeadsDashboard userId={userId} />;
+      return <LeadsDashboard leads={leadsData} />;
     case "pipeline":
-      return <PipelineDashboard userId={userId} />;
+      return <PipelineDashboard pipeline={pipelineData} />;
     case "deals":
-      return <DealsDashboard userId={userId} />;
+      return <DealsDashboard dealsData={dealsData} />;
   }
 }
 
@@ -399,6 +408,44 @@ function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
   const [page, setPage] = useState<Page>("tasks");
+
+  // Lifted above any single page so the header's global "+ Create" menu can
+  // create a Task/Lead/Pipeline/Deal — and pop its modal open in place, with
+  // no navigation — regardless of which page is currently showing.
+  const tasks = useTasks(session?.user.id);
+  const leads = useLeads(session?.user.id);
+  const pipeline = usePipeline(session?.user.id);
+  const deals = useDeals(session?.user.id);
+
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [createLeadCardId, setCreateLeadCardId] = useState<string | null>(null);
+  const [createPipelineCardId, setCreatePipelineCardId] = useState<string | null>(null);
+  const [createShowNewDeal, setCreateShowNewDeal] = useState(false);
+  const [createDealId, setCreateDealId] = useState<string | null>(null);
+
+  async function handleCreate(type: CreateType) {
+    if (type === "task") {
+      setQuickAddOpen(true);
+    } else if (type === "lead") {
+      const column = leads.columns[0];
+      if (!column) {
+        setPage("leads");
+        return;
+      }
+      const card = await leads.addCard(column.id);
+      if (card) setCreateLeadCardId(card.id);
+    } else if (type === "pipeline") {
+      const column = pipeline.columns[0];
+      if (!column) {
+        setPage("pipeline");
+        return;
+      }
+      const card = await pipeline.addCard(column.id);
+      if (card) setCreatePipelineCardId(card.id);
+    } else {
+      setCreateShowNewDeal(true);
+    }
+  }
 
   if (loading) {
     return (
@@ -408,6 +455,10 @@ function App() {
     );
   }
 
+  const createLeadCard = createLeadCardId ? leads.cards.find((c) => c.id === createLeadCardId) : undefined;
+  const createPipelineCard = createPipelineCardId ? pipeline.cards.find((c) => c.id === createPipelineCardId) : undefined;
+  const createDeal = createDealId ? deals.deals.find((d) => d.id === createDealId) : undefined;
+
   return (
     <div style={{ minHeight: "100vh", background: "#020817" }}>
       <Header
@@ -416,13 +467,81 @@ function App() {
         onSetPage={setPage}
         onLogin={() => setAuthModal("signin")}
         onSignup={() => setAuthModal("signup")}
+        onCreate={handleCreate}
       />
       {session ? (
-        <PageContent page={page} userId={session.user.id} />
+        <PageContent
+          page={page}
+          tasksData={tasks}
+          leadsData={leads}
+          pipelineData={pipeline}
+          dealsData={deals}
+          onNewTask={() => setQuickAddOpen(true)}
+        />
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />
       )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
+
+      {quickAddOpen && (
+        <QuickAddTaskModal
+          lists={tasks.lists}
+          onClose={() => setQuickAddOpen(false)}
+          onCreate={(listId, title, dueDate) => {
+            tasks.addTodo(listId, title, dueDate);
+            setQuickAddOpen(false);
+          }}
+        />
+      )}
+
+      {createLeadCard && (
+        <LeadCardModal
+          card={createLeadCard}
+          columns={leads.columns}
+          notes={leads.notes.filter((n) => n.card_id === createLeadCard.id)}
+          onClose={() => setCreateLeadCardId(null)}
+          onUpdate={leads.updateCard}
+          onDelete={leads.deleteCard}
+          onAddNote={leads.addNote}
+          onDeleteNote={leads.deleteNote}
+        />
+      )}
+
+      {createPipelineCard && (
+        <PipelineCardModal
+          card={createPipelineCard}
+          columns={pipeline.columns}
+          notes={pipeline.notes.filter((n) => n.card_id === createPipelineCard.id)}
+          onClose={() => setCreatePipelineCardId(null)}
+          onUpdate={pipeline.updateCard}
+          onDelete={pipeline.deleteCard}
+          onAddNote={pipeline.addNote}
+          onDeleteNote={pipeline.deleteNote}
+        />
+      )}
+
+      {createShowNewDeal && (
+        <NewDealModal
+          onClose={() => setCreateShowNewDeal(false)}
+          onCreate={async (address, type, acceptanceDate) => {
+            const deal = await deals.addDeal(address, type, acceptanceDate);
+            setCreateShowNewDeal(false);
+            if (deal) setCreateDealId(deal.id);
+          }}
+        />
+      )}
+
+      {createDeal && (
+        <DealModal
+          deal={createDeal}
+          notes={deals.notes.filter((n) => n.deal_id === createDeal.id)}
+          onClose={() => setCreateDealId(null)}
+          onUpdate={deals.updateDeal}
+          onDelete={deals.deleteDeal}
+          onAddNote={deals.addNote}
+          onDeleteNote={deals.deleteNote}
+        />
+      )}
     </div>
   );
 }

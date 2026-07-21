@@ -1,6 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { Page } from "../types";
+import { CreateMenu } from "./CreateMenu";
+import type { CreateType } from "./CreateMenu";
 
 interface HeaderProps {
   session: Session | null;
@@ -8,6 +10,7 @@ interface HeaderProps {
   onSetPage: (page: Page) => void;
   onLogin: () => void;
   onSignup: () => void;
+  onCreate: (type: CreateType) => void;
 }
 
 const NAV_ITEMS: { key: Page; label: string }[] = [
@@ -17,7 +20,7 @@ const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "deals", label: "Deals" },
 ];
 
-export function Header({ session, page, onSetPage, onLogin, onSignup }: HeaderProps) {
+export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }: HeaderProps) {
   return (
     <div
       style={{
@@ -58,6 +61,7 @@ export function Header({ session, page, onSetPage, onLogin, onSignup }: HeaderPr
       </div>
       {session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <CreateMenu onSelect={onCreate} />
           <span style={{ fontSize: 13, color: "#64748b" }}>{session.user.email}</span>
           <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
             Log out
