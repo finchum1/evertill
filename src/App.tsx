@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
+import { usePipeline } from "./hooks/usePipeline";
 import { Header } from "./components/Header";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
@@ -9,6 +10,8 @@ import { TaskListView } from "./components/TaskListView";
 import { TaskModal } from "./components/TaskModal";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
+import { PipelineBoard } from "./components/PipelineBoard";
+import { PipelineCardModal } from "./components/PipelineCardModal";
 import type { Page, View } from "./types";
 
 function TasksDashboard({ userId }: { userId: string }) {
@@ -157,6 +160,67 @@ function LeadsDashboard({ userId }: { userId: string }) {
   );
 }
 
+function PipelineDashboard({ userId }: { userId: string }) {
+  const {
+    columns,
+    cards,
+    notes,
+    loading,
+    addColumn,
+    renameColumn,
+    deleteColumn,
+    addCard,
+    updateCard,
+    deleteCard,
+    addNote,
+    deleteNote,
+  } = usePipeline(userId);
+
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  const openCard = openCardId ? cards.find((c) => c.id === openCardId) : undefined;
+
+  return (
+    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+      <PipelineBoard
+        columns={columns}
+        cards={cards}
+        onAddColumn={() => {
+          const label = window.prompt("Column name:");
+          if (label?.trim()) addColumn(label.trim());
+        }}
+        onRenameColumn={renameColumn}
+        onDeleteColumn={deleteColumn}
+        onAddCard={async (columnId) => {
+          const card = await addCard(columnId);
+          if (card) setOpenCardId(card.id);
+        }}
+        onOpenCard={setOpenCardId}
+      />
+      {openCard && (
+        <PipelineCardModal
+          card={openCard}
+          columns={columns}
+          notes={notes.filter((n) => n.card_id === openCard.id)}
+          onClose={() => setOpenCardId(null)}
+          onUpdate={updateCard}
+          onDelete={deleteCard}
+          onAddNote={addNote}
+          onDeleteNote={deleteNote}
+        />
+      )}
+    </div>
+  );
+}
+
 function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <div
@@ -215,8 +279,10 @@ function App() {
       {session ? (
         page === "tasks" ? (
           <TasksDashboard userId={session.user.id} />
-        ) : (
+        ) : page === "leads" ? (
           <LeadsDashboard userId={session.user.id} />
+        ) : (
+          <PipelineDashboard userId={session.user.id} />
         )
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />

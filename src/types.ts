@@ -74,7 +74,7 @@ export interface TodoSubtask {
 // UUIDs, so they never collide with the two special keys below).
 export type View = "today" | "upcoming" | string;
 
-export type Page = "tasks" | "leads";
+export type Page = "tasks" | "leads" | "pipeline";
 
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
@@ -106,6 +106,45 @@ export interface LeadCard {
 }
 
 export interface LeadNote {
+  id: string;
+  user_id: string;
+  card_id: string;
+  body: string;
+  created_at: string;
+}
+
+// Structurally identical to Leads above (same shared color palette, same
+// card shape) plus source_lead_id — an informational-only pointer for the
+// future Lead -> Pipeline conversion action, not acted on anywhere yet.
+export interface PipelineColumn {
+  id: string;
+  user_id: string;
+  label: string;
+  color: ListColor;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface PipelineCard {
+  id: string;
+  user_id: string;
+  column_id: string;
+  source_lead_id: string | null;
+  title: string;
+  value: number;
+  due_date: string | null; // 'YYYY-MM-DD' — "Next Activity"
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  tag_buyer: boolean;
+  tag_listing: boolean;
+  sort_order: number;
+  last_activity_at: string | null;
+  last_activity_text: string | null;
+  created_at: string;
+}
+
+export interface PipelineNote {
   id: string;
   user_id: string;
   card_id: string;

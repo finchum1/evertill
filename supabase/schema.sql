@@ -212,3 +212,87 @@ create trigger on_lead_note_created
 alter publication supabase_realtime add table lead_columns;
 alter publication supabase_realtime add table lead_cards;
 alter publication supabase_realtime add table lead_notes;
+
+-- ---------------------------------------------------------------------
+-- Pipeline module: structurally identical to Leads above (custom columns ->
+-- cards -> notes, same denormalized-user_id RLS pattern). pipeline_cards
+-- additionally has source_lead_id, an informational-only pointer for the
+-- future Lead -> Pipeline conversion action (not built yet) — SET NULL on
+-- delete so removing the originating lead never breaks the pipeline card.
+-- ---------------------------------------------------------------------
+create table if not exists pipeline_columns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  label text not null default 'New Column',
+  color text not null default 'slate',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists pipeline_cards (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  column_id uuid not null references pipeline_columns(id) on delete cascade,
+  source_lead_id uuid references lead_cards(id) on delete set null,
+  title text not null default 'Untitled client',
+  value numeric not null default 0,
+  due_date date, -- "Next Activity"
+  phone text,
+  email text,
+  address text,
+  tag_buyer boolean not null default false,
+  tag_listing boolean not null default false,
+  sort_order integer not null default 0,
+  last_activity_at timestamptz,
+  last_activity_text text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists pipeline_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  card_id uuid not null references pipeline_cards(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists pipeline_columns_user_id_idx on pipeline_columns(user_id);
+create index if not exists pipeline_cards_user_id_idx on pipeline_cards(user_id);
+create index if not exists pipeline_cards_column_id_idx on pipeline_cards(column_id);
+create index if not exists pipeline_notes_user_id_idx on pipeline_notes(user_id);
+create index if not exists pipeline_notes_card_id_idx on pipeline_notes(card_id);
+
+alter table pipeline_columns enable row level security;
+alter table pipeline_cards enable row level security;
+alter table pipeline_notes enable row level security;
+
+drop policy if exists "pipeline_columns_owner_all" on pipeline_columns;
+create policy "pipeline_columns_owner_all" on pipeline_columns
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "pipeline_cards_owner_all" on pipeline_cards;
+create policy "pipeline_cards_owner_all" on pipeline_cards
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "pipeline_notes_owner_all" on pipeline_notes;
+create policy "pipeline_notes_owner_all" on pipeline_notes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create or replace function public.stamp_pipeline_card_activity()
+returns trigger as $$
+begin
+  update pipeline_cards
+  set last_activity_at = new.created_at, last_activity_text = new.body
+  where id = new.card_id;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists on_pipeline_note_created on pipeline_notes;
+create trigger on_pipeline_note_created
+  after insert on pipeline_notes
+  for each row execute function public.stamp_pipeline_card_activity();
+
+alter publication supabase_realtime add table pipeline_columns;
+alter publication supabase_realtime add table pipeline_cards;
+alter publication supabase_realtime add table pipeline_notes;
