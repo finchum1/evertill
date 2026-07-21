@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { LIST_COLOR_HEX } from "../types";
-import type { Todo, TodoFolder, TodoList, View } from "../types";
+import type { ListColor, Todo, TodoFolder, TodoList, View } from "../types";
 import { todayKey } from "../lib/dates";
-import { TODO_DRAG_MIME } from "../lib/dragTypes";
+import { TODO_DRAG_MIME, TODO_FOLDER_DRAG_MIME, TODO_LIST_DRAG_MIME } from "../lib/dragTypes";
+import { ListMenu } from "./ListMenu";
 
 interface SidebarProps {
   folders: TodoFolder[];
@@ -13,10 +14,14 @@ interface SidebarProps {
   onAddFolder: () => void;
   onAddList: (folderId: string | null) => void;
   onRenameList: (id: string, name: string) => void;
+  onSetListColor: (id: string, color: ListColor) => void;
   onDeleteList: (id: string) => void;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onDropTodoOnList: (todoId: string, listId: string) => void;
+  onMoveListToFolder: (id: string, folderId: string | null) => void;
+  onReorderLists: (orderedIds: string[]) => void;
+  onReorderFolders: (orderedIds: string[]) => void;
   onNewTask: () => void;
 }
 
@@ -29,13 +34,18 @@ export function Sidebar({
   onAddFolder,
   onAddList,
   onRenameList,
+  onSetListColor,
   onDeleteList,
   onRenameFolder,
   onDeleteFolder,
   onDropTodoOnList,
+  onMoveListToFolder,
+  onReorderLists,
+  onReorderFolders,
   onNewTask,
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const tkey = todayKey();
   const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
   const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
@@ -44,6 +54,36 @@ export function Sidebar({
   const inbox = lists.find((l) => l.is_inbox);
   const unfiledLists = lists.filter((l) => !l.folder_id && !l.is_inbox);
 
+  // Dropping a list onto another list reorders within the same bucket
+  // (folder, or unfiled) if they share it, or moves the dragged list into
+  // the target's bucket otherwise — appended in whatever position the
+  // target list currently sits, not a precise insert-before/after.
+  function handleReorderList(draggedId: string, targetId: string) {
+    const dragged = lists.find((l) => l.id === draggedId);
+    const target = lists.find((l) => l.id === targetId);
+    if (!dragged || !target || draggedId === targetId) return;
+    if (dragged.folder_id !== target.folder_id) {
+      onMoveListToFolder(draggedId, target.folder_id);
+      return;
+    }
+    const bucket = lists.filter((l) => l.folder_id === dragged.folder_id && !l.is_inbox);
+    const withoutDragged = bucket.filter((l) => l.id !== draggedId);
+    const targetIndex = withoutDragged.findIndex((l) => l.id === targetId);
+    withoutDragged.splice(targetIndex, 0, dragged);
+    onReorderLists(withoutDragged.map((l) => l.id));
+  }
+
+  function handleReorderFolder(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    const dragged = folders.find((f) => f.id === draggedId);
+    if (!dragged) return;
+    const withoutDragged = folders.filter((f) => f.id !== draggedId);
+    const targetIndex = withoutDragged.findIndex((f) => f.id === targetId);
+    if (targetIndex < 0) return;
+    withoutDragged.splice(targetIndex, 0, dragged);
+    onReorderFolders(withoutDragged.map((f) => f.id));
+  }
+
   function listRow(list: TodoList) {
     const isActive = view === list.id;
     const isDragOver = dragOverListId === list.id;
@@ -51,22 +91,37 @@ export function Sidebar({
     return (
       <div key={list.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <button
+          draggable={!list.is_inbox}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(TODO_LIST_DRAG_MIME, list.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
           onClick={() => onSetView(list.id)}
           onDragOver={(e) => {
-            if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+            if (e.dataTransfer.types.includes(TODO_DRAG_MIME) || e.dataTransfer.types.includes(TODO_LIST_DRAG_MIME)) {
+              e.preventDefault();
+            }
           }}
           onDragEnter={(e) => {
-            if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverListId(list.id);
+            if (e.dataTransfer.types.includes(TODO_DRAG_MIME) || e.dataTransfer.types.includes(TODO_LIST_DRAG_MIME)) {
+              setDragOverListId(list.id);
+            }
           }}
           onDragLeave={() => setDragOverListId((cur) => (cur === list.id ? null : cur))}
           onDrop={(e) => {
             e.preventDefault();
             setDragOverListId(null);
             const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
-            if (todoId) onDropTodoOnList(todoId, list.id);
+            if (todoId) {
+              onDropTodoOnList(todoId, list.id);
+              return;
+            }
+            const draggedListId = e.dataTransfer.getData(TODO_LIST_DRAG_MIME);
+            if (draggedListId) handleReorderList(draggedListId, list.id);
           }}
           style={{
             ...navButtonStyle(isActive),
+            cursor: list.is_inbox ? "pointer" : "grab",
             ...(isDragOver ? { background: "#312e81", boxShadow: "inset 0 0 0 2px #6366f1" } : {}),
           }}
         >
@@ -79,23 +134,13 @@ export function Sidebar({
           {count > 0 && <span style={{ fontSize: 11, color: isActive ? "#e0e7ff" : "#475569" }}>{count}</span>}
         </button>
         {!list.is_inbox && (
-          <button
-            title="Rename or delete list"
-            onClick={() => {
-              const action = window.prompt(`"${list.name}" — type "delete" to delete, or type a new name to rename:`, list.name);
-              if (action === null) return;
-              if (action.trim().toLowerCase() === "delete") {
-                if (window.confirm(`Delete list "${list.name}" and all its tasks? This can't be undone.`)) {
-                  onDeleteList(list.id);
-                }
-              } else if (action.trim()) {
-                onRenameList(list.id, action.trim());
-              }
-            }}
-            style={menuButtonStyle}
-          >
-            ⋯
-          </button>
+          <ListMenu
+            name={list.name}
+            color={list.color}
+            onRename={(name) => onRenameList(list.id, name)}
+            onSetColor={(color) => onSetListColor(list.id, color)}
+            onDelete={() => onDeleteList(list.id)}
+          />
         )}
       </div>
     );
@@ -157,7 +202,44 @@ export function Sidebar({
 
       {folders.map((folder) => (
         <div key={folder.id} style={{ marginBottom: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px" }}>
+          <div
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData(TODO_FOLDER_DRAG_MIME, folder.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes(TODO_LIST_DRAG_MIME) || e.dataTransfer.types.includes(TODO_FOLDER_DRAG_MIME)) {
+                e.preventDefault();
+              }
+            }}
+            onDragEnter={(e) => {
+              if (e.dataTransfer.types.includes(TODO_LIST_DRAG_MIME) || e.dataTransfer.types.includes(TODO_FOLDER_DRAG_MIME)) {
+                setDragOverFolderId(folder.id);
+              }
+            }}
+            onDragLeave={() => setDragOverFolderId((cur) => (cur === folder.id ? null : cur))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverFolderId(null);
+              const draggedListId = e.dataTransfer.getData(TODO_LIST_DRAG_MIME);
+              if (draggedListId) {
+                onMoveListToFolder(draggedListId, folder.id);
+                return;
+              }
+              const draggedFolderId = e.dataTransfer.getData(TODO_FOLDER_DRAG_MIME);
+              if (draggedFolderId) handleReorderFolder(draggedFolderId, folder.id);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 10px",
+              borderRadius: 8,
+              cursor: "grab",
+              ...(dragOverFolderId === folder.id ? { background: "#312e81", boxShadow: "inset 0 0 0 2px #6366f1" } : {}),
+            }}
+          >
             <span style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {folder.name.toUpperCase()}
             </span>

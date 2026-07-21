@@ -114,6 +114,15 @@ export function useTasks(userId: string | undefined) {
     await refresh();
   }
 
+  // Rewrites sort_order to sequential values in the given order. Used for
+  // drag-to-reorder — since lists are always filtered to one bucket (a
+  // folder, or "unfiled") before being displayed, only the relative order
+  // within that bucket's own ids matters, not the absolute values.
+  async function reorderFolders(orderedIds: string[]) {
+    await Promise.all(orderedIds.map((id, i) => supabase.from("todo_folders").update({ sort_order: i }).eq("id", id)));
+    await refresh();
+  }
+
   // -- Lists ------------------------------------------------------------------
   async function addList(name: string, folderId: string | null = null) {
     if (!userId) return;
@@ -133,6 +142,11 @@ export function useTasks(userId: string | undefined) {
   async function setListColor(id: string, color: ListColor) {
     const { error } = await supabase.from("todo_lists").update({ color }).eq("id", id);
     if (error) throw error;
+    await refresh();
+  }
+
+  async function reorderLists(orderedIds: string[]) {
+    await Promise.all(orderedIds.map((id, i) => supabase.from("todo_lists").update({ sort_order: i }).eq("id", id)));
     await refresh();
   }
 
@@ -226,9 +240,11 @@ export function useTasks(userId: string | undefined) {
     addFolder,
     renameFolder,
     deleteFolder,
+    reorderFolders,
     addList,
     renameList,
     setListColor,
+    reorderLists,
     moveListToFolder,
     deleteList,
     addTodo,

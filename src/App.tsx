@@ -47,8 +47,12 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
     addFolder,
     renameFolder,
     deleteFolder,
+    reorderFolders,
     addList,
     renameList,
+    setListColor,
+    reorderLists,
+    moveListToFolder,
     deleteList,
     addTodo,
     updateTodo,
@@ -89,6 +93,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           if (name?.trim()) addList(name.trim(), folderId);
         }}
         onRenameList={renameList}
+        onSetListColor={setListColor}
         onDeleteList={(id) => {
           if (view === id) setView("today");
           deleteList(id);
@@ -96,6 +101,9 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
         onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
+        onMoveListToFolder={moveListToFolder}
+        onReorderLists={reorderLists}
+        onReorderFolders={reorderFolders}
         onNewTask={onNewTask}
       />
       {view === "calendar" ? (
