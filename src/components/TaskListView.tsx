@@ -5,6 +5,7 @@ import { TaskRow } from "./TaskRow";
 import { isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
 import { openDatePicker } from "../lib/datePicker";
+import { SmartDateInput } from "./SmartDateInput";
 
 interface TaskListViewProps {
   view: View;
@@ -99,7 +100,7 @@ export function TaskListView({
 
       {view !== "completed" && (
         <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <input
+          <SmartDateInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={view === "today" ? "Add a task for today…" : "Add a task…"}

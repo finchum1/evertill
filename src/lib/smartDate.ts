@@ -16,6 +16,19 @@ export interface SmartDateMatch {
   title: string;
 }
 
+export interface SmartDatePhraseRange {
+  start: number;
+  end: number;
+}
+
+// Lighter-weight than parseSmartDueDate — just where the matched phrase sits
+// in the raw text, for live-highlighting as the user types (no date math).
+export function matchSmartDuePhrase(text: string): SmartDatePhraseRange | null {
+  const m = SMART_DATE_RE.exec(text);
+  if (!m) return null;
+  return { start: m.index, end: m.index + m[0].length };
+}
+
 export function parseSmartDueDate(text: string): SmartDateMatch | null {
   const m = SMART_DATE_RE.exec(text);
   if (!m) return null;

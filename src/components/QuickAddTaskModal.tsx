@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { TodoList } from "../types";
 import { parseSmartDueDate } from "../lib/smartDate";
 import { openDatePicker } from "../lib/datePicker";
+import { SmartDateInput } from "./SmartDateInput";
 
 interface QuickAddTaskModalProps {
   lists: TodoList[];
@@ -69,7 +70,7 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
 
         <label style={labelStyle}>
           Title
-          <input
+          <SmartDateInput
             required
             autoFocus
             value={title}
