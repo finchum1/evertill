@@ -296,3 +296,73 @@ create trigger on_pipeline_note_created
 alter publication supabase_realtime add table pipeline_columns;
 alter publication supabase_realtime add table pipeline_cards;
 alter publication supabase_realtime add table pipeline_notes;
+
+-- ---------------------------------------------------------------------
+-- Deals module: unlike Leads/Pipeline, deals move through a FIXED set of
+-- stages (not user-customizable columns) and carry milestone dates and
+-- money/terms fields instead of contact tags. deal_notes follows the same
+-- append-only-log + activity-stamp-trigger pattern as lead_notes/pipeline_notes.
+-- ---------------------------------------------------------------------
+create table if not exists deals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  address text not null default 'New Deal',
+  type text not null default 'Buyer' check (type in ('Buyer', 'Listing')),
+  status text not null default 'Active'
+    check (status in ('Active', 'Under Contract', 'Pending', 'Closed')),
+  value numeric not null default 0,
+  price numeric not null default 0,
+  earnest_money numeric not null default 0,
+  concessions numeric not null default 0,
+  loan_type text,
+  acceptance_date date,
+  inspection_date date,
+  appraisal_date date,
+  closing_date date,
+  sort_order integer not null default 0,
+  last_activity_at timestamptz,
+  last_activity_text text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists deal_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  deal_id uuid not null references deals(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists deals_user_id_idx on deals(user_id);
+create index if not exists deal_notes_user_id_idx on deal_notes(user_id);
+create index if not exists deal_notes_deal_id_idx on deal_notes(deal_id);
+
+alter table deals enable row level security;
+alter table deal_notes enable row level security;
+
+drop policy if exists "deals_owner_all" on deals;
+create policy "deals_owner_all" on deals
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "deal_notes_owner_all" on deal_notes;
+create policy "deal_notes_owner_all" on deal_notes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create or replace function public.stamp_deal_activity()
+returns trigger as $$
+begin
+  update deals
+  set last_activity_at = new.created_at, last_activity_text = new.body
+  where id = new.deal_id;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists on_deal_note_created on deal_notes;
+create trigger on_deal_note_created
+  after insert on deal_notes
+  for each row execute function public.stamp_deal_activity();
+
+alter publication supabase_realtime add table deals;
+alter publication supabase_realtime add table deal_notes;

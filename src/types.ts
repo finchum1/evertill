@@ -74,7 +74,7 @@ export interface TodoSubtask {
 // UUIDs, so they never collide with the two special keys below).
 export type View = "today" | "upcoming" | string;
 
-export type Page = "tasks" | "leads" | "pipeline";
+export type Page = "tasks" | "leads" | "pipeline" | "deals";
 
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
@@ -148,6 +148,43 @@ export interface PipelineNote {
   id: string;
   user_id: string;
   card_id: string;
+  body: string;
+  created_at: string;
+}
+
+// Deals move through a FIXED set of stages (unlike Leads/Pipeline's
+// user-customizable columns) and carry milestone dates + money/terms
+// fields instead of contact tags.
+export const DEAL_STATUSES = ["Active", "Under Contract", "Pending", "Closed"] as const;
+export type DealStatus = (typeof DEAL_STATUSES)[number];
+export type DealType = "Buyer" | "Listing";
+
+export interface Deal {
+  id: string;
+  user_id: string;
+  address: string;
+  type: DealType;
+  status: DealStatus;
+  value: number;
+  price: number;
+  earnest_money: number;
+  concessions: number;
+  loan_type: string | null;
+  acceptance_date: string | null;
+  inspection_date: string | null;
+  appraisal_date: string | null;
+  closing_date: string | null;
+  sort_order: number;
+  last_activity_at: string | null;
+  last_activity_text: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealNote {
+  id: string;
+  user_id: string;
+  deal_id: string;
   body: string;
   created_at: string;
 }

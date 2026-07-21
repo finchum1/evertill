@@ -12,6 +12,10 @@ import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { PipelineBoard } from "./components/PipelineBoard";
 import { PipelineCardModal } from "./components/PipelineCardModal";
+import { useDeals } from "./hooks/useDeals";
+import { DealsBoard } from "./components/DealsBoard";
+import { NewDealModal } from "./components/NewDealModal";
+import { DealModal } from "./components/DealModal";
 import type { Page, View } from "./types";
 
 function TasksDashboard({ userId }: { userId: string }) {
@@ -221,6 +225,50 @@ function PipelineDashboard({ userId }: { userId: string }) {
   );
 }
 
+function DealsDashboard({ userId }: { userId: string }) {
+  const { deals, notes, loading, addDeal, updateDeal, deleteDeal, addNote, deleteNote } = useDeals(userId);
+
+  const [openDealId, setOpenDealId] = useState<string | null>(null);
+  const [showNewDeal, setShowNewDeal] = useState(false);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  const openDeal = openDealId ? deals.find((d) => d.id === openDealId) : undefined;
+
+  return (
+    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+      <DealsBoard deals={deals} onAddDeal={() => setShowNewDeal(true)} onOpenDeal={setOpenDealId} />
+      {showNewDeal && (
+        <NewDealModal
+          onClose={() => setShowNewDeal(false)}
+          onCreate={async (address, type, acceptanceDate) => {
+            const deal = await addDeal(address, type, acceptanceDate);
+            setShowNewDeal(false);
+            if (deal) setOpenDealId(deal.id);
+          }}
+        />
+      )}
+      {openDeal && (
+        <DealModal
+          deal={openDeal}
+          notes={notes.filter((n) => n.deal_id === openDeal.id)}
+          onClose={() => setOpenDealId(null)}
+          onUpdate={updateDeal}
+          onDelete={deleteDeal}
+          onAddNote={addNote}
+          onDeleteNote={deleteNote}
+        />
+      )}
+    </div>
+  );
+}
+
 function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <div
@@ -254,6 +302,19 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
+function PageContent({ page, userId }: { page: Page; userId: string }) {
+  switch (page) {
+    case "tasks":
+      return <TasksDashboard userId={userId} />;
+    case "leads":
+      return <LeadsDashboard userId={userId} />;
+    case "pipeline":
+      return <PipelineDashboard userId={userId} />;
+    case "deals":
+      return <DealsDashboard userId={userId} />;
+  }
+}
+
 function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
@@ -277,13 +338,7 @@ function App() {
         onSignup={() => setAuthModal("signup")}
       />
       {session ? (
-        page === "tasks" ? (
-          <TasksDashboard userId={session.user.id} />
-        ) : page === "leads" ? (
-          <LeadsDashboard userId={session.user.id} />
-        ) : (
-          <PipelineDashboard userId={session.user.id} />
-        )
+        <PageContent page={page} userId={session.user.id} />
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />
       )}
