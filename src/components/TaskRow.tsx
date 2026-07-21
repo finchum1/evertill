@@ -1,17 +1,21 @@
-import { useState } from "react";
-import type { Todo, TodoSubtask } from "../types";
+import { useEffect, useRef, useState } from "react";
+import type { Todo, TodoList, TodoSubtask } from "../types";
+import { LIST_COLOR_HEX } from "../types";
 import { formatDueDate, isOverdue } from "../lib/dates";
+import { openDatePicker } from "../lib/datePicker";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
 
 interface TaskRowProps {
   todo: Todo;
+  list?: TodoList;
   subtasks: TodoSubtask[];
   onToggleComplete: (id: string) => void;
   onToggleSubtask: (id: string) => void;
+  onUpdateDueDate: (id: string, date: string | null) => void;
   onOpen: (id: string) => void;
 }
 
-export function TaskRow({ todo, subtasks, onToggleComplete, onToggleSubtask, onOpen }: TaskRowProps) {
+export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtask, onUpdateDueDate, onOpen }: TaskRowProps) {
   const [expanded, setExpanded] = useState(false);
   const open = subtasks.filter((s) => !s.checked).length;
   const overdue = !!todo.due_date && !todo.completed && isOverdue(todo.due_date);
@@ -69,11 +73,26 @@ export function TaskRow({ todo, subtasks, onToggleComplete, onToggleSubtask, onO
           >
             {todo.title}
           </span>
-          {(todo.description || subtasks.length > 0) && (
+          {(list || todo.description || subtasks.length > 0) && (
             <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#64748b" }}>
+              {list && (
+                <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {list.is_inbox ? "Inbox" : list.name}
+                  </span>
+                </span>
+              )}
               {!!todo.description && <DescriptionIcon />}
               {subtasks.length > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((x) => !x);
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                  title={expanded ? "Collapse subtasks" : "Expand subtasks"}
+                >
                   <SubtaskIcon />
                   {open}
                 </span>
@@ -81,18 +100,7 @@ export function TaskRow({ todo, subtasks, onToggleComplete, onToggleSubtask, onO
             </span>
           )}
         </div>
-        {todo.due_date && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: overdue ? "#ef4444" : "#64748b",
-              flexShrink: 0,
-            }}
-          >
-            {formatDueDate(todo.due_date)}
-          </span>
-        )}
+        <DueDateBadge todo={todo} overdue={overdue} onUpdateDueDate={onUpdateDueDate} />
         {subtasks.length > 0 && (
           <button
             onClick={(e) => {
@@ -160,6 +168,71 @@ export function TaskRow({ todo, subtasks, onToggleComplete, onToggleSubtask, onO
         </div>
       )}
     </div>
+  );
+}
+
+function DueDateBadge({
+  todo,
+  overdue,
+  onUpdateDueDate,
+}: {
+  todo: Todo;
+  overdue: boolean;
+  onUpdateDueDate: (id: string, date: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing || !inputRef.current) return;
+    inputRef.current.focus();
+    openDatePicker({ currentTarget: inputRef.current });
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="date"
+        defaultValue={todo.due_date ?? ""}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          onUpdateDueDate(todo.id, e.target.value || null);
+          setEditing(false);
+        }}
+        onBlur={() => setEditing(false)}
+        style={{
+          background: "#1e293b",
+          border: "1px solid #334155",
+          borderRadius: 6,
+          color: "#f1f5f9",
+          fontSize: 12,
+          padding: "3px 6px",
+          outline: "none",
+          fontFamily: "inherit",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
+      title="Click to change due date"
+      style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: todo.due_date ? (overdue ? "#ef4444" : "#64748b") : "#334155",
+        flexShrink: 0,
+        cursor: "pointer",
+      }}
+    >
+      {todo.due_date ? formatDueDate(todo.due_date) : "Set date"}
+    </span>
   );
 }
 

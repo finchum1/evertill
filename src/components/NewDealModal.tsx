@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { DealType } from "../types";
+import { openDatePicker } from "../lib/datePicker";
 
 interface NewDealModalProps {
   onClose: () => void;
@@ -65,7 +66,7 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
           </label>
           <label style={labelStyle}>
             Acceptance date
-            <input type="date" value={acceptanceDate} onChange={(e) => setAcceptanceDate(e.target.value)} style={inputStyle} />
+            <input type="date" value={acceptanceDate} onChange={(e) => setAcceptanceDate(e.target.value)} onClick={openDatePicker} style={inputStyle} />
           </label>
         </div>
 

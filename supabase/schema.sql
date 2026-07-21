@@ -121,6 +121,12 @@ create table if not exists todo_subtasks (
 create index if not exists todo_folders_user_id_idx on todo_folders(user_id);
 create index if not exists todo_lists_user_id_idx on todo_lists(user_id);
 create index if not exists todo_lists_folder_id_idx on todo_lists(folder_id);
+-- Guarantees at most one Inbox per user even under a client-side race (React
+-- StrictMode's dev-only double-invoke let two concurrent "create Inbox if
+-- missing" calls both pass their in-memory check before either insert
+-- landed — a real duplicate this caused was found and removed from live
+-- data). The client now treats the resulting unique-violation as expected.
+create unique index if not exists todo_lists_one_inbox_per_user on todo_lists(user_id) where is_inbox = true;
 create index if not exists todos_user_id_idx on todos(user_id);
 create index if not exists todos_list_id_idx on todos(list_id);
 create index if not exists todo_subtasks_user_id_idx on todo_subtasks(user_id);

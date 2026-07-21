@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Deal, DealNote, DealStatus, DealType } from "../types";
 import { DEAL_STATUSES } from "../types";
+import { openDatePicker } from "../lib/datePicker";
 
 interface DealModalProps {
   deal: Deal;
@@ -97,19 +98,19 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>
               Acceptance
-              <input type="date" value={deal.acceptance_date ?? ""} onChange={(e) => onUpdate(deal.id, { acceptance_date: e.target.value || null })} style={inputStyle} />
+              <input type="date" value={deal.acceptance_date ?? ""} onChange={(e) => onUpdate(deal.id, { acceptance_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
             </label>
             <label style={labelStyle}>
               Inspection
-              <input type="date" value={deal.inspection_date ?? ""} onChange={(e) => onUpdate(deal.id, { inspection_date: e.target.value || null })} style={inputStyle} />
+              <input type="date" value={deal.inspection_date ?? ""} onChange={(e) => onUpdate(deal.id, { inspection_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
             </label>
             <label style={labelStyle}>
               Appraisal
-              <input type="date" value={deal.appraisal_date ?? ""} onChange={(e) => onUpdate(deal.id, { appraisal_date: e.target.value || null })} style={inputStyle} />
+              <input type="date" value={deal.appraisal_date ?? ""} onChange={(e) => onUpdate(deal.id, { appraisal_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
             </label>
             <label style={labelStyle}>
               Closing
-              <input type="date" value={deal.closing_date ?? ""} onChange={(e) => onUpdate(deal.id, { closing_date: e.target.value || null })} style={inputStyle} />
+              <input type="date" value={deal.closing_date ?? ""} onChange={(e) => onUpdate(deal.id, { closing_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
             </label>
           </div>
         </div>

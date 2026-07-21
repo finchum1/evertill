@@ -2,8 +2,9 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Todo, TodoList, TodoSubtask, View } from "../types";
 import { TaskRow } from "./TaskRow";
-import { todayKey } from "../lib/dates";
+import { isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
+import { openDatePicker } from "../lib/datePicker";
 
 interface TaskListViewProps {
   view: View;
@@ -13,16 +14,30 @@ interface TaskListViewProps {
   onAddTodo: (listId: string, title: string, dueDate: string | null) => void;
   onToggleComplete: (id: string) => void;
   onToggleSubtask: (id: string) => void;
+  onUpdateDueDate: (id: string, date: string | null) => void;
   onOpenTodo: (id: string) => void;
 }
 
-export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggleComplete, onToggleSubtask, onOpenTodo }: TaskListViewProps) {
+export function TaskListView({
+  view,
+  lists,
+  todos,
+  subtasks,
+  onAddTodo,
+  onToggleComplete,
+  onToggleSubtask,
+  onUpdateDueDate,
+  onOpenTodo,
+}: TaskListViewProps) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
 
   const inbox = lists.find((l) => l.is_inbox);
   const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);
   const tkey = todayKey();
+  // Only worth showing which list a task belongs to on views that mix tasks
+  // from multiple lists together — redundant on a view already scoped to one list.
+  const showListBadge = view === "today" || view === "upcoming" || view === "completed";
 
   let shown: Todo[];
   let heading: string;
@@ -43,6 +58,13 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
     view === "completed"
       ? [...shown].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))
       : [...shown].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+
+  // Overdue tasks get their own group above the rest, wherever mixing
+  // overdue with non-overdue tasks is possible — Upcoming only ever
+  // contains future dates by definition, and Completed doesn't apply.
+  const canGroupOverdue = view !== "upcoming" && view !== "completed";
+  const overdueShown = canGroupOverdue ? shown.filter((t) => t.due_date && isOverdue(t.due_date)) : [];
+  const restShown = canGroupOverdue ? shown.filter((t) => !(t.due_date && isOverdue(t.due_date))) : shown;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -84,7 +106,7 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
             style={{ ...inputStyle, flex: 1 }}
           />
           {view !== "today" && view !== "upcoming" && (
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} />
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} onClick={openDatePicker} style={inputStyle} />
           )}
           <button type="submit" style={primaryButtonStyle}>
             Add
@@ -98,13 +120,32 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
             {view === "completed" ? "No completed tasks." : "Nothing here yet."}
           </div>
         )}
-        {shown.map((t) => (
+        {overdueShown.length > 0 && (
+          <>
+            <div style={sectionLabelStyle}>Overdue</div>
+            {overdueShown.map((t) => (
+              <TaskRow
+                key={t.id}
+                todo={t}
+                list={showListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
+                subtasks={subtasks.filter((s) => s.todo_id === t.id)}
+                onToggleComplete={onToggleComplete}
+                onToggleSubtask={onToggleSubtask}
+                onUpdateDueDate={onUpdateDueDate}
+                onOpen={onOpenTodo}
+              />
+            ))}
+          </>
+        )}
+        {restShown.map((t) => (
           <TaskRow
             key={t.id}
             todo={t}
+            list={showListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
             subtasks={subtasks.filter((s) => s.todo_id === t.id)}
             onToggleComplete={onToggleComplete}
             onToggleSubtask={onToggleSubtask}
+            onUpdateDueDate={onUpdateDueDate}
             onOpen={onOpenTodo}
           />
         ))}
@@ -134,4 +175,13 @@ const primaryButtonStyle: CSSProperties = {
   padding: "9px 18px",
   cursor: "pointer",
   flexShrink: 0,
+};
+
+const sectionLabelStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#ef4444",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  margin: "4px 0 -2px",
 };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import type { Todo, TodoSubtask } from "../types";
+import type { Todo, TodoList, TodoSubtask } from "../types";
 import { addDays, addMonths, dateToKey, startOfWeek, todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
 import { TaskRow } from "./TaskRow";
@@ -9,16 +9,27 @@ type SubView = "month" | "week" | "day";
 
 interface CalendarViewProps {
   todos: Todo[];
+  lists: TodoList[];
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
   onToggleSubtask: (id: string) => void;
+  onUpdateDueDate: (id: string, date: string | null) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, onToggleSubtask, onDropTodoOnDate }: CalendarViewProps) {
+export function CalendarView({
+  todos,
+  lists,
+  subtasks,
+  onOpenTodo,
+  onToggleComplete,
+  onToggleSubtask,
+  onUpdateDueDate,
+  onDropTodoOnDate,
+}: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
   const [anchor, setAnchor] = useState(() => new Date());
 
@@ -85,10 +96,12 @@ export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, on
         <DayList
           day={anchor}
           todosByDay={todosByDay}
+          lists={lists}
           subtasks={subtasks}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
           onToggleSubtask={onToggleSubtask}
+          onUpdateDueDate={onUpdateDueDate}
         />
       )}
     </div>
@@ -292,17 +305,21 @@ function WeekGrid({
 function DayList({
   day,
   todosByDay,
+  lists,
   subtasks,
   onOpenTodo,
   onToggleComplete,
   onToggleSubtask,
+  onUpdateDueDate,
 }: {
   day: Date;
   todosByDay: Map<string, Todo[]>;
+  lists: TodoList[];
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
   onToggleSubtask: (id: string) => void;
+  onUpdateDueDate: (id: string, date: string | null) => void;
 }) {
   const dayTodos = todosByDay.get(dateToKey(day)) ?? [];
 
@@ -316,9 +333,11 @@ function DayList({
         <TaskRow
           key={t.id}
           todo={t}
+          list={lists.find((l) => l.id === t.list_id)}
           subtasks={subtasks.filter((s) => s.todo_id === t.id)}
           onToggleComplete={onToggleComplete}
           onToggleSubtask={onToggleSubtask}
+          onUpdateDueDate={onUpdateDueDate}
           onOpen={onOpenTodo}
         />
       ))}

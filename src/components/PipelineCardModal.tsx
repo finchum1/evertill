@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { PipelineCard, PipelineColumn, PipelineNote } from "../types";
+import { openDatePicker } from "../lib/datePicker";
 
 interface PipelineCardModalProps {
   card: PipelineCard;
@@ -88,6 +89,7 @@ export function PipelineCardModal({ card, columns, notes, onClose, onUpdate, onD
             type="date"
             value={card.due_date ?? ""}
             onChange={(e) => onUpdate(card.id, { due_date: e.target.value || null })}
+            onClick={openDatePicker}
             style={inputStyle}
           />
         </label>

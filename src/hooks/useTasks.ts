@@ -42,15 +42,28 @@ export function useTasks(userId: string | undefined) {
   }, [userId]);
 
   // Every user gets exactly one fixed "Inbox" list, lazily created the first
-  // time their data loads if one doesn't already exist.
+  // time their data loads if one doesn't already exist. The in-flight ref
+  // guards against duplicate inserts within one mounted hook instance, but
+  // React StrictMode's dev-only mount/unmount/remount cycle can still create
+  // a second instance fast enough to race past it — a real duplicate row was
+  // found and removed from live data because of exactly this. The actual
+  // guarantee is the database's own partial unique index (one is_inbox=true
+  // row per user_id, see schema.sql); a 23505 violation here just means
+  // another call already won the race, so it's swallowed, not surfaced.
   const ensureInboxList = useCallback(async () => {
     if (!userId) return;
     if (lists.some((l) => l.is_inbox)) return;
     if (ensuringInbox.current) return ensuringInbox.current;
     ensuringInbox.current = (async () => {
-      await supabase.from("todo_lists").insert({ user_id: userId, name: "Inbox", is_inbox: true, sort_order: -1 });
-      await refresh();
-      ensuringInbox.current = null;
+      try {
+        const { error } = await supabase
+          .from("todo_lists")
+          .insert({ user_id: userId, name: "Inbox", is_inbox: true, sort_order: -1 });
+        if (error && error.code !== "23505") throw error;
+      } finally {
+        await refresh();
+        ensuringInbox.current = null;
+      }
     })();
     return ensuringInbox.current;
   }, [userId, lists, refresh]);

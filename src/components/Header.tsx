@@ -37,31 +37,33 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
           TC Dashboard
         </div>
         {session && (
-          <nav style={{ display: "flex", gap: 4 }}>
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => onSetPage(item.key)}
-                style={{
-                  background: page === item.key ? "#1e293b" : "none",
-                  border: "none",
-                  borderRadius: 8,
-                  color: page === item.key ? "#f1f5f9" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  padding: "7px 14px",
-                  cursor: "pointer",
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <CreateMenu onSelect={onCreate} />
+            <nav style={{ display: "flex", gap: 4 }}>
+              {NAV_ITEMS.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => onSetPage(item.key)}
+                  style={{
+                    background: page === item.key ? "#1e293b" : "none",
+                    border: "none",
+                    borderRadius: 8,
+                    color: page === item.key ? "#f1f5f9" : "#64748b",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    padding: "7px 14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          </div>
         )}
       </div>
       {session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <CreateMenu onSelect={onCreate} />
           <span style={{ fontSize: 13, color: "#64748b" }}>{session.user.email}</span>
           <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
             Log out

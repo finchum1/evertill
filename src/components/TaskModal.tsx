@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
+import { openDatePicker } from "../lib/datePicker";
 
 interface TaskModalProps {
   todo: Todo;
@@ -92,6 +93,7 @@ export function TaskModal({
               type="date"
               value={todo.due_date ?? ""}
               onChange={(e) => onUpdate(todo.id, { due_date: e.target.value || null })}
+              onClick={openDatePicker}
               style={inputStyle}
             />
           </label>

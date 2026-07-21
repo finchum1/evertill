@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { LeadCard, LeadColumn, LeadNote } from "../types";
+import { openDatePicker } from "../lib/datePicker";
 
 interface LeadCardModalProps {
   card: LeadCard;
@@ -88,6 +89,7 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
             type="date"
             value={card.due_date ?? ""}
             onChange={(e) => onUpdate(card.id, { due_date: e.target.value || null })}
+            onClick={openDatePicker}
             style={inputStyle}
           />
         </label>

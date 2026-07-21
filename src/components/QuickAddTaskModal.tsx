@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { TodoList } from "../types";
 import { parseSmartDueDate } from "../lib/smartDate";
+import { openDatePicker } from "../lib/datePicker";
 
 interface QuickAddTaskModalProps {
   lists: TodoList[];
@@ -91,7 +92,7 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
           </label>
           <label style={labelStyle}>
             Due date
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} />
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} onClick={openDatePicker} style={inputStyle} />
           </label>
         </div>
 

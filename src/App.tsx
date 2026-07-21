@@ -101,10 +101,12 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
       {view === "calendar" ? (
         <CalendarView
           todos={todos}
+          lists={lists}
           subtasks={subtasks}
           onOpenTodo={setOpenTodoId}
           onToggleComplete={toggleTodoComplete}
           onToggleSubtask={toggleSubtask}
+          onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
           onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
         />
       ) : (
@@ -116,6 +118,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           onAddTodo={addTodo}
           onToggleComplete={toggleTodoComplete}
           onToggleSubtask={toggleSubtask}
+          onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
           onOpenTodo={setOpenTodoId}
         />
       )}
