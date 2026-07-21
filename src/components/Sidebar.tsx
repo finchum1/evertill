@@ -17,6 +17,7 @@ interface SidebarProps {
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onDropTodoOnList: (todoId: string, listId: string) => void;
+  onNewTask: () => void;
 }
 
 export function Sidebar({
@@ -32,6 +33,7 @@ export function Sidebar({
   onRenameFolder,
   onDeleteFolder,
   onDropTodoOnList,
+  onNewTask,
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const tkey = todayKey();
@@ -112,6 +114,9 @@ export function Sidebar({
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
+      <button onClick={onNewTask} style={newTaskButtonStyle}>
+        + New Task
+      </button>
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
         <span>Today</span>
         {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "#e0e7ff" : "#475569" }}>{todayCount}</span>}
@@ -185,6 +190,22 @@ export function Sidebar({
     </div>
   );
 }
+
+const newTaskButtonStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  padding: "8px 10px",
+  marginBottom: 10,
+  borderRadius: 8,
+  border: "none",
+  background: "#6366f1",
+  color: "#fff",
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+};
 
 function navButtonStyle(active: boolean) {
   return {

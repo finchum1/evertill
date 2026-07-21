@@ -20,9 +20,7 @@ import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import type { Page, View } from "./types";
 
-type TasksData = ReturnType<typeof useTasks>;
-
-function TasksDashboard({ tasks }: { tasks: TasksData }) {
+function TasksDashboard({ userId }: { userId: string }) {
   const {
     folders,
     lists,
@@ -42,10 +40,11 @@ function TasksDashboard({ tasks }: { tasks: TasksData }) {
     addSubtask,
     toggleSubtask,
     deleteSubtask,
-  } = tasks;
+  } = useTasks(userId);
 
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   if (loading) {
     return (
@@ -81,6 +80,7 @@ function TasksDashboard({ tasks }: { tasks: TasksData }) {
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
         onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
+        onNewTask={() => setQuickAddOpen(true)}
       />
       {view === "calendar" ? (
         <CalendarView
@@ -114,6 +114,16 @@ function TasksDashboard({ tasks }: { tasks: TasksData }) {
           onAddSubtask={addSubtask}
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
+        />
+      )}
+      {quickAddOpen && (
+        <QuickAddTaskModal
+          lists={lists}
+          onClose={() => setQuickAddOpen(false)}
+          onCreate={(listId, title, dueDate) => {
+            addTodo(listId, title, dueDate);
+            setQuickAddOpen(false);
+          }}
         />
       )}
     </div>
@@ -319,10 +329,10 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-function PageContent({ page, userId, tasks }: { page: Page; userId: string; tasks: TasksData }) {
+function PageContent({ page, userId }: { page: Page; userId: string }) {
   switch (page) {
     case "tasks":
-      return <TasksDashboard tasks={tasks} />;
+      return <TasksDashboard userId={userId} />;
     case "leads":
       return <LeadsDashboard userId={userId} />;
     case "pipeline":
@@ -336,10 +346,6 @@ function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
   const [page, setPage] = useState<Page>("tasks");
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-  // Lifted above any single page so the header's "+ New Task" button works
-  // regardless of which page (Leads/Pipeline/Deals) is currently showing.
-  const tasks = useTasks(session?.user.id);
 
   if (loading) {
     return (
@@ -357,24 +363,13 @@ function App() {
         onSetPage={setPage}
         onLogin={() => setAuthModal("signin")}
         onSignup={() => setAuthModal("signup")}
-        onNewTask={() => setQuickAddOpen(true)}
       />
       {session ? (
-        <PageContent page={page} userId={session.user.id} tasks={tasks} />
+        <PageContent page={page} userId={session.user.id} />
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />
       )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
-      {quickAddOpen && (
-        <QuickAddTaskModal
-          lists={tasks.lists}
-          onClose={() => setQuickAddOpen(false)}
-          onCreate={(listId, title, dueDate) => {
-            tasks.addTodo(listId, title, dueDate);
-            setQuickAddOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -8,7 +8,6 @@ interface HeaderProps {
   onSetPage: (page: Page) => void;
   onLogin: () => void;
   onSignup: () => void;
-  onNewTask: () => void;
 }
 
 const NAV_ITEMS: { key: Page; label: string }[] = [
@@ -18,7 +17,7 @@ const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "deals", label: "Deals" },
 ];
 
-export function Header({ session, page, onSetPage, onLogin, onSignup, onNewTask }: HeaderProps) {
+export function Header({ session, page, onSetPage, onLogin, onSignup }: HeaderProps) {
   return (
     <div
       style={{
@@ -59,9 +58,6 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onNewTask 
       </div>
       {session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <button onClick={onNewTask} style={primaryButtonStyle}>
-            + New Task
-          </button>
           <span style={{ fontSize: 13, color: "#64748b" }}>{session.user.email}</span>
           <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
             Log out
