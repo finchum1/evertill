@@ -130,3 +130,85 @@ alter publication supabase_realtime add table todo_folders;
 alter publication supabase_realtime add table todo_lists;
 alter publication supabase_realtime add table todos;
 alter publication supabase_realtime add table todo_subtasks;
+
+-- ---------------------------------------------------------------------
+-- Leads module: lead_columns (custom user-defined stages) -> lead_cards -> lead_notes
+-- Same denormalized-user_id-on-every-table pattern as the Tasks module above.
+-- ---------------------------------------------------------------------
+create table if not exists lead_columns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  label text not null default 'New Column',
+  color text not null default 'slate',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists lead_cards (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  column_id uuid not null references lead_columns(id) on delete cascade,
+  title text not null default 'Untitled lead',
+  value numeric not null default 0,
+  due_date date, -- "Next Activity"
+  phone text,
+  email text,
+  address text,
+  tag_buyer boolean not null default false,
+  tag_listing boolean not null default false,
+  sort_order integer not null default 0,
+  last_activity_at timestamptz,
+  last_activity_text text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists lead_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  card_id uuid not null references lead_cards(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists lead_columns_user_id_idx on lead_columns(user_id);
+create index if not exists lead_cards_user_id_idx on lead_cards(user_id);
+create index if not exists lead_cards_column_id_idx on lead_cards(column_id);
+create index if not exists lead_notes_user_id_idx on lead_notes(user_id);
+create index if not exists lead_notes_card_id_idx on lead_notes(card_id);
+
+alter table lead_columns enable row level security;
+alter table lead_cards enable row level security;
+alter table lead_notes enable row level security;
+
+drop policy if exists "lead_columns_owner_all" on lead_columns;
+create policy "lead_columns_owner_all" on lead_columns
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "lead_cards_owner_all" on lead_cards;
+create policy "lead_cards_owner_all" on lead_cards
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "lead_notes_owner_all" on lead_notes;
+create policy "lead_notes_owner_all" on lead_notes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Logging a note stamps last_activity_at/last_activity_text on its parent
+-- card, so the board can show "last touched" without a separate query.
+create or replace function public.stamp_lead_card_activity()
+returns trigger as $$
+begin
+  update lead_cards
+  set last_activity_at = new.created_at, last_activity_text = new.body
+  where id = new.card_id;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists on_lead_note_created on lead_notes;
+create trigger on_lead_note_created
+  after insert on lead_notes
+  for each row execute function public.stamp_lead_card_activity();
+
+alter publication supabase_realtime add table lead_columns;
+alter publication supabase_realtime add table lead_cards;
+alter publication supabase_realtime add table lead_notes;

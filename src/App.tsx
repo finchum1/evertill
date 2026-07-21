@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
+import { useLeads } from "./hooks/useLeads";
 import { Header } from "./components/Header";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
 import { TaskListView } from "./components/TaskListView";
 import { TaskModal } from "./components/TaskModal";
-import type { View } from "./types";
+import { LeadsBoard } from "./components/LeadsBoard";
+import { LeadCardModal } from "./components/LeadCardModal";
+import type { Page, View } from "./types";
 
-function Dashboard({ userId }: { userId: string }) {
+function TasksDashboard({ userId }: { userId: string }) {
   const {
     folders,
     lists,
@@ -93,6 +96,67 @@ function Dashboard({ userId }: { userId: string }) {
   );
 }
 
+function LeadsDashboard({ userId }: { userId: string }) {
+  const {
+    columns,
+    cards,
+    notes,
+    loading,
+    addColumn,
+    renameColumn,
+    deleteColumn,
+    addCard,
+    updateCard,
+    deleteCard,
+    addNote,
+    deleteNote,
+  } = useLeads(userId);
+
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  const openCard = openCardId ? cards.find((c) => c.id === openCardId) : undefined;
+
+  return (
+    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+      <LeadsBoard
+        columns={columns}
+        cards={cards}
+        onAddColumn={() => {
+          const label = window.prompt("Column name:");
+          if (label?.trim()) addColumn(label.trim());
+        }}
+        onRenameColumn={renameColumn}
+        onDeleteColumn={deleteColumn}
+        onAddCard={async (columnId) => {
+          const card = await addCard(columnId);
+          if (card) setOpenCardId(card.id);
+        }}
+        onOpenCard={setOpenCardId}
+      />
+      {openCard && (
+        <LeadCardModal
+          card={openCard}
+          columns={columns}
+          notes={notes.filter((n) => n.card_id === openCard.id)}
+          onClose={() => setOpenCardId(null)}
+          onUpdate={updateCard}
+          onDelete={deleteCard}
+          onAddNote={addNote}
+          onDeleteNote={deleteNote}
+        />
+      )}
+    </div>
+  );
+}
+
 function Landing({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <div
@@ -129,6 +193,7 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
 function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
+  const [page, setPage] = useState<Page>("tasks");
 
   if (loading) {
     return (
@@ -140,8 +205,22 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#020817" }}>
-      <Header session={session} onLogin={() => setAuthModal("signin")} onSignup={() => setAuthModal("signup")} />
-      {session ? <Dashboard userId={session.user.id} /> : <Landing onGetStarted={() => setAuthModal("signup")} />}
+      <Header
+        session={session}
+        page={page}
+        onSetPage={setPage}
+        onLogin={() => setAuthModal("signin")}
+        onSignup={() => setAuthModal("signup")}
+      />
+      {session ? (
+        page === "tasks" ? (
+          <TasksDashboard userId={session.user.id} />
+        ) : (
+          <LeadsDashboard userId={session.user.id} />
+        )
+      ) : (
+        <Landing onGetStarted={() => setAuthModal("signup")} />
+      )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
     </div>
   );

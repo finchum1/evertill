@@ -73,3 +73,42 @@ export interface TodoSubtask {
 // A "view" is either a special view key or a list's own id (list ids are
 // UUIDs, so they never collide with the two special keys below).
 export type View = "today" | "upcoming" | string;
+
+export type Page = "tasks" | "leads";
+
+// Lead columns reuse the same color palette as list colors (LIST_COLORS
+// above) — one shared set of named colors across the app, not a separate one.
+export interface LeadColumn {
+  id: string;
+  user_id: string;
+  label: string;
+  color: ListColor;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface LeadCard {
+  id: string;
+  user_id: string;
+  column_id: string;
+  title: string;
+  value: number;
+  due_date: string | null; // 'YYYY-MM-DD' — "Next Activity"
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  tag_buyer: boolean;
+  tag_listing: boolean;
+  sort_order: number;
+  last_activity_at: string | null;
+  last_activity_text: string | null;
+  created_at: string;
+}
+
+export interface LeadNote {
+  id: string;
+  user_id: string;
+  card_id: string;
+  body: string;
+  created_at: string;
+}

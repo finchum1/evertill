@@ -1,13 +1,21 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
+import type { Page } from "../types";
 
 interface HeaderProps {
   session: Session | null;
+  page: Page;
+  onSetPage: (page: Page) => void;
   onLogin: () => void;
   onSignup: () => void;
 }
 
-export function Header({ session, onLogin, onSignup }: HeaderProps) {
+const NAV_ITEMS: { key: Page; label: string }[] = [
+  { key: "tasks", label: "Tasks" },
+  { key: "leads", label: "Leads" },
+];
+
+export function Header({ session, page, onSetPage, onLogin, onSignup }: HeaderProps) {
   return (
     <div
       style={{
@@ -19,8 +27,32 @@ export function Header({ session, onLogin, onSignup }: HeaderProps) {
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em" }}>
-        TC Dashboard
+      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em" }}>
+          TC Dashboard
+        </div>
+        {session && (
+          <nav style={{ display: "flex", gap: 4 }}>
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => onSetPage(item.key)}
+                style={{
+                  background: page === item.key ? "#1e293b" : "none",
+                  border: "none",
+                  borderRadius: 8,
+                  color: page === item.key ? "#f1f5f9" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: "7px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
       </div>
       {session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
