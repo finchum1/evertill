@@ -27,7 +27,14 @@ create policy "profiles_owner_all" on profiles
   with check (auth.uid() = id);
 
 -- Auto-create a profile row right after signup, pulling full_name/company_name
--- out of the signUp() call's `options.data` metadata.
+-- out of the signUp() call's `options.data` metadata. Also seeds every new
+-- user's Leads/Pipeline boards with a starter set of columns (matching the
+-- stages the app's own daily use settled on) so a brand-new signup never
+-- lands on an empty "No columns yet" board. Safe to forward-reference
+-- lead_columns/pipeline_columns here even though they're defined later in
+-- this file — plpgsql function bodies aren't validated against table
+-- existence until the function actually runs, and by the time any real
+-- signup fires this trigger, the whole script has already run once.
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -37,6 +44,21 @@ begin
     new.raw_user_meta_data ->> 'full_name',
     new.raw_user_meta_data ->> 'company_name'
   );
+
+  insert into public.lead_columns (user_id, label, color, sort_order) values
+    (new.id, 'New Lead', 'purple', 0),
+    (new.id, 'Contacted', 'green', 1),
+    (new.id, 'Follow Up', 'amber', 2),
+    (new.id, 'Qualified', 'pink', 3),
+    (new.id, 'Not Interested', 'blue', 4);
+
+  insert into public.pipeline_columns (user_id, label, color, sort_order) values
+    (new.id, '1+ Year', 'indigo', 0),
+    (new.id, '6+ Month', 'green', 1),
+    (new.id, '3-6 Months', 'amber', 2),
+    (new.id, '1-3 Months', 'pink', 3),
+    (new.id, 'Active', 'blue', 4);
+
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;

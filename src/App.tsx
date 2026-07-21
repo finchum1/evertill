@@ -11,8 +11,15 @@ import { TaskModal } from "./components/TaskModal";
 import { CalendarView } from "./components/CalendarView";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
+import { LeadCardMini } from "./components/LeadCardMini";
 import { PipelineBoard } from "./components/PipelineBoard";
 import { PipelineCardModal } from "./components/PipelineCardModal";
+import { PipelineCardMini } from "./components/PipelineCardMini";
+import { ViewTabs } from "./components/ViewTabs";
+import type { BoardSubView } from "./components/ViewTabs";
+import { BoardListView } from "./components/BoardListView";
+import { BoardValueView } from "./components/BoardValueView";
+import { BoardCalendarView } from "./components/BoardCalendarView";
 import { useDeals } from "./hooks/useDeals";
 import { DealsBoard } from "./components/DealsBoard";
 import { NewDealModal } from "./components/NewDealModal";
@@ -147,6 +154,7 @@ function LeadsDashboard({ userId }: { userId: string }) {
   } = useLeads(userId);
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [subView, setSubView] = useState<BoardSubView>("board");
 
   if (loading) {
     return (
@@ -160,21 +168,43 @@ function LeadsDashboard({ userId }: { userId: string }) {
 
   return (
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
-      <LeadsBoard
-        columns={columns}
-        cards={cards}
-        onAddColumn={() => {
-          const label = window.prompt("Column name:");
-          if (label?.trim()) addColumn(label.trim());
-        }}
-        onRenameColumn={renameColumn}
-        onDeleteColumn={deleteColumn}
-        onAddCard={async (columnId) => {
-          const card = await addCard(columnId);
-          if (card) setOpenCardId(card.id);
-        }}
-        onOpenCard={setOpenCardId}
-      />
+      <div style={{ padding: "20px 24px 0" }}>
+        <ViewTabs active={subView} onChange={setSubView} />
+      </div>
+      {subView === "board" && (
+        <LeadsBoard
+          columns={columns}
+          cards={cards}
+          onAddColumn={() => {
+            const label = window.prompt("Column name:");
+            if (label?.trim()) addColumn(label.trim());
+          }}
+          onRenameColumn={renameColumn}
+          onDeleteColumn={deleteColumn}
+          onAddCard={async (columnId) => {
+            const card = await addCard(columnId);
+            if (card) setOpenCardId(card.id);
+          }}
+          onOpenCard={setOpenCardId}
+        />
+      )}
+      {subView === "list" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardListView columns={columns} cards={cards} itemNoun="lead" renderCard={(card) => (
+            <LeadCardMini key={card.id} card={card} onOpen={setOpenCardId} />
+          )} />
+        </div>
+      )}
+      {subView === "calendar" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardCalendarView cards={cards} onOpenCard={setOpenCardId} />
+        </div>
+      )}
+      {subView === "value" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardValueView columns={columns} cards={cards} itemNoun="lead" />
+        </div>
+      )}
       {openCard && (
         <LeadCardModal
           card={openCard}
@@ -208,6 +238,7 @@ function PipelineDashboard({ userId }: { userId: string }) {
   } = usePipeline(userId);
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [subView, setSubView] = useState<BoardSubView>("board");
 
   if (loading) {
     return (
@@ -221,21 +252,43 @@ function PipelineDashboard({ userId }: { userId: string }) {
 
   return (
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
-      <PipelineBoard
-        columns={columns}
-        cards={cards}
-        onAddColumn={() => {
-          const label = window.prompt("Column name:");
-          if (label?.trim()) addColumn(label.trim());
-        }}
-        onRenameColumn={renameColumn}
-        onDeleteColumn={deleteColumn}
-        onAddCard={async (columnId) => {
-          const card = await addCard(columnId);
-          if (card) setOpenCardId(card.id);
-        }}
-        onOpenCard={setOpenCardId}
-      />
+      <div style={{ padding: "20px 24px 0" }}>
+        <ViewTabs active={subView} onChange={setSubView} />
+      </div>
+      {subView === "board" && (
+        <PipelineBoard
+          columns={columns}
+          cards={cards}
+          onAddColumn={() => {
+            const label = window.prompt("Column name:");
+            if (label?.trim()) addColumn(label.trim());
+          }}
+          onRenameColumn={renameColumn}
+          onDeleteColumn={deleteColumn}
+          onAddCard={async (columnId) => {
+            const card = await addCard(columnId);
+            if (card) setOpenCardId(card.id);
+          }}
+          onOpenCard={setOpenCardId}
+        />
+      )}
+      {subView === "list" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardListView columns={columns} cards={cards} itemNoun="client" renderCard={(card) => (
+            <PipelineCardMini key={card.id} card={card} onOpen={setOpenCardId} />
+          )} />
+        </div>
+      )}
+      {subView === "calendar" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardCalendarView cards={cards} onOpenCard={setOpenCardId} />
+        </div>
+      )}
+      {subView === "value" && (
+        <div style={{ padding: "0 24px 20px" }}>
+          <BoardValueView columns={columns} cards={cards} itemNoun="client" />
+        </div>
+      )}
       {openCard && (
         <PipelineCardModal
           card={openCard}
