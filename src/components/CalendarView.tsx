@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Todo, TodoSubtask } from "../types";
 import { addDays, addMonths, dateToKey, startOfWeek, todayKey } from "../lib/dates";
+import { TODO_DRAG_MIME } from "../lib/dragTypes";
 import { TaskRow } from "./TaskRow";
 
 type SubView = "month" | "week" | "day";
@@ -11,11 +12,12 @@ interface CalendarViewProps {
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete }: CalendarViewProps) {
+export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete, onDropTodoOnDate }: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
   const [anchor, setAnchor] = useState(() => new Date());
 
@@ -72,8 +74,12 @@ export function CalendarView({ todos, subtasks, onOpenTodo, onToggleComplete }: 
         <span style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", marginLeft: 6 }}>{headingFor(subView, anchor)}</span>
       </div>
 
-      {subView === "month" && <MonthGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} />}
-      {subView === "week" && <WeekGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} />}
+      {subView === "month" && (
+        <MonthGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} onDropTodoOnDate={onDropTodoOnDate} />
+      )}
+      {subView === "week" && (
+        <WeekGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} onDropTodoOnDate={onDropTodoOnDate} />
+      )}
       {subView === "day" && (
         <DayList day={anchor} todosByDay={todosByDay} subtasks={subtasks} onOpenTodo={onOpenTodo} onToggleComplete={onToggleComplete} />
       )}
@@ -100,12 +106,15 @@ function MonthGrid({
   todosByDay,
   onOpenDay,
   onOpenTodo,
+  onDropTodoOnDate,
 }: {
   anchor: Date;
   todosByDay: Map<string, Todo[]>;
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
+  onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
   const gridStart = startOfWeek(firstOfMonth);
   const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
@@ -125,15 +134,30 @@ function MonthGrid({
           const key = dateToKey(d);
           const inMonth = d.getMonth() === anchor.getMonth();
           const dayTodos = todosByDay.get(key) ?? [];
+          const isDragOver = dragOverKey === key;
           return (
             <div
               key={key}
               onClick={() => onOpenDay(d)}
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+              }}
+              onDragEnter={(e) => {
+                if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverKey(key);
+              }}
+              onDragLeave={() => setDragOverKey((cur) => (cur === key ? null : cur))}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOverKey(null);
+                const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
+                if (todoId) onDropTodoOnDate(todoId, key);
+              }}
               style={{
                 minHeight: 84,
                 borderRadius: 8,
-                border: "1px solid #1e293b",
-                background: key === tkey ? "#1e1b4b" : "#0f172a",
+                border: isDragOver ? "1px solid #6366f1" : "1px solid #1e293b",
+                background: isDragOver ? "#312e81" : key === tkey ? "#1e1b4b" : "#0f172a",
                 padding: 6,
                 cursor: "pointer",
                 opacity: inMonth ? 1 : 0.4,
@@ -146,11 +170,17 @@ function MonthGrid({
               {dayTodos.slice(0, 3).map((t) => (
                 <span
                   key={t.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.setData(TODO_DRAG_MIME, t.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenTodo(t.id);
                   }}
-                  style={miniChipStyle}
+                  style={{ ...miniChipStyle, cursor: "grab" }}
                 >
                   {t.title}
                 </span>
@@ -169,12 +199,15 @@ function WeekGrid({
   todosByDay,
   onOpenDay,
   onOpenTodo,
+  onDropTodoOnDate,
 }: {
   anchor: Date;
   todosByDay: Map<string, Todo[]>;
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
+  onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const start = startOfWeek(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const tkey = todayKey();
@@ -184,6 +217,7 @@ function WeekGrid({
       {days.map((d) => {
         const key = dateToKey(d);
         const dayTodos = todosByDay.get(key) ?? [];
+        const isDragOver = dragOverKey === key;
         return (
           <div key={key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div
@@ -200,18 +234,42 @@ function WeekGrid({
               <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "#a5b4fc" : "#f1f5f9" }}>{d.getDate()}</div>
             </div>
             <div
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+              }}
+              onDragEnter={(e) => {
+                if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverKey(key);
+              }}
+              onDragLeave={() => setDragOverKey((cur) => (cur === key ? null : cur))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverKey(null);
+                const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
+                if (todoId) onDropTodoOnDate(todoId, key);
+              }}
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
                 minHeight: 120,
-                border: "1px solid #1e293b",
+                border: isDragOver ? "1px solid #6366f1" : "1px solid #1e293b",
+                background: isDragOver ? "#312e81" : "transparent",
                 borderRadius: 8,
                 padding: 6,
               }}
             >
               {dayTodos.map((t) => (
-                <span key={t.id} onClick={() => onOpenTodo(t.id)} style={{ ...miniChipStyle, padding: "4px 6px" }}>
+                <span
+                  key={t.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.setData(TODO_DRAG_MIME, t.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onClick={() => onOpenTodo(t.id)}
+                  style={{ ...miniChipStyle, padding: "4px 6px", cursor: "grab" }}
+                >
                   {t.title}
                 </span>
               ))}

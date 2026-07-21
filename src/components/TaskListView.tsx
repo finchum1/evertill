@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { Todo, TodoList, TodoSubtask, View } from "../types";
 import { TaskRow } from "./TaskRow";
 import { todayKey } from "../lib/dates";
+import { parseSmartDueDate } from "../lib/smartDate";
 
 interface TaskListViewProps {
   view: View;
@@ -44,11 +45,27 @@ export function TaskListView({ view, lists, todos, subtasks, onAddTodo, onToggle
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return;
+    const rawTitle = title.trim();
+    if (!rawTitle) return;
     const targetListId = view === "today" || view === "upcoming" ? inbox?.id : view;
     if (!targetListId) return;
-    const effectiveDueDate = view === "today" ? tkey : dueDate || null;
-    onAddTodo(targetListId, title.trim(), effectiveDueDate);
+
+    let finalTitle = rawTitle;
+    let finalDueDate = dueDate || null;
+    // An explicitly-picked date wins; only smart-parse the title for a date
+    // phrase ("tomorrow", "next Thursday"...) when the date field was left
+    // blank — true whenever a picker is shown but empty, and always true for
+    // Today/Upcoming, which have no picker at all.
+    if (!finalDueDate) {
+      const parsed = parseSmartDueDate(rawTitle);
+      if (parsed) {
+        finalDueDate = parsed.dueDate;
+        finalTitle = parsed.title || rawTitle;
+      }
+    }
+    if (!finalDueDate && view === "today") finalDueDate = tkey;
+
+    onAddTodo(targetListId, finalTitle, finalDueDate);
     setTitle("");
     setDueDate("");
   }

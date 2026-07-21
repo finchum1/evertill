@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { LIST_COLOR_HEX } from "../types";
 import type { Todo, TodoFolder, TodoList, View } from "../types";
 import { todayKey } from "../lib/dates";
+import { TODO_DRAG_MIME } from "../lib/dragTypes";
 
 interface SidebarProps {
   folders: TodoFolder[];
@@ -14,6 +16,7 @@ interface SidebarProps {
   onDeleteList: (id: string) => void;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
+  onDropTodoOnList: (todoId: string, listId: string) => void;
 }
 
 export function Sidebar({
@@ -28,7 +31,9 @@ export function Sidebar({
   onDeleteList,
   onRenameFolder,
   onDeleteFolder,
+  onDropTodoOnList,
 }: SidebarProps) {
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const tkey = todayKey();
   const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
   const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
@@ -39,10 +44,30 @@ export function Sidebar({
 
   function listRow(list: TodoList) {
     const isActive = view === list.id;
+    const isDragOver = dragOverListId === list.id;
     const count = todos.filter((t) => t.list_id === list.id && !t.completed).length;
     return (
       <div key={list.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <button onClick={() => onSetView(list.id)} style={navButtonStyle(isActive)}>
+        <button
+          onClick={() => onSetView(list.id)}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+          }}
+          onDragEnter={(e) => {
+            if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverListId(list.id);
+          }}
+          onDragLeave={() => setDragOverListId((cur) => (cur === list.id ? null : cur))}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOverListId(null);
+            const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
+            if (todoId) onDropTodoOnList(todoId, list.id);
+          }}
+          style={{
+            ...navButtonStyle(isActive),
+            ...(isDragOver ? { background: "#312e81", boxShadow: "inset 0 0 0 2px #6366f1" } : {}),
+          }}
+        >
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {!list.is_inbox && (
               <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />

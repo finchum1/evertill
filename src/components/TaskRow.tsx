@@ -1,5 +1,6 @@
 import type { Todo, TodoSubtask } from "../types";
 import { formatDueDate, isOverdue } from "../lib/dates";
+import { TODO_DRAG_MIME } from "../lib/dragTypes";
 
 interface TaskRowProps {
   todo: Todo;
@@ -14,6 +15,12 @@ export function TaskRow({ todo, subtasks, onToggleComplete, onOpen }: TaskRowPro
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(TODO_DRAG_MIME, todo.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      title="Drag to move to another list or day"
       style={{
         display: "flex",
         alignItems: "center",
@@ -22,6 +29,7 @@ export function TaskRow({ todo, subtasks, onToggleComplete, onOpen }: TaskRowPro
         borderRadius: 10,
         border: "1px solid #1e293b",
         background: "#0f172a",
+        cursor: "grab",
       }}
     >
       <button
