@@ -129,9 +129,9 @@ function DealListRow({
       onClick={() => onOpen(deal.id)}
       style={{
         display: "flex",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 16,
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 12,
         padding: "18px 20px",
         borderRadius: 12,
         border: `1px solid ${deal.status === "Closed" ? "var(--border)" : `${statusColor}40`}`,
@@ -139,66 +139,68 @@ function DealListRow({
         cursor: "pointer",
       }}
     >
-      <div style={{ minWidth: 220, flexShrink: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.06em", marginBottom: 4 }}>
-          {deal.type === "Listing" ? "LISTING SIDE" : "BUYER SIDE"}
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 16, width: "100%" }}>
+        <div style={{ minWidth: 220, flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.06em", marginBottom: 4 }}>
+            {deal.type === "Listing" ? "LISTING SIDE" : "BUYER SIDE"}
+          </div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              marginBottom: 6,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {deal.address}
+          </div>
+          <span
+            style={{
+              display: "inline-block",
+              fontSize: 11,
+              fontWeight: 700,
+              color: statusColor,
+              background: `${statusColor}20`,
+              borderRadius: 99,
+              padding: "3px 10px",
+            }}
+          >
+            {deal.status}
+          </span>
         </div>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "var(--text-primary)",
-            marginBottom: 6,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {deal.address}
-        </div>
-        <span
-          style={{
-            display: "inline-block",
-            fontSize: 11,
-            fontWeight: 700,
-            color: statusColor,
-            background: `${statusColor}20`,
-            borderRadius: 99,
-            padding: "3px 10px",
-          }}
-        >
-          {deal.status}
-        </span>
-      </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "flex-start", position: "relative", padding: "0 10px", minWidth: 260 }}>
-        <div style={{ position: "absolute", left: 10, right: 10, top: 5, height: 1, background: "var(--border)" }} />
-        {withDates.map((m) => {
-          const active = m.key === currentKey;
-          return (
-            <div key={m.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, zIndex: 1 }}>
-              <div
-                style={{
-                  width: active ? 12 : 8,
-                  height: active ? 12 : 8,
-                  borderRadius: 99,
-                  background: active ? statusColor : "var(--border-strong)",
-                }}
-              />
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em" }}>{m.label.toUpperCase()}</div>
-              <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{m.date ? formatMilestoneDate(m.date) : "—"}</div>
-            </div>
-          );
-        })}
+        <div style={{ flex: 1, display: "flex", alignItems: "flex-start", position: "relative", padding: "0 10px", minWidth: 260 }}>
+          <div style={{ position: "absolute", left: 10, right: 10, top: 5, height: 1, background: "var(--border)" }} />
+          {withDates.map((m) => {
+            const active = m.key === currentKey;
+            return (
+              <div key={m.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, zIndex: 1 }}>
+                <div
+                  style={{
+                    width: active ? 12 : 8,
+                    height: active ? 12 : 8,
+                    borderRadius: 99,
+                    background: active ? statusColor : "var(--border-strong)",
+                  }}
+                />
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em" }}>{m.label.toUpperCase()}</div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{m.date ? formatMilestoneDate(m.date) : "—"}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {deal.agent_name && (
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0, textAlign: "right" }}>
+            Agent: {deal.agent_name}
+          </div>
+        )}
       </div>
 
       <DealProgressBadge items={checklistItems} />
-
-      {deal.agent_name && (
-        <div style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0, textAlign: "right" }}>
-          Agent: {deal.agent_name}
-        </div>
-      )}
     </div>
   );
 }
