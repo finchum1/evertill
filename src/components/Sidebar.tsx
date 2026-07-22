@@ -122,7 +122,7 @@ export function Sidebar({
           style={{
             ...navButtonStyle(isActive),
             cursor: list.is_inbox ? "pointer" : "grab",
-            ...(isDragOver ? { background: "var(--accent-subtle-bg)", boxShadow: "inset 0 0 0 2px var(--accent)" } : {}),
+            ...(isDragOver ? { boxShadow: "inset 0 2px 0 0 var(--accent)" } : {}),
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -237,7 +237,7 @@ export function Sidebar({
               padding: "4px 10px",
               borderRadius: 8,
               cursor: "grab",
-              ...(dragOverFolderId === folder.id ? { background: "var(--accent-subtle-bg)", boxShadow: "inset 0 0 0 2px var(--accent)" } : {}),
+              ...(dragOverFolderId === folder.id ? { boxShadow: "inset 0 2px 0 0 var(--accent)" } : {}),
             }}
           >
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-tertiary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

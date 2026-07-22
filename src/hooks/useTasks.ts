@@ -225,6 +225,12 @@ export function useTasks(userId: string | undefined) {
     await refresh();
   }
 
+  async function updateSubtask(id: string, title: string) {
+    const { error } = await supabase.from("todo_subtasks").update({ title }).eq("id", id);
+    if (error) throw error;
+    await refresh();
+  }
+
   async function deleteSubtask(id: string) {
     const { error } = await supabase.from("todo_subtasks").delete().eq("id", id);
     if (error) throw error;
@@ -254,6 +260,7 @@ export function useTasks(userId: string | undefined) {
     deleteTodo,
     addSubtask,
     toggleSubtask,
+    updateSubtask,
     deleteSubtask,
   };
 }

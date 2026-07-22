@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Todo, TodoList, TodoSubtask, View } from "../types";
+import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
 import { isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
@@ -14,7 +15,10 @@ interface TaskListViewProps {
   subtasks: TodoSubtask[];
   onAddTodo: (listId: string, title: string, dueDate: string | null) => void;
   onToggleComplete: (id: string) => void;
+  onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
+  onEditSubtask: (id: string, title: string) => void;
+  onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
   onOpenTodo: (id: string) => void;
 }
@@ -26,7 +30,10 @@ export function TaskListView({
   subtasks,
   onAddTodo,
   onToggleComplete,
+  onAddSubtask,
   onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
   onUpdateDueDate,
   onOpenTodo,
 }: TaskListViewProps) {
@@ -36,9 +43,10 @@ export function TaskListView({
   const inbox = lists.find((l) => l.is_inbox);
   const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);
   const tkey = todayKey();
-  // Only worth showing which list a task belongs to on views that mix tasks
-  // from multiple lists together — redundant on a view already scoped to one list.
-  const showListBadge = view === "today" || view === "upcoming" || view === "completed";
+  // Today/Upcoming group tasks under per-list headers instead (see
+  // restGroups below), so the per-row list badge is only needed on
+  // Completed, which stays a flat list mixing every list together.
+  const showListBadge = view === "completed";
 
   let shown: Todo[];
   let heading: string;
@@ -67,6 +75,15 @@ export function TaskListView({
   const overdueShown = canGroupOverdue ? shown.filter((t) => t.due_date && isOverdue(t.due_date)) : [];
   const restShown = canGroupOverdue ? shown.filter((t) => !(t.due_date && isOverdue(t.due_date))) : shown;
 
+  // Today/Upcoming further group the non-overdue tasks by which list they
+  // belong to — in `lists`' own order (already sort_order-sorted), skipping
+  // any list with nothing shown in it.
+  const canGroupByList = view === "today" || view === "upcoming";
+  const restGroups = canGroupByList
+    ? lists.map((l) => ({ list: l, todos: restShown.filter((t) => t.list_id === l.id) })).filter((g) => g.todos.length > 0)
+    : null;
+  const restMarginTop = overdueShown.length > 0 ? 12 : 0;
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const rawTitle = title.trim();
@@ -92,6 +109,24 @@ export function TaskListView({
     onAddTodo(targetListId, finalTitle, finalDueDate);
     setTitle("");
     setDueDate("");
+  }
+
+  function renderRow(t: Todo, withListBadge: boolean) {
+    return (
+      <TaskRow
+        key={t.id}
+        todo={t}
+        list={withListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
+        subtasks={subtasks.filter((s) => s.todo_id === t.id)}
+        onToggleComplete={onToggleComplete}
+        onAddSubtask={onAddSubtask}
+        onToggleSubtask={onToggleSubtask}
+        onEditSubtask={onEditSubtask}
+        onDeleteSubtask={onDeleteSubtask}
+        onUpdateDueDate={onUpdateDueDate}
+        onOpen={onOpenTodo}
+      />
+    );
   }
 
   return (
@@ -122,34 +157,30 @@ export function TaskListView({
           </div>
         )}
         {overdueShown.length > 0 && (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={sectionLabelStyle}>Overdue</div>
-            {overdueShown.map((t) => (
-              <TaskRow
-                key={t.id}
-                todo={t}
-                list={showListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
-                subtasks={subtasks.filter((s) => s.todo_id === t.id)}
-                onToggleComplete={onToggleComplete}
-                onToggleSubtask={onToggleSubtask}
-                onUpdateDueDate={onUpdateDueDate}
-                onOpen={onOpenTodo}
-              />
-            ))}
-          </>
+            {overdueShown.map((t) => renderRow(t, showListBadge))}
+          </div>
         )}
-        {restShown.map((t) => (
-          <TaskRow
-            key={t.id}
-            todo={t}
-            list={showListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
-            subtasks={subtasks.filter((s) => s.todo_id === t.id)}
-            onToggleComplete={onToggleComplete}
-            onToggleSubtask={onToggleSubtask}
-            onUpdateDueDate={onUpdateDueDate}
-            onOpen={onOpenTodo}
-          />
-        ))}
+        {restGroups ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: restMarginTop }}>
+            {restGroups.map(({ list: l, todos: groupTodos }) => (
+              <div key={l.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={listGroupHeaderStyle}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[l.color] }} />
+                  {l.is_inbox ? "Inbox" : l.name}
+                </div>
+                {groupTodos.map((t) => renderRow(t, false))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          restShown.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: restMarginTop }}>
+              {restShown.map((t) => renderRow(t, showListBadge))}
+            </div>
+          )
+        )}
       </div>
     </div>
   );
@@ -182,6 +213,18 @@ const sectionLabelStyle: CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
   color: "var(--danger)",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  margin: "4px 0 -2px",
+};
+
+const listGroupHeaderStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  fontSize: 11,
+  fontWeight: 700,
+  color: "var(--text-tertiary)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   margin: "4px 0 -2px",

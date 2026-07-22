@@ -48,7 +48,7 @@ export function SmartDateInput({ value, style, placeholder, onScroll, ...rest }:
             match ? (
               <>
                 {text.slice(0, match.start)}
-                <span style={{ background: "var(--accent-deep)", color: "#fff", borderRadius: 3 }}>{text.slice(match.start, match.end)}</span>
+                <span style={{ color: "var(--accent-light)", fontWeight: 600 }}>{text.slice(match.start, match.end)}</span>
                 {text.slice(match.end)}
               </>
             ) : (

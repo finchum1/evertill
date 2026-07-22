@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import type { Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { formatDueDate, isOverdue } from "../lib/dates";
@@ -10,15 +11,38 @@ interface TaskRowProps {
   list?: TodoList;
   subtasks: TodoSubtask[];
   onToggleComplete: (id: string) => void;
+  onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
+  onEditSubtask: (id: string, title: string) => void;
+  onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
   onOpen: (id: string) => void;
 }
 
-export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtask, onUpdateDueDate, onOpen }: TaskRowProps) {
+export function TaskRow({
+  todo,
+  list,
+  subtasks,
+  onToggleComplete,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onUpdateDueDate,
+  onOpen,
+}: TaskRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [newSubtask, setNewSubtask] = useState("");
   const open = subtasks.filter((s) => !s.checked).length;
   const overdue = !!todo.due_date && !todo.completed && isOverdue(todo.due_date);
+
+  function handleAddSubtask(e: FormEvent) {
+    e.preventDefault();
+    const title = newSubtask.trim();
+    if (!title) return;
+    onAddSubtask(todo.id, title);
+    setNewSubtask("");
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -101,72 +125,162 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
           )}
         </div>
         <DueDateBadge todo={todo} overdue={overdue} onUpdateDueDate={onUpdateDueDate} />
-        {subtasks.length > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded((x) => !x);
-            }}
-            aria-label={expanded ? "Collapse subtasks" : "Expand subtasks"}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-secondary)",
-              fontSize: 12,
-              cursor: "pointer",
-              padding: 4,
-              flexShrink: 0,
-            }}
-          >
-            {expanded ? "▾" : "▸"}
-          </button>
-        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((x) => !x);
+          }}
+          aria-label={expanded ? "Collapse subtasks" : "Expand subtasks"}
+          title={expanded ? "Collapse subtasks" : "Add or view subtasks"}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--text-secondary)",
+            fontSize: 12,
+            cursor: "pointer",
+            padding: 4,
+            flexShrink: 0,
+          }}
+        >
+          {expanded ? "▾" : "▸"}
+        </button>
       </div>
-      {expanded && subtasks.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 34 }}>
+      {expanded && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 34 }} onClick={(e) => e.stopPropagation()}>
           {subtasks.map((s) => (
-            <div
-              key={s.id}
+            <SubtaskRow key={s.id} subtask={s} onToggle={onToggleSubtask} onEdit={onEditSubtask} onDelete={onDeleteSubtask} />
+          ))}
+          <form onSubmit={handleAddSubtask} style={{ display: "flex", gap: 6, marginTop: subtasks.length > 0 ? 2 : 0 }}>
+            <input
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              placeholder="Add a subtask…"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                flex: 1,
+                minWidth: 0,
+                background: "var(--border)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 6,
+                color: "var(--text-primary)",
+                fontSize: 12,
+                padding: "6px 8px",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                background: "none",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 6,
+                color: "var(--text-body)",
+                fontSize: 12,
+                fontWeight: 600,
                 padding: "6px 10px",
-                borderRadius: 8,
-                background: "var(--bg-panel-nested)",
-                border: "1px solid var(--border)",
+                cursor: "pointer",
+                flexShrink: 0,
               }}
             >
-              <button
-                onClick={() => onToggleSubtask(s.id)}
-                aria-label={s.checked ? "Mark subtask incomplete" : "Mark subtask complete"}
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 99,
-                  border: `2px solid ${s.checked ? "var(--success)" : "var(--border-strong)"}`,
-                  background: s.checked ? "var(--success)" : "transparent",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  padding: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 13,
-                  color: s.checked ? "var(--text-muted)" : "var(--text-body)",
-                  textDecoration: s.checked ? "line-through" : "none",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {s.title}
-              </span>
-            </div>
-          ))}
+              Add
+            </button>
+          </form>
         </div>
       )}
+    </div>
+  );
+}
+
+function SubtaskRow({
+  subtask,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  subtask: TodoSubtask;
+  onToggle: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(subtask.title);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 10px",
+        borderRadius: 8,
+        background: "var(--bg-panel-nested)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <button
+        onClick={() => onToggle(subtask.id)}
+        aria-label={subtask.checked ? "Mark subtask incomplete" : "Mark subtask complete"}
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 99,
+          border: `2px solid ${subtask.checked ? "var(--success)" : "var(--border-strong)"}`,
+          background: subtask.checked ? "var(--success)" : "transparent",
+          cursor: "pointer",
+          flexShrink: 0,
+          padding: 0,
+        }}
+      />
+      {editing ? (
+        <input
+          autoFocus
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            setEditing(false);
+            const trimmed = title.trim();
+            if (trimmed && trimmed !== subtask.title) onEdit(subtask.id, trimmed);
+            else setTitle(subtask.title);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            background: "none",
+            border: "none",
+            color: "var(--text-primary)",
+            fontSize: 13,
+            padding: 0,
+            outline: "none",
+            fontFamily: "inherit",
+          }}
+        />
+      ) : (
+        <span
+          onClick={() => setEditing(true)}
+          title="Click to edit"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 13,
+            color: subtask.checked ? "var(--text-muted)" : "var(--text-body)",
+            textDecoration: subtask.checked ? "line-through" : "none",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            cursor: "text",
+          }}
+        >
+          {subtask.title}
+        </span>
+      )}
+      <button
+        onClick={() => onDelete(subtask.id)}
+        aria-label="Delete subtask"
+        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13, flexShrink: 0, padding: 0 }}
+      >
+        ×
+      </button>
     </div>
   );
 }

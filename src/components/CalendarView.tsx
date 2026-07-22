@@ -13,7 +13,10 @@ interface CalendarViewProps {
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
+  onEditSubtask: (id: string, title: string) => void;
+  onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }
@@ -26,7 +29,10 @@ export function CalendarView({
   subtasks,
   onOpenTodo,
   onToggleComplete,
+  onAddSubtask,
   onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
   onUpdateDueDate,
   onDropTodoOnDate,
 }: CalendarViewProps) {
@@ -100,7 +106,10 @@ export function CalendarView({
           subtasks={subtasks}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
+          onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
+          onEditSubtask={onEditSubtask}
+          onDeleteSubtask={onDeleteSubtask}
           onUpdateDueDate={onUpdateDueDate}
         />
       )}
@@ -309,7 +318,10 @@ function DayList({
   subtasks,
   onOpenTodo,
   onToggleComplete,
+  onAddSubtask,
   onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
   onUpdateDueDate,
 }: {
   day: Date;
@@ -318,7 +330,10 @@ function DayList({
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
+  onEditSubtask: (id: string, title: string) => void;
+  onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
 }) {
   const dayTodos = todosByDay.get(dateToKey(day)) ?? [];
@@ -336,7 +351,10 @@ function DayList({
           list={lists.find((l) => l.id === t.list_id)}
           subtasks={subtasks.filter((s) => s.todo_id === t.id)}
           onToggleComplete={onToggleComplete}
+          onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
+          onEditSubtask={onEditSubtask}
+          onDeleteSubtask={onDeleteSubtask}
           onUpdateDueDate={onUpdateDueDate}
           onOpen={onOpenTodo}
         />
