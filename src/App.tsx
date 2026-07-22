@@ -411,7 +411,7 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
             const deal = await addDeal(address, type, acceptanceDate);
             setShowNewDeal(false);
             if (deal) {
-              await seedDealChecklist(deal.id);
+              await seedDealChecklist(deal.id, deal.type);
               setOpenDealId(deal.id);
             }
           }}
@@ -636,7 +636,7 @@ function App() {
             const deal = await deals.addDeal(address, type, acceptanceDate);
             setCreateShowNewDeal(false);
             if (deal) {
-              await dealTemplates.seedDealChecklist(deal.id);
+              await dealTemplates.seedDealChecklist(deal.id, deal.type);
               setCreateDealId(deal.id);
             }
           }}

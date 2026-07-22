@@ -419,6 +419,7 @@ create table if not exists deal_templates (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null default 'New template',
+  deal_type text not null default 'Buyer' check (deal_type in ('Buyer', 'Listing')),
   is_default boolean not null default false,
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
@@ -430,6 +431,7 @@ create table if not exists deal_template_items (
   template_id uuid not null references deal_templates(id) on delete cascade,
   kind text not null check (kind in ('task', 'document')),
   title text not null,
+  group_label text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -440,12 +442,23 @@ create table if not exists deal_checklist_items (
   deal_id uuid not null references deals(id) on delete cascade,
   kind text not null check (kind in ('task', 'document')),
   title text not null,
+  group_label text not null default '',
   done boolean not null default false,
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists deal_templates_one_default_per_user on deal_templates(user_id) where is_default = true;
+-- Migration for a database that already had these 3 tables from before
+-- deal_type/group_label existed (this project's live database included):
+-- adds the new columns and swaps the old one-default-per-user index for a
+-- one-default-per-(user, deal_type) index, so Buyer and Listing deals can
+-- each have their own separately-starred default template. Safe to re-run.
+alter table deal_templates add column if not exists deal_type text not null default 'Buyer' check (deal_type in ('Buyer', 'Listing'));
+alter table deal_template_items add column if not exists group_label text not null default '';
+alter table deal_checklist_items add column if not exists group_label text not null default '';
+drop index if exists deal_templates_one_default_per_user;
+
+create unique index if not exists deal_templates_one_default_per_type on deal_templates(user_id, deal_type) where is_default = true;
 create index if not exists deal_templates_user_id_idx on deal_templates(user_id);
 create index if not exists deal_template_items_template_id_idx on deal_template_items(template_id);
 create index if not exists deal_checklist_items_deal_id_idx on deal_checklist_items(deal_id);

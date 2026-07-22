@@ -206,15 +206,18 @@ export interface DealNote {
 }
 
 // A deal template is a reusable checklist (task items + document items) a
-// user can seed onto new deals. Exactly one per user may be the default —
-// the one new deals are actually seeded from — enforced by a partial unique
-// index in schema.sql the same way todo_lists enforces one Inbox per user.
+// user can seed onto new deals. Templates are scoped per deal type (Buyer
+// vs Listing) and exactly one template per type may be the default — the
+// one actually applied when a deal of that type is created — enforced by a
+// partial unique index in schema.sql the same way todo_lists enforces one
+// Inbox per user.
 export type DealChecklistKind = "task" | "document";
 
 export interface DealTemplate {
   id: string;
   user_id: string;
   name: string;
+  deal_type: DealType;
   is_default: boolean;
   sort_order: number;
   created_at: string;
@@ -226,6 +229,10 @@ export interface DealTemplateItem {
   template_id: string;
   kind: DealChecklistKind;
   title: string;
+  // Free-text section label ("First 7 Days", "Inspection Window"...) items
+  // are grouped and collapsed/expanded by in the checklist UI. Empty string
+  // means ungrouped.
+  group_label: string;
   sort_order: number;
   created_at: string;
 }
@@ -239,6 +246,7 @@ export interface DealChecklistItem {
   deal_id: string;
   kind: DealChecklistKind;
   title: string;
+  group_label: string;
   done: boolean;
   sort_order: number;
   created_at: string;

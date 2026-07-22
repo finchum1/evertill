@@ -101,7 +101,7 @@ export function useDeals(userId: string | undefined) {
     const existing = checklistItems.filter((i) => i.deal_id === dealId && i.kind === kind);
     const { error } = await supabase
       .from("deal_checklist_items")
-      .insert({ user_id: userId, deal_id: dealId, kind, title, sort_order: existing.length });
+      .insert({ user_id: userId, deal_id: dealId, kind, title, group_label: "", sort_order: existing.length });
     if (error) throw error;
     await refresh();
   }

@@ -1,32 +1,40 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
-import type { DealChecklistKind } from "../types";
+import type { DealChecklistKind, DealTemplateItem, DealType } from "../types";
+import { parseChecklistPaste } from "../lib/checklistImport";
 
 interface DealTemplatesManagerProps {
   dealTemplatesData: ReturnType<typeof useDealTemplates>;
   onBack: () => void;
 }
 
+const DEAL_TYPES: DealType[] = ["Buyer", "Listing"];
+
 export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplatesManagerProps) {
-  const { templates, items, addTemplate, renameTemplate, deleteTemplate, setDefaultTemplate, addItem, deleteItem } = dealTemplatesData;
-  const [activeId, setActiveId] = useState<string | null>(templates[0]?.id ?? null);
+  const { templates, items, addTemplate, renameTemplate, deleteTemplate, setDefaultTemplate, addItem, bulkImportItems, deleteItem } = dealTemplatesData;
+  const [activeType, setActiveType] = useState<DealType>("Buyer");
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [newTemplateName, setNewTemplateName] = useState("");
 
-  const active = templates.find((t) => t.id === activeId) ?? templates[0];
+  const typeTemplates = templates.filter((t) => t.deal_type === activeType);
+  const active = typeTemplates.find((t) => t.id === activeId) ?? typeTemplates[0];
 
-  // Templates load in async (and the very first one is auto-seeded on first
-  // visit), so keep a selection once they arrive instead of staying stuck
-  // on the empty initial render.
+  // Templates load in async (and the type's first one is auto-seeded on
+  // first visit), and switching the type tab needs a new selection within
+  // that type — keep a valid selection instead of staying stuck on an
+  // empty or wrong-type render.
   useEffect(() => {
-    if (!activeId && templates.length > 0) setActiveId(templates[0].id);
-  }, [activeId, templates]);
+    if (typeTemplates.length > 0 && !typeTemplates.some((t) => t.id === activeId)) {
+      setActiveId(typeTemplates[0].id);
+    }
+  }, [activeId, typeTemplates]);
 
   async function handleAddTemplate(e: FormEvent) {
     e.preventDefault();
     const name = newTemplateName.trim();
     if (!name) return;
-    const created = await addTemplate(name);
+    const created = await addTemplate(name, activeType);
     setNewTemplateName("");
     if (created) setActiveId(created.id);
   }
@@ -40,9 +48,28 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Deal Templates</h1>
       </div>
 
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {DEAL_TYPES.map((t) => (
+          <button
+            key={t}
+            onClick={() => {
+              setActiveType(t);
+              setActiveId(null);
+            }}
+            style={{
+              ...typeTabStyle,
+              background: activeType === t ? "var(--accent)" : "var(--border)",
+              color: activeType === t ? "#fff" : "var(--text-body)",
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {templates.map((t) => (
+          {typeTemplates.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveId(t.id)}
@@ -60,7 +87,7 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
             <input
               value={newTemplateName}
               onChange={(e) => setNewTemplateName(e.target.value)}
-              placeholder="New template…"
+              placeholder={`New ${activeType.toLowerCase()} template…`}
               style={{ ...inputStyle, fontSize: 12, padding: "6px 8px" }}
             />
             <button type="submit" style={addButtonStyle}>
@@ -81,7 +108,8 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
               setActiveId(null);
             }}
             onSetDefault={() => setDefaultTemplate(active.id)}
-            onAddItem={(kind, title) => addItem(active.id, kind, title)}
+            onAddItem={(kind, title, groupLabel) => addItem(active.id, kind, title, groupLabel)}
+            onBulkImport={(kind, parsed) => bulkImportItems(active.id, kind, parsed)}
             onDeleteItem={deleteItem}
           />
         )}
@@ -97,14 +125,16 @@ function TemplateEditor({
   onDelete,
   onSetDefault,
   onAddItem,
+  onBulkImport,
   onDeleteItem,
 }: {
   template: { id: string; name: string; is_default: boolean };
-  items: { id: string; kind: DealChecklistKind; title: string }[];
+  items: DealTemplateItem[];
   onRename: (name: string) => void;
   onDelete: () => void;
   onSetDefault: () => void;
-  onAddItem: (kind: DealChecklistKind, title: string) => void;
+  onAddItem: (kind: DealChecklistKind, title: string, groupLabel: string) => void;
+  onBulkImport: (kind: DealChecklistKind, parsed: ReturnType<typeof parseChecklistPaste>) => void;
   onDeleteItem: (id: string) => void;
 }) {
   const [name, setName] = useState(template.name);
@@ -129,11 +159,26 @@ function TemplateEditor({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <ItemColumn kind="task" label="Tasks" items={items.filter((i) => i.kind === "task")} onAdd={onAddItem} onDelete={onDeleteItem} />
-        <ItemColumn kind="document" label="Documents" items={items.filter((i) => i.kind === "document")} onAdd={onAddItem} onDelete={onDeleteItem} />
+        <ItemColumn kind="task" label="Tasks" items={items.filter((i) => i.kind === "task")} onAdd={onAddItem} onBulkImport={onBulkImport} onDelete={onDeleteItem} />
+        <ItemColumn kind="document" label="Documents" items={items.filter((i) => i.kind === "document")} onAdd={onAddItem} onBulkImport={onBulkImport} onDelete={onDeleteItem} />
       </div>
     </div>
   );
+}
+
+// Groups items by their group_label in first-seen (sort_order) order,
+// keeping ungrouped items ("" label) together without a section heading.
+function groupItems(items: DealTemplateItem[]) {
+  const groups: { label: string; items: DealTemplateItem[] }[] = [];
+  for (const item of items) {
+    let group = groups.find((g) => g.label === item.group_label);
+    if (!group) {
+      group = { label: item.group_label, items: [] };
+      groups.push(group);
+    }
+    group.items.push(item);
+  }
+  return groups;
 }
 
 function ItemColumn({
@@ -141,22 +186,37 @@ function ItemColumn({
   label,
   items,
   onAdd,
+  onBulkImport,
   onDelete,
 }: {
   kind: DealChecklistKind;
   label: string;
-  items: { id: string; title: string }[];
-  onAdd: (kind: DealChecklistKind, title: string) => void;
+  items: DealTemplateItem[];
+  onAdd: (kind: DealChecklistKind, title: string, groupLabel: string) => void;
+  onBulkImport: (kind: DealChecklistKind, parsed: ReturnType<typeof parseChecklistPaste>) => void;
   onDelete: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
+  const [group, setGroup] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const groups = groupItems(items);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) return;
-    onAdd(kind, trimmed);
+    onAdd(kind, trimmed, group.trim());
     setTitle("");
+  }
+
+  function handleImport(e: FormEvent) {
+    e.preventDefault();
+    const parsed = parseChecklistPaste(importText);
+    if (parsed.length === 0) return;
+    onBulkImport(kind, parsed);
+    setImportText("");
+    setImportOpen(false);
   }
 
   return (
@@ -164,23 +224,54 @@ function ItemColumn({
       <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
         {label}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
         {items.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>None yet.</span>}
-        {items.map((item) => (
-          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ flex: 1, fontSize: 13, color: "var(--text-body)" }}>{item.title}</span>
-            <button onClick={() => onDelete(item.id)} style={removeButtonStyle}>
-              ×
-            </button>
+        {groups.map((g) => (
+          <div key={g.label || "__ungrouped"} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {g.label && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)" }}>{g.label}</div>
+            )}
+            {g.items.map((item) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 13, color: "var(--text-body)" }}>{item.title}</span>
+                <button onClick={() => onDelete(item.id)} style={removeButtonStyle}>
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         ))}
       </div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6 }}>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add ${kind}…`} style={{ ...inputStyle, fontSize: 13 }} />
+      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add ${kind}…`} style={{ ...inputStyle, fontSize: 13, flex: 2 }} />
+        <input value={group} onChange={(e) => setGroup(e.target.value)} placeholder="Group…" style={{ ...inputStyle, fontSize: 13, flex: 1 }} />
         <button type="submit" style={addButtonStyle}>
           Add
         </button>
       </form>
+      {importOpen ? (
+        <form onSubmit={handleImport} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder={"Paste a checklist — group headings on their own line, items as \"- [ ] Title\""}
+            rows={6}
+            style={{ ...inputStyle, fontSize: 12, resize: "vertical" as const }}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="submit" style={addButtonStyle}>
+              Import
+            </button>
+            <button type="button" onClick={() => setImportOpen(false)} style={ghostButtonStyle}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setImportOpen(true)} style={importLinkStyle}>
+          Paste to import…
+        </button>
+      )}
     </div>
   );
 }
@@ -206,6 +297,15 @@ const backButtonStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
   padding: "6px 12px",
+  cursor: "pointer",
+};
+
+const typeTabStyle: CSSProperties = {
+  border: "none",
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "8px 16px",
   cursor: "pointer",
 };
 
@@ -266,4 +366,15 @@ const removeButtonStyle: CSSProperties = {
   cursor: "pointer",
   fontSize: 13,
   flexShrink: 0,
+};
+
+const importLinkStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--accent-light)",
+  fontSize: 12,
+  fontWeight: 600,
+  padding: 0,
+  cursor: "pointer",
+  textAlign: "left",
 };

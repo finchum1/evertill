@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { DealChecklistKind, DealTemplate, DealTemplateItem } from "../types";
+import type { DealChecklistKind, DealTemplate, DealTemplateItem, DealType } from "../types";
+import type { ParsedChecklistItem } from "../lib/checklistImport";
 
-// A brand-new user (or the pre-existing account from before this feature
-// shipped) has zero templates — seed one starter "Default checklist" the
-// same way ensureInboxList seeds a first Inbox list, so new deals always
-// have something reasonable to copy from instead of an empty checklist.
+const DEAL_TYPES: DealType[] = ["Buyer", "Listing"];
+
+// A brand-new user (or an existing account with zero templates of a given
+// deal type) gets one starter default per type — same ensureX()-on-load
+// pattern as ensureInboxList — so a new deal of either type always has
+// something reasonable to copy from instead of an empty checklist.
 const STARTER_ITEMS: { kind: DealChecklistKind; title: string }[] = [
   { kind: "task", title: "Open escrow" },
   { kind: "task", title: "Schedule inspection" },
@@ -58,28 +61,31 @@ export function useDealTemplates(userId: string | undefined) {
     };
   }, [userId, refresh]);
 
-  const ensureDefaultTemplate = useCallback(async () => {
+  const ensureDefaultTemplates = useCallback(async () => {
     if (!userId || loading) return;
-    if (templates.length > 0) return;
+    const missingTypes = DEAL_TYPES.filter((t) => !templates.some((tpl) => tpl.deal_type === t));
+    if (missingTypes.length === 0) return;
     if (ensuring.current) return ensuring.current;
     ensuring.current = (async () => {
       try {
-        const { data: template, error } = await supabase
-          .from("deal_templates")
-          .insert({ user_id: userId, name: "Default checklist", is_default: true, sort_order: 0 })
-          .select()
-          .single();
-        if (error) {
-          // 23505 just means another concurrent call already won the race to
-          // seed the default; any other error (e.g. the table not existing
-          // yet on a database pending the latest migration) is non-fatal
-          // here too — there's simply no default template until it's fixed.
-          if (error.code !== "23505") console.warn("ensureDefaultTemplate insert failed:", error.message);
-          return;
+        for (const dealType of missingTypes) {
+          const { data: template, error } = await supabase
+            .from("deal_templates")
+            .insert({ user_id: userId, name: `${dealType} default`, deal_type: dealType, is_default: true, sort_order: 0 })
+            .select()
+            .single();
+          if (error) {
+            // 23505 just means another concurrent call already won the race
+            // to seed this type's default; any other error (e.g. the table
+            // not existing yet pending the latest migration) is non-fatal
+            // here too — there's simply no default template until it's fixed.
+            if (error.code !== "23505") console.warn("ensureDefaultTemplates insert failed:", error.message);
+            continue;
+          }
+          await supabase
+            .from("deal_template_items")
+            .insert(STARTER_ITEMS.map((it, i) => ({ user_id: userId, template_id: template.id, kind: it.kind, title: it.title, sort_order: i })));
         }
-        await supabase
-          .from("deal_template_items")
-          .insert(STARTER_ITEMS.map((it, i) => ({ user_id: userId, template_id: template.id, kind: it.kind, title: it.title, sort_order: i })));
       } finally {
         await refresh();
         ensuring.current = null;
@@ -89,14 +95,15 @@ export function useDealTemplates(userId: string | undefined) {
   }, [userId, loading, templates, refresh]);
 
   useEffect(() => {
-    ensureDefaultTemplate();
-  }, [ensureDefaultTemplate]);
+    ensureDefaultTemplates();
+  }, [ensureDefaultTemplates]);
 
-  async function addTemplate(name: string) {
+  async function addTemplate(name: string, dealType: DealType) {
     if (!userId) return;
+    const existing = templates.filter((t) => t.deal_type === dealType);
     const { data, error } = await supabase
       .from("deal_templates")
-      .insert({ user_id: userId, name, is_default: false, sort_order: templates.length })
+      .insert({ user_id: userId, name, deal_type: dealType, is_default: false, sort_order: existing.length })
       .select()
       .single();
     if (error) throw error;
@@ -111,13 +118,14 @@ export function useDealTemplates(userId: string | undefined) {
   }
 
   async function deleteTemplate(id: string) {
-    const wasDefault = templates.find((t) => t.id === id)?.is_default;
+    const template = templates.find((t) => t.id === id);
     const { error } = await supabase.from("deal_templates").delete().eq("id", id);
     if (error) throw error;
-    // Promote another template to default so there's always exactly one,
-    // mirroring how deleting the Inbox list isn't allowed to leave zero.
-    if (wasDefault) {
-      const remaining = templates.filter((t) => t.id !== id);
+    // Promote another template of the same type to default so a type is
+    // never left without one, mirroring how deleting the Inbox list isn't
+    // allowed to leave zero lists.
+    if (template?.is_default) {
+      const remaining = templates.filter((t) => t.id !== id && t.deal_type === template.deal_type);
       if (remaining.length > 0) {
         await supabase.from("deal_templates").update({ is_default: true }).eq("id", remaining[0].id);
       }
@@ -127,20 +135,44 @@ export function useDealTemplates(userId: string | undefined) {
 
   async function setDefaultTemplate(id: string) {
     if (!userId) return;
-    // Clear the old default first — the partial unique index only allows
-    // one is_default=true row per user at a time.
-    await supabase.from("deal_templates").update({ is_default: false }).eq("user_id", userId).eq("is_default", true);
+    const template = templates.find((t) => t.id === id);
+    if (!template) return;
+    // Clear the old default for this deal type first — the partial unique
+    // index only allows one is_default=true row per (user, deal_type).
+    await supabase
+      .from("deal_templates")
+      .update({ is_default: false })
+      .eq("user_id", userId)
+      .eq("deal_type", template.deal_type)
+      .eq("is_default", true);
     const { error } = await supabase.from("deal_templates").update({ is_default: true }).eq("id", id);
     if (error) throw error;
     await refresh();
   }
 
-  async function addItem(templateId: string, kind: DealChecklistKind, title: string) {
+  async function addItem(templateId: string, kind: DealChecklistKind, title: string, groupLabel: string) {
     if (!userId) return;
     const existing = items.filter((i) => i.template_id === templateId && i.kind === kind);
     const { error } = await supabase
       .from("deal_template_items")
-      .insert({ user_id: userId, template_id: templateId, kind, title, sort_order: existing.length });
+      .insert({ user_id: userId, template_id: templateId, kind, title, group_label: groupLabel, sort_order: existing.length });
+    if (error) throw error;
+    await refresh();
+  }
+
+  async function bulkImportItems(templateId: string, kind: DealChecklistKind, parsed: ParsedChecklistItem[]) {
+    if (!userId || parsed.length === 0) return;
+    const existingCount = items.filter((i) => i.template_id === templateId && i.kind === kind).length;
+    const { error } = await supabase.from("deal_template_items").insert(
+      parsed.map((p, i) => ({
+        user_id: userId,
+        template_id: templateId,
+        kind,
+        title: p.title,
+        group_label: p.group_label,
+        sort_order: existingCount + i,
+      }))
+    );
     if (error) throw error;
     await refresh();
   }
@@ -157,22 +189,14 @@ export function useDealTemplates(userId: string | undefined) {
     await refresh();
   }
 
-  async function reorderItems(templateId: string, kind: DealChecklistKind, orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, i) => supabase.from("deal_template_items").update({ sort_order: i }).eq("id", id))
-    );
-    await refresh();
-    void templateId;
-    void kind;
-  }
-
-  // Copies the default template's items onto a freshly-created deal. Called
-  // once, right after addDeal — a plain insert into deal_checklist_items,
-  // picked up by useDeals' own realtime subscription rather than returned
-  // here, since templates and per-deal checklists are two different hooks.
-  async function seedDealChecklist(dealId: string) {
+  // Copies the given deal type's default template's items onto a
+  // freshly-created deal. Called once, right after addDeal — a plain insert
+  // into deal_checklist_items, picked up by useDeals' own realtime
+  // subscription rather than returned here, since templates and per-deal
+  // checklists are two different hooks.
+  async function seedDealChecklist(dealId: string, dealType: DealType) {
     if (!userId) return;
-    const defaultTemplate = templates.find((t) => t.is_default);
+    const defaultTemplate = templates.find((t) => t.is_default && t.deal_type === dealType);
     if (!defaultTemplate) return;
     const templateItems = items.filter((i) => i.template_id === defaultTemplate.id);
     if (templateItems.length === 0) return;
@@ -182,6 +206,7 @@ export function useDealTemplates(userId: string | undefined) {
         deal_id: dealId,
         kind: it.kind,
         title: it.title,
+        group_label: it.group_label,
         sort_order: it.sort_order,
       }))
     );
@@ -197,9 +222,9 @@ export function useDealTemplates(userId: string | undefined) {
     deleteTemplate,
     setDefaultTemplate,
     addItem,
+    bulkImportItems,
     renameItem,
     deleteItem,
-    reorderItems,
     seedDealChecklist,
   };
 }
