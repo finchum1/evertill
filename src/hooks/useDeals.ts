@@ -1,31 +1,37 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { Deal, DealChecklistItem, DealChecklistKind, DealNote, DealType } from "../types";
+import type { Deal, DealChecklistItem, DealChecklistKind, DealContactField, DealNote, DealType } from "../types";
+import { FIXED_CONTACT_FIELDS } from "../lib/dealContactFields";
 
 export function useDeals(userId: string | undefined) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<DealNote[]>([]);
   const [checklistItems, setChecklistItems] = useState<DealChecklistItem[]>([]);
+  const [contactFields, setContactFields] = useState<DealContactField[]>([]);
   const [loading, setLoading] = useState(true);
+  const ensuringContacts = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     if (!userId) return;
-    const [dealsRes, notesRes, checklistRes] = await Promise.all([
+    const [dealsRes, notesRes, checklistRes, contactFieldsRes] = await Promise.all([
       supabase.from("deals").select("*").order("sort_order", { ascending: true }),
       supabase.from("deal_notes").select("*").order("created_at", { ascending: false }),
       supabase.from("deal_checklist_items").select("*").order("sort_order", { ascending: true }),
+      supabase.from("deal_contact_fields").select("*").order("sort_order", { ascending: true }),
     ]);
     if (dealsRes.error) throw dealsRes.error;
     if (notesRes.error) throw notesRes.error;
-    // deal_checklist_items is a newer table that may not exist yet on a
-    // database that hasn't had the latest schema.sql migration applied —
-    // degrade to an empty checklist rather than blocking the whole Deals
-    // page (deals/notes) from loading over an optional feature's table.
+    // deal_checklist_items/deal_contact_fields are newer tables that may not
+    // exist yet on a database that hasn't had the latest schema.sql
+    // migration applied — degrade to empty rather than blocking the whole
+    // Deals page (deals/notes) from loading over an optional feature's table.
     if (checklistRes.error) console.warn("deal_checklist_items unavailable:", checklistRes.error.message);
+    if (contactFieldsRes.error) console.warn("deal_contact_fields unavailable:", contactFieldsRes.error.message);
 
     setDeals((dealsRes.data ?? []) as Deal[]);
     setNotes((notesRes.data ?? []) as DealNote[]);
     setChecklistItems((checklistRes.error ? [] : checklistRes.data ?? []) as DealChecklistItem[]);
+    setContactFields((contactFieldsRes.error ? [] : contactFieldsRes.data ?? []) as DealContactField[]);
     setLoading(false);
   }, [userId]);
 
@@ -42,6 +48,7 @@ export function useDeals(userId: string | undefined) {
       .on("postgres_changes", { event: "*", schema: "public", table: "deals" }, () => refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_notes" }, () => refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_checklist_items" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "deal_contact_fields" }, () => refresh())
       .subscribe();
 
     return () => {
@@ -120,10 +127,65 @@ export function useDeals(userId: string | undefined) {
     await refresh();
   }
 
+  // Seeds the 12 standard Contacts fields onto a deal. Called both right
+  // after a deal is created and lazily the first time an existing deal's
+  // Contacts tab is opened (via ensureContactFields below), so pre-existing
+  // deals from before this feature shipped get backfilled too.
+  async function seedContactFields(dealId: string) {
+    if (!userId) return;
+    const { error } = await supabase.from("deal_contact_fields").insert(
+      FIXED_CONTACT_FIELDS.map((f, i) => ({
+        user_id: userId,
+        deal_id: dealId,
+        group_label: f.group_label,
+        label: f.label,
+        value: "",
+        sort_order: i,
+      }))
+    );
+    if (error) throw error;
+    await refresh();
+  }
+
+  async function ensureContactFields(dealId: string) {
+    if (!userId) return;
+    if (contactFields.some((f) => f.deal_id === dealId)) return;
+    if (ensuringContacts.current.has(dealId)) return;
+    ensuringContacts.current.add(dealId);
+    try {
+      await seedContactFields(dealId);
+    } finally {
+      ensuringContacts.current.delete(dealId);
+    }
+  }
+
+  async function addContactField(dealId: string, label: string) {
+    if (!userId) return;
+    const existing = contactFields.filter((f) => f.deal_id === dealId);
+    const { error } = await supabase
+      .from("deal_contact_fields")
+      .insert({ user_id: userId, deal_id: dealId, group_label: "", label, value: "", sort_order: existing.length });
+    if (error) throw error;
+    await refresh();
+  }
+
+  async function updateContactField(id: string, value: string) {
+    const { error } = await supabase.from("deal_contact_fields").update({ value }).eq("id", id);
+    if (error) throw error;
+    await refresh();
+  }
+
+  async function deleteContactField(id: string) {
+    const { error } = await supabase.from("deal_contact_fields").delete().eq("id", id);
+    if (error) throw error;
+    await refresh();
+  }
+
   return {
     deals,
     notes,
     checklistItems,
+    contactFields,
     loading,
     addDeal,
     updateDeal,
@@ -133,5 +195,10 @@ export function useDeals(userId: string | undefined) {
     addChecklistItem,
     toggleChecklistItem,
     deleteChecklistItem,
+    seedContactFields,
+    ensureContactFields,
+    addContactField,
+    updateContactField,
+    deleteContactField,
   };
 }

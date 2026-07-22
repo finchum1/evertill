@@ -1,15 +1,17 @@
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import type { Deal, DealChecklistItem, DealChecklistKind, DealNote, DealStatus, DealType } from "../types";
+import type { Deal, DealChecklistItem, DealChecklistKind, DealContactField, DealNote, DealStatus, DealType } from "../types";
 import { DEAL_STATUSES, DEAL_STATUS_COLOR } from "../types";
 import { openDatePicker } from "../lib/datePicker";
 import { DealChecklist } from "./DealChecklist";
+import { DealContactsTab } from "./DealContactsTab";
 import { checklistProgress } from "../lib/dealChecklistProgress";
 
 interface DealModalProps {
   deal: Deal;
   notes: DealNote[];
   checklistItems: DealChecklistItem[];
+  contactFields: DealContactField[];
   onClose: () => void;
   onUpdate: (id: string, patch: Partial<Deal>) => void;
   onDelete: (id: string) => void;
@@ -18,6 +20,10 @@ interface DealModalProps {
   onAddChecklistItem: (dealId: string, kind: DealChecklistKind, title: string) => void;
   onToggleChecklistItem: (id: string) => void;
   onDeleteChecklistItem: (id: string) => void;
+  onEnsureContactFields: (dealId: string) => void;
+  onAddContactField: (dealId: string, label: string) => void;
+  onUpdateContactField: (id: string, value: string) => void;
+  onDeleteContactField: (id: string) => void;
 }
 
 const TABS = ["Overview", "Contacts", "Notes"] as const;
@@ -29,6 +35,7 @@ export function DealModal({
   deal,
   notes,
   checklistItems,
+  contactFields,
   onClose,
   onUpdate,
   onDelete,
@@ -37,6 +44,10 @@ export function DealModal({
   onAddChecklistItem,
   onToggleChecklistItem,
   onDeleteChecklistItem,
+  onEnsureContactFields,
+  onAddContactField,
+  onUpdateContactField,
+  onDeleteContactField,
 }: DealModalProps) {
   const [tab, setTab] = useState<DealTab>("Overview");
   const [address, setAddress] = useState(deal.address);
@@ -134,7 +145,14 @@ export function DealModal({
           <OverviewTab deal={deal} onUpdate={onUpdate} checklistItems={checklistItems} onAddChecklistItem={onAddChecklistItem} onToggleChecklistItem={onToggleChecklistItem} onDeleteChecklistItem={onDeleteChecklistItem} />
         )}
         {tab === "Contacts" && (
-          <div style={{ padding: "32px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Contacts coming soon.</div>
+          <DealContactsTab
+            dealId={deal.id}
+            contactFields={contactFields}
+            onEnsure={onEnsureContactFields}
+            onAdd={onAddContactField}
+            onUpdate={onUpdateContactField}
+            onDelete={onDeleteContactField}
+          />
         )}
         {tab === "Notes" && <NotesTab deal={deal} notes={notes} onAddNote={onAddNote} onDeleteNote={onDeleteNote} />}
 

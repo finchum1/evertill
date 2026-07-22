@@ -482,3 +482,34 @@ create policy "deal_checklist_items_owner_all" on deal_checklist_items
 alter publication supabase_realtime add table deal_templates;
 alter publication supabase_realtime add table deal_template_items;
 alter publication supabase_realtime add table deal_checklist_items;
+
+-- ---------------------------------------------------------------------
+-- Deal contact fields: the Contacts tab on a deal. A flexible ordered list
+-- of {label, value} pairs rather than a fixed set of columns on `deals` —
+-- the 12 standard fields (Buyer/Seller name+email+phone, Co-op Agent,
+-- Lender, Title/Escrow) are seeded per deal client-side (same
+-- ensureX()-on-first-view pattern as ensureInboxList/ensureDefaultTemplates,
+-- not a DB trigger, so it also backfills existing deals the first time
+-- their Contacts tab is opened) and "+ Add custom field" is just another
+-- insert into this same table with group_label left empty.
+-- ---------------------------------------------------------------------
+create table if not exists deal_contact_fields (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  deal_id uuid not null references deals(id) on delete cascade,
+  group_label text not null default '',
+  label text not null,
+  value text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists deal_contact_fields_deal_id_idx on deal_contact_fields(deal_id);
+
+alter table deal_contact_fields enable row level security;
+
+drop policy if exists "deal_contact_fields_owner_all" on deal_contact_fields;
+create policy "deal_contact_fields_owner_all" on deal_contact_fields
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table deal_contact_fields;

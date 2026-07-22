@@ -327,6 +327,7 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
     deals,
     notes,
     checklistItems,
+    contactFields,
     loading,
     addDeal,
     updateDeal,
@@ -336,6 +337,11 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
     addChecklistItem,
     toggleChecklistItem,
     deleteChecklistItem,
+    seedContactFields,
+    ensureContactFields,
+    addContactField,
+    updateContactField,
+    deleteContactField,
   } = dealsData;
   const { seedDealChecklist } = dealTemplatesData;
 
@@ -413,7 +419,7 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
             const deal = await addDeal(address, type, acceptanceDate);
             setShowNewDeal(false);
             if (deal) {
-              await seedDealChecklist(deal.id, deal.type);
+              await Promise.all([seedDealChecklist(deal.id, deal.type), seedContactFields(deal.id)]);
               setOpenDealId(deal.id);
             }
           }}
@@ -424,6 +430,7 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
           deal={openDeal}
           notes={notes.filter((n) => n.deal_id === openDeal.id)}
           checklistItems={checklistItems.filter((i) => i.deal_id === openDeal.id)}
+          contactFields={contactFields.filter((f) => f.deal_id === openDeal.id)}
           onClose={() => setOpenDealId(null)}
           onUpdate={updateDeal}
           onDelete={deleteDeal}
@@ -432,6 +439,10 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
           onAddChecklistItem={addChecklistItem}
           onToggleChecklistItem={toggleChecklistItem}
           onDeleteChecklistItem={deleteChecklistItem}
+          onEnsureContactFields={ensureContactFields}
+          onAddContactField={addContactField}
+          onUpdateContactField={updateContactField}
+          onDeleteContactField={deleteContactField}
         />
       )}
     </div>
@@ -638,7 +649,7 @@ function App() {
             const deal = await deals.addDeal(address, type, acceptanceDate);
             setCreateShowNewDeal(false);
             if (deal) {
-              await dealTemplates.seedDealChecklist(deal.id, deal.type);
+              await Promise.all([dealTemplates.seedDealChecklist(deal.id, deal.type), deals.seedContactFields(deal.id)]);
               setCreateDealId(deal.id);
             }
           }}
@@ -650,6 +661,7 @@ function App() {
           deal={createDeal}
           notes={deals.notes.filter((n) => n.deal_id === createDeal.id)}
           checklistItems={deals.checklistItems.filter((i) => i.deal_id === createDeal.id)}
+          contactFields={deals.contactFields.filter((f) => f.deal_id === createDeal.id)}
           onClose={() => setCreateDealId(null)}
           onUpdate={deals.updateDeal}
           onDelete={deals.deleteDeal}
@@ -658,6 +670,10 @@ function App() {
           onAddChecklistItem={deals.addChecklistItem}
           onToggleChecklistItem={deals.toggleChecklistItem}
           onDeleteChecklistItem={deals.deleteChecklistItem}
+          onEnsureContactFields={deals.ensureContactFields}
+          onAddContactField={deals.addContactField}
+          onUpdateContactField={deals.updateContactField}
+          onDeleteContactField={deals.deleteContactField}
         />
       )}
     </div>

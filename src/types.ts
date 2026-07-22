@@ -251,3 +251,18 @@ export interface DealChecklistItem {
   sort_order: number;
   created_at: string;
 }
+
+// A single {label, value} row on a deal's Contacts tab. The 12 standard
+// fields (Buyer/Seller info, Co-op Agent, Lender, Title/Escrow) are seeded
+// with group_label set to their section; "+ Add custom field" inserts a row
+// with group_label "" (rendered ungrouped, and the only ones deletable).
+export interface DealContactField {
+  id: string;
+  user_id: string;
+  deal_id: string;
+  group_label: string;
+  label: string;
+  value: string;
+  sort_order: number;
+  created_at: string;
+}
