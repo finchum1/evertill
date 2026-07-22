@@ -1,13 +1,14 @@
 import { DEAL_STATUSES } from "../types";
-import type { Deal } from "../types";
+import type { Deal, DealChecklistItem } from "../types";
 import { DealCardMini } from "./DealCardMini";
 
 interface DealsBoardProps {
   deals: Deal[];
+  checklistItems: DealChecklistItem[];
   onOpenDeal: (id: string) => void;
 }
 
-export function DealsBoard({ deals, onOpenDeal }: DealsBoardProps) {
+export function DealsBoard({ deals, checklistItems, onOpenDeal }: DealsBoardProps) {
   return (
     <div style={{ padding: "0 24px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12 }}>
@@ -28,7 +29,12 @@ export function DealsBoard({ deals, onOpenDeal }: DealsBoardProps) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {statusDeals.map((deal) => (
-                  <DealCardMini key={deal.id} deal={deal} onOpen={onOpenDeal} />
+                  <DealCardMini
+                    key={deal.id}
+                    deal={deal}
+                    checklistItems={checklistItems.filter((i) => i.deal_id === deal.id)}
+                    onOpen={onOpenDeal}
+                  />
                 ))}
                 {statusDeals.length === 0 && (
                   <div style={{ color: "var(--border-strong)", fontSize: 12, padding: "12px 0" }}>No deals</div>

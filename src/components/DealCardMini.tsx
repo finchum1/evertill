@@ -1,13 +1,15 @@
-import type { Deal } from "../types";
+import type { Deal, DealChecklistItem } from "../types";
 import { formatCurrency } from "../lib/format";
 import { formatDueDate } from "../lib/dates";
+import { DealProgressBadge } from "./DealProgressBadge";
 
 interface DealCardMiniProps {
   deal: Deal;
+  checklistItems: DealChecklistItem[];
   onOpen: (id: string) => void;
 }
 
-export function DealCardMini({ deal, onOpen }: DealCardMiniProps) {
+export function DealCardMini({ deal, checklistItems, onOpen }: DealCardMiniProps) {
   return (
     <div
       onClick={() => onOpen(deal.id)}
@@ -63,6 +65,8 @@ export function DealCardMini({ deal, onOpen }: DealCardMiniProps) {
           Closing: {formatDueDate(deal.closing_date)}
         </span>
       )}
+
+      <DealProgressBadge items={checklistItems} />
     </div>
   );
 }

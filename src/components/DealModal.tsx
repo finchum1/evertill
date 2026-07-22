@@ -1,9 +1,10 @@
 import { useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { Deal, DealChecklistItem, DealChecklistKind, DealNote, DealStatus, DealType } from "../types";
-import { DEAL_STATUSES } from "../types";
+import { DEAL_STATUSES, DEAL_STATUS_COLOR } from "../types";
 import { openDatePicker } from "../lib/datePicker";
 import { DealChecklist } from "./DealChecklist";
+import { checklistProgress } from "../lib/dealChecklistProgress";
 
 interface DealModalProps {
   deal: Deal;
@@ -19,6 +20,11 @@ interface DealModalProps {
   onDeleteChecklistItem: (id: string) => void;
 }
 
+const TABS = ["Overview", "Contacts", "Notes"] as const;
+type DealTab = (typeof TABS)[number];
+
+const TYPE_COLOR: Record<DealType, string> = { Buyer: "#3b82f6", Listing: "#a855f7" };
+
 export function DealModal({
   deal,
   notes,
@@ -32,14 +38,9 @@ export function DealModal({
   onToggleChecklistItem,
   onDeleteChecklistItem,
 }: DealModalProps) {
+  const [tab, setTab] = useState<DealTab>("Overview");
   const [address, setAddress] = useState(deal.address);
-  const [value, setValue] = useState(String(deal.value || ""));
-  const [price, setPrice] = useState(String(deal.price || ""));
-  const [earnestMoney, setEarnestMoney] = useState(String(deal.earnest_money || ""));
-  const [concessions, setConcessions] = useState(String(deal.concessions || ""));
-  const [loanType, setLoanType] = useState(deal.loan_type ?? "");
-  const [agentName, setAgentName] = useState(deal.agent_name ?? "");
-  const [newNote, setNewNote] = useState("");
+  const { percent } = checklistProgress(checklistItems);
 
   return (
     <div
@@ -59,7 +60,7 @@ export function DealModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 560,
+          maxWidth: 720,
           maxHeight: "85vh",
           overflowY: "auto",
           background: "var(--bg-panel)",
@@ -72,137 +73,72 @@ export function DealModal({
           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
         }}
       >
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          onBlur={() => address.trim() && address !== deal.address && onUpdate(deal.id, { address: address.trim() })}
-          style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0" }}
-        />
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label style={labelStyle}>
-            Type
-            <select value={deal.type} onChange={(e) => onUpdate(deal.id, { type: e.target.value as DealType })} style={inputStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <select
+              value={deal.type}
+              onChange={(e) => onUpdate(deal.id, { type: e.target.value as DealType })}
+              style={pillSelectStyle(TYPE_COLOR[deal.type])}
+            >
               <option value="Buyer">Buyer</option>
               <option value="Listing">Listing</option>
             </select>
-          </label>
-          <label style={labelStyle}>
-            Status
-            <select value={deal.status} onChange={(e) => onUpdate(deal.id, { status: e.target.value as DealStatus })} style={inputStyle}>
+            <select
+              value={deal.status}
+              onChange={(e) => onUpdate(deal.id, { status: e.target.value as DealStatus })}
+              style={pillSelectStyle(DEAL_STATUS_COLOR[deal.status])}
+            >
               {DEAL_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
               ))}
             </select>
-          </label>
-        </div>
-
-        <label style={labelStyle}>
-          Agent
-          <input
-            value={agentName}
-            onChange={(e) => setAgentName(e.target.value)}
-            onBlur={() => onUpdate(deal.id, { agent_name: agentName.trim() || null })}
-            placeholder="Agent name…"
-            style={inputStyle}
-          />
-        </label>
-
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Milestone dates</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>
-              Acceptance
-              <input type="date" value={deal.acceptance_date ?? ""} onChange={(e) => onUpdate(deal.id, { acceptance_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Inspection
-              <input type="date" value={deal.inspection_date ?? ""} onChange={(e) => onUpdate(deal.id, { inspection_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Appraisal
-              <input type="date" value={deal.appraisal_date ?? ""} onChange={(e) => onUpdate(deal.id, { appraisal_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Closing
-              <input type="date" value={deal.closing_date ?? ""} onChange={(e) => onUpdate(deal.id, { closing_date: e.target.value || null })} onClick={openDatePicker} style={inputStyle} />
-            </label>
           </div>
+          <button onClick={onClose} style={closeButtonStyle} aria-label="Close">
+            ×
+          </button>
         </div>
 
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Value &amp; terms</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>
-              Value
-              <input type="number" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onUpdate(deal.id, { value: Number(value) || 0 })} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Price
-              <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => onUpdate(deal.id, { price: Number(price) || 0 })} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Earnest money
-              <input type="number" value={earnestMoney} onChange={(e) => setEarnestMoney(e.target.value)} onBlur={() => onUpdate(deal.id, { earnest_money: Number(earnestMoney) || 0 })} style={inputStyle} />
-            </label>
-            <label style={labelStyle}>
-              Concessions
-              <input type="number" value={concessions} onChange={(e) => setConcessions(e.target.value)} onBlur={() => onUpdate(deal.id, { concessions: Number(concessions) || 0 })} style={inputStyle} />
-            </label>
-          </div>
-          <label style={{ ...labelStyle, display: "block", marginTop: 12 }}>
-            Loan type
-            <input value={loanType} onChange={(e) => setLoanType(e.target.value)} onBlur={() => onUpdate(deal.id, { loan_type: loanType || null })} style={inputStyle} />
-          </label>
-        </div>
-
-        <DealChecklist
-          items={checklistItems}
-          onAdd={(kind, title) => onAddChecklistItem(deal.id, kind, title)}
-          onToggle={onToggleChecklistItem}
-          onDelete={onDeleteChecklistItem}
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          onBlur={() => address.trim() && address !== deal.address && onUpdate(deal.id, { address: address.trim() })}
+          style={{ ...inputStyle, fontSize: 20, fontWeight: 700, border: "none", padding: "0", background: "none" }}
         />
 
         <div>
-          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Notes</div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!newNote.trim()) return;
-              onAddNote(deal.id, newNote.trim());
-              setNewNote("");
-            }}
-            style={{ display: "flex", gap: 8, marginBottom: 10 }}
-          >
-            <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log an activity or note…" style={{ ...inputStyle, flex: 1 }} />
-            <button type="submit" style={smallPrimaryButtonStyle}>
-              Log
-            </button>
-          </form>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {notes.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>No notes yet.</span>}
-            {notes.map((n) => (
-              <div key={n.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "var(--text-body)" }}>{n.body}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                    {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                  </div>
-                </div>
-                <button onClick={() => onDeleteNote(n.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>
-                  ×
-                </button>
-              </div>
-            ))}
+          <div style={progressTrackStyle}>
+            <div style={{ ...progressFillStyle, width: `${percent}%` }} />
           </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{percent}% complete</div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button onClick={onClose} style={ghostButtonStyle}>
-            Close
-          </button>
+        <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)" }}>
+          {TABS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                ...tabButtonStyle,
+                color: tab === t ? "var(--text-primary)" : "var(--text-secondary)",
+                borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent",
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {tab === "Overview" && (
+          <OverviewTab deal={deal} onUpdate={onUpdate} checklistItems={checklistItems} onAddChecklistItem={onAddChecklistItem} onToggleChecklistItem={onToggleChecklistItem} onDeleteChecklistItem={onDeleteChecklistItem} />
+        )}
+        {tab === "Contacts" && (
+          <div style={{ padding: "32px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Contacts coming soon.</div>
+        )}
+        {tab === "Notes" && <NotesTab deal={deal} notes={notes} onAddNote={onAddNote} onDeleteNote={onDeleteNote} />}
+
+        <div style={{ display: "flex", marginTop: 4 }}>
           <button
             onClick={() => {
               if (window.confirm(`Delete "${deal.address}"? This can't be undone.`)) {
@@ -216,6 +152,182 @@ export function DealModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function OverviewTab({
+  deal,
+  onUpdate,
+  checklistItems,
+  onAddChecklistItem,
+  onToggleChecklistItem,
+  onDeleteChecklistItem,
+}: {
+  deal: Deal;
+  onUpdate: (id: string, patch: Partial<Deal>) => void;
+  checklistItems: DealChecklistItem[];
+  onAddChecklistItem: (dealId: string, kind: DealChecklistKind, title: string) => void;
+  onToggleChecklistItem: (id: string) => void;
+  onDeleteChecklistItem: (id: string) => void;
+}) {
+  const [value, setValue] = useState(String(deal.value || ""));
+  const [price, setPrice] = useState(String(deal.price || ""));
+  const [earnestMoney, setEarnestMoney] = useState(String(deal.earnest_money || ""));
+  const [concessions, setConcessions] = useState(String(deal.concessions || ""));
+  const [loanType, setLoanType] = useState(deal.loan_type ?? "");
+  const [agentName, setAgentName] = useState(deal.agent_name ?? "");
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        <FieldCard label="Acceptance date">
+          <input
+            type="date"
+            value={deal.acceptance_date ?? ""}
+            onChange={(e) => onUpdate(deal.id, { acceptance_date: e.target.value || null })}
+            onClick={openDatePicker}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Inspection date">
+          <input
+            type="date"
+            value={deal.inspection_date ?? ""}
+            onChange={(e) => onUpdate(deal.id, { inspection_date: e.target.value || null })}
+            onClick={openDatePicker}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Appraisal date">
+          <input
+            type="date"
+            value={deal.appraisal_date ?? ""}
+            onChange={(e) => onUpdate(deal.id, { appraisal_date: e.target.value || null })}
+            onClick={openDatePicker}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Closing date">
+          <input
+            type="date"
+            value={deal.closing_date ?? ""}
+            onChange={(e) => onUpdate(deal.id, { closing_date: e.target.value || null })}
+            onClick={openDatePicker}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        <FieldCard label="Value ($)">
+          <input type="number" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onUpdate(deal.id, { value: Number(value) || 0 })} style={fieldInputStyle} />
+        </FieldCard>
+        <FieldCard label="Price ($)">
+          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => onUpdate(deal.id, { price: Number(price) || 0 })} style={fieldInputStyle} />
+        </FieldCard>
+        <FieldCard label="Earnest money ($)">
+          <input
+            type="number"
+            value={earnestMoney}
+            onChange={(e) => setEarnestMoney(e.target.value)}
+            onBlur={() => onUpdate(deal.id, { earnest_money: Number(earnestMoney) || 0 })}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Concessions ($)">
+          <input
+            type="number"
+            value={concessions}
+            onChange={(e) => setConcessions(e.target.value)}
+            onBlur={() => onUpdate(deal.id, { concessions: Number(concessions) || 0 })}
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Loan type">
+          <input
+            value={loanType}
+            onChange={(e) => setLoanType(e.target.value)}
+            onBlur={() => onUpdate(deal.id, { loan_type: loanType || null })}
+            placeholder="e.g. Conventional"
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+        <FieldCard label="Agent">
+          <input
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            onBlur={() => onUpdate(deal.id, { agent_name: agentName.trim() || null })}
+            placeholder="Agent name…"
+            style={fieldInputStyle}
+          />
+        </FieldCard>
+      </div>
+
+      <DealChecklist
+        items={checklistItems}
+        onAdd={(kind, title) => onAddChecklistItem(deal.id, kind, title)}
+        onToggle={onToggleChecklistItem}
+        onDelete={onDeleteChecklistItem}
+      />
+    </div>
+  );
+}
+
+function NotesTab({
+  deal,
+  notes,
+  onAddNote,
+  onDeleteNote,
+}: {
+  deal: Deal;
+  notes: DealNote[];
+  onAddNote: (dealId: string, body: string) => void;
+  onDeleteNote: (id: string) => void;
+}) {
+  const [newNote, setNewNote] = useState("");
+
+  return (
+    <div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newNote.trim()) return;
+          onAddNote(deal.id, newNote.trim());
+          setNewNote("");
+        }}
+        style={{ display: "flex", gap: 8, marginBottom: 10 }}
+      >
+        <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log an activity or note…" style={{ ...inputStyle, flex: 1 }} />
+        <button type="submit" style={smallPrimaryButtonStyle}>
+          Log
+        </button>
+      </form>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {notes.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>No notes yet.</span>}
+        {notes.map((n) => (
+          <div key={n.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: "var(--text-body)" }}>{n.body}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </div>
+            </div>
+            <button onClick={() => onDeleteNote(n.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FieldCard({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div style={fieldCardStyle}>
+      <div style={fieldLabelStyle}>{label}</div>
+      {children}
     </div>
   );
 }
@@ -234,24 +346,80 @@ const inputStyle: CSSProperties = {
   fontFamily: "inherit",
 };
 
-const labelStyle: CSSProperties = {
-  fontSize: 12,
-  color: "var(--text-secondary)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 6,
+const fieldCardStyle: CSSProperties = {
+  background: "var(--bg-panel-nested)",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+  padding: "10px 12px",
 };
 
-const ghostButtonStyle: CSSProperties = {
+const fieldLabelStyle: CSSProperties = {
+  fontSize: 11,
+  color: "var(--text-secondary)",
+  marginBottom: 4,
+};
+
+const fieldInputStyle: CSSProperties = {
+  display: "block",
+  width: "100%",
   background: "none",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-body)",
+  border: "none",
+  color: "var(--text-primary)",
+  fontSize: 14,
+  fontWeight: 600,
+  padding: 0,
+  outline: "none",
+  fontFamily: "inherit",
+};
+
+const closeButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--text-muted)",
+  fontSize: 22,
+  lineHeight: 1,
+  cursor: "pointer",
+  padding: 4,
+};
+
+const progressTrackStyle: CSSProperties = {
+  width: "100%",
+  height: 6,
+  borderRadius: 99,
+  background: "var(--border)",
+  overflow: "hidden",
+};
+
+const progressFillStyle: CSSProperties = {
+  height: "100%",
+  background: "var(--accent)",
+  borderRadius: 99,
+};
+
+const tabButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
   fontSize: 13,
   fontWeight: 600,
-  padding: "8px 16px",
+  padding: "8px 4px",
+  marginBottom: -1,
   cursor: "pointer",
 };
+
+function pillSelectStyle(color: string): CSSProperties {
+  return {
+    background: `${color}20`,
+    border: "none",
+    borderRadius: 99,
+    color,
+    fontSize: 12,
+    fontWeight: 700,
+    padding: "5px 12px",
+    outline: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
+}
 
 const dangerButtonStyle: CSSProperties = {
   background: "rgba(239,68,68,0.12)",
@@ -262,7 +430,6 @@ const dangerButtonStyle: CSSProperties = {
   fontWeight: 600,
   padding: "8px 16px",
   cursor: "pointer",
-  flex: 1,
 };
 
 const smallPrimaryButtonStyle: CSSProperties = {

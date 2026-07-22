@@ -9,21 +9,29 @@ interface DealChecklistProps {
   onDelete: (id: string) => void;
 }
 
+// Two independently collapsible sections (Tasks, Documents) stacked
+// vertically — each a bar showing a done/total count that expands to show
+// its items grouped by group_label, matching the reference screenshot's
+// Overview page layout rather than the old side-by-side two-column view.
 export function DealChecklist({ items, onAdd, onToggle, onDelete }: DealChecklistProps) {
   return (
-    <div>
-      <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Checklist</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <ChecklistColumn kind="task" label="Tasks" items={items.filter((i) => i.kind === "task")} onAdd={onAdd} onToggle={onToggle} onDelete={onDelete} />
-        <ChecklistColumn kind="document" label="Documents" items={items.filter((i) => i.kind === "document")} onAdd={onAdd} onToggle={onToggle} onDelete={onDelete} />
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <ChecklistSection kind="task" label="Tasks" items={items.filter((i) => i.kind === "task")} onAdd={onAdd} onToggle={onToggle} onDelete={onDelete} />
+      <ChecklistSection
+        kind="document"
+        label="Documents"
+        items={items.filter((i) => i.kind === "document")}
+        onAdd={onAdd}
+        onToggle={onToggle}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
 
-// Groups items by their group_label (in first-seen order, matching the
-// underlying sort_order), keeping ungrouped items ("" label) as their own
-// unlabeled bucket rendered without a collapsible header.
+// Groups items by their group_label (in first-seen/sort_order order),
+// keeping ungrouped items ("" label) as their own unlabeled bucket rendered
+// without a collapsible sub-header.
 function groupItems(items: DealChecklistItem[]) {
   const groups: { label: string; items: DealChecklistItem[] }[] = [];
   for (const item of items) {
@@ -37,7 +45,7 @@ function groupItems(items: DealChecklistItem[]) {
   return groups;
 }
 
-function ChecklistColumn({
+function ChecklistSection({
   kind,
   label,
   items,
@@ -52,16 +60,17 @@ function ChecklistColumn({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const [open, setOpen] = useState(true);
   const [title, setTitle] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [groupCollapsed, setGroupCollapsed] = useState<Set<string>>(new Set());
   const groups = useMemo(() => groupItems(items), [items]);
   const done = items.filter((i) => i.done).length;
 
-  function toggleCollapsed(label: string) {
-    setCollapsed((prev) => {
+  function toggleGroupCollapsed(groupLabel: string) {
+    setGroupCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
+      if (next.has(groupLabel)) next.delete(groupLabel);
+      else next.add(groupLabel);
       return next;
     });
   }
@@ -75,43 +84,47 @@ function ChecklistColumn({
   }
 
   return (
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-        {label} {items.length > 0 && `(${done}/${items.length})`}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
-        {items.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>None yet.</span>}
-        {groups.map((group) =>
-          group.label ? (
-            <ChecklistGroup
-              key={group.label}
-              label={group.label}
-              items={group.items}
-              collapsed={collapsed.has(group.label)}
-              onToggleCollapsed={() => toggleCollapsed(group.label)}
-              onToggle={onToggle}
-              onDelete={onDelete}
-            />
-          ) : (
-            <div key="__ungrouped" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {group.items.map((item) => (
-                <ChecklistItemRow key={item.id} item={item} onToggle={onToggle} onDelete={onDelete} />
-              ))}
-            </div>
-          )
-        )}
-      </div>
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={`Add ${kind}…`}
-          style={inputStyle}
-        />
-        <button type="submit" style={addButtonStyle}>
-          Add
-        </button>
-      </form>
+    <div style={sectionWrapperStyle}>
+      <button onClick={() => setOpen((v) => !v)} style={sectionHeaderStyle}>
+        <span style={{ transform: open ? "none" : "rotate(-90deg)", display: "inline-block", transition: "transform 0.1s" }}>▾</span>
+        <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+        <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>
+          {done}/{items.length}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 14px 14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+            {items.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>None yet.</span>}
+            {groups.map((group) =>
+              group.label ? (
+                <ChecklistGroup
+                  key={group.label}
+                  label={group.label}
+                  items={group.items}
+                  collapsed={groupCollapsed.has(group.label)}
+                  onToggleCollapsed={() => toggleGroupCollapsed(group.label)}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                />
+              ) : (
+                <div key="__ungrouped" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {group.items.map((item) => (
+                    <ChecklistItemRow key={item.id} item={item} onToggle={onToggle} onDelete={onDelete} />
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+          <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6 }}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add ${kind}…`} style={inputStyle} />
+            <button type="submit" style={addButtonStyle}>
+              Add
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -181,6 +194,43 @@ function ChecklistItemRow({
   );
 }
 
+const sectionWrapperStyle: CSSProperties = {
+  background: "var(--bg-panel-nested)",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+  overflow: "hidden",
+};
+
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  width: "100%",
+  background: "none",
+  border: "none",
+  color: "var(--text-primary)",
+  fontSize: 13,
+  fontWeight: 700,
+  padding: "12px 14px",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const groupHeaderStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  width: "100%",
+  background: "none",
+  border: "none",
+  color: "var(--text-body)",
+  fontSize: 12,
+  fontWeight: 700,
+  padding: "4px 0",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
 const inputStyle: CSSProperties = {
   flex: 1,
   minWidth: 0,
@@ -213,19 +263,4 @@ const removeButtonStyle: CSSProperties = {
   cursor: "pointer",
   fontSize: 13,
   flexShrink: 0,
-};
-
-const groupHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  width: "100%",
-  background: "none",
-  border: "none",
-  color: "var(--text-body)",
-  fontSize: 12,
-  fontWeight: 700,
-  padding: "4px 0",
-  cursor: "pointer",
-  textAlign: "left",
 };

@@ -27,6 +27,7 @@ import { useProfile } from "./hooks/useProfile";
 import type { Session } from "@supabase/supabase-js";
 import { DealsBoard } from "./components/DealsBoard";
 import { DealsListView } from "./components/DealsListView";
+import { DealsStatCards } from "./components/DealsStatCards";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
@@ -383,11 +384,12 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
           + New Deal
         </button>
       </div>
+      <DealsStatCards deals={deals} />
       <div style={{ padding: "0 24px" }}>
         <ViewTabs active={subView} onChange={setSubView} order={DEALS_VIEW_ORDER} />
       </div>
-      {subView === "list" && <DealsListView deals={deals} onOpenDeal={setOpenDealId} />}
-      {subView === "board" && <DealsBoard deals={deals} onOpenDeal={setOpenDealId} />}
+      {subView === "list" && <DealsListView deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
+      {subView === "board" && <DealsBoard deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
       {subView === "calendar" && (
         <div style={{ padding: "0 24px 20px" }}>
           <BoardCalendarView

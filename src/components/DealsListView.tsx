@@ -1,19 +1,21 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { DEAL_STATUS_COLOR } from "../types";
-import type { Deal, DealStatus, DealType } from "../types";
+import type { Deal, DealChecklistItem, DealStatus, DealType } from "../types";
 import { todayKey } from "../lib/dates";
+import { DealProgressBadge } from "./DealProgressBadge";
 
 interface DealsListViewProps {
   deals: Deal[];
+  checklistItems: DealChecklistItem[];
   onOpenDeal: (id: string) => void;
 }
 
-// The 4 "open" stages get their own stat card + filter option; Closed is
-// deliberately excluded from both (revealed only via "Show closed files").
+// The 4 "open" stages get their own filter option; Closed is deliberately
+// excluded (revealed only via "Show closed files").
 const STAT_STATUSES: DealStatus[] = ["Active", "In Escrow", "Inspections", "Pre-Closing"];
 
-export function DealsListView({ deals, onOpenDeal }: DealsListViewProps) {
+export function DealsListView({ deals, checklistItems, onOpenDeal }: DealsListViewProps) {
   const [typeFilter, setTypeFilter] = useState<"All" | DealType>("All");
   const [statusFilter, setStatusFilter] = useState<"All Active" | DealStatus>("All Active");
   const [agentFilter, setAgentFilter] = useState<string>("All Agents");
@@ -33,18 +35,6 @@ export function DealsListView({ deals, onOpenDeal }: DealsListViewProps) {
 
   return (
     <div style={{ padding: "0 24px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        {STAT_STATUSES.map((status) => {
-          const count = openDeals.filter((d) => d.status === status).length;
-          return (
-            <div key={status} style={statCardStyle}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: DEAL_STATUS_COLOR[status] }}>{count}</div>
-              <div style={statLabelStyle}>{status.toUpperCase()}</div>
-            </div>
-          );
-        })}
-      </div>
-
       <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
         <label style={filterLabelStyle}>
           Type
@@ -82,7 +72,7 @@ export function DealsListView({ deals, onOpenDeal }: DealsListViewProps) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {filtered.map((deal) => (
-          <DealListRow key={deal.id} deal={deal} onOpen={onOpenDeal} />
+          <DealListRow key={deal.id} deal={deal} checklistItems={checklistItems.filter((i) => i.deal_id === deal.id)} onOpen={onOpenDeal} />
         ))}
         {filtered.length === 0 && (
           <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "40px 0", textAlign: "center" }}>No deals match these filters.</div>
@@ -100,7 +90,7 @@ export function DealsListView({ deals, onOpenDeal }: DealsListViewProps) {
       {showClosed && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
           {closedDeals.map((deal) => (
-            <DealListRow key={deal.id} deal={deal} onOpen={onOpenDeal} />
+            <DealListRow key={deal.id} deal={deal} checklistItems={checklistItems.filter((i) => i.deal_id === deal.id)} onOpen={onOpenDeal} />
           ))}
         </div>
       )}
@@ -115,7 +105,15 @@ const MILESTONES: { key: "acceptance_date" | "inspection_date" | "appraisal_date
   { key: "closing_date", label: "Closing" },
 ];
 
-function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => void }) {
+function DealListRow({
+  deal,
+  checklistItems,
+  onOpen,
+}: {
+  deal: Deal;
+  checklistItems: DealChecklistItem[];
+  onOpen: (id: string) => void;
+}) {
   const tkey = todayKey();
   // Highlight whichever milestone is the first not-yet-passed date (today or
   // future); if every set date has already passed, highlight the last one
@@ -132,6 +130,8 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
       style={{
         display: "flex",
         alignItems: "center",
+        flexWrap: "wrap",
+        rowGap: 12,
         gap: 20,
         padding: "18px 20px",
         borderRadius: 12,
@@ -172,7 +172,7 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
         </span>
       </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "flex-start", position: "relative", padding: "0 10px", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "flex-start", position: "relative", padding: "0 10px", minWidth: 260 }}>
         <div style={{ position: "absolute", left: 10, right: 10, top: 5, height: 1, background: "var(--border)" }} />
         {withDates.map((m) => {
           const active = m.key === currentKey;
@@ -193,6 +193,8 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
         })}
       </div>
 
+      <DealProgressBadge items={checklistItems} />
+
       {deal.agent_name && (
         <div style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0, textAlign: "right" }}>
           Agent: {deal.agent_name}
@@ -208,21 +210,6 @@ function formatMilestoneDate(dateStr: string): string {
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
-
-const statCardStyle: CSSProperties = {
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  padding: "18px 20px",
-};
-
-const statLabelStyle: CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: "var(--text-secondary)",
-  letterSpacing: "0.06em",
-  marginTop: 4,
-};
 
 const filterLabelStyle: CSSProperties = {
   display: "flex",
