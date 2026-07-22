@@ -28,6 +28,7 @@ export function TaskModal({
 }: TaskModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description ?? "");
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -114,12 +115,22 @@ export function TaskModal({
         </label>
 
         <label style={labelStyle}>
-          Description
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            Description
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded((v) => !v)}
+              title={descriptionExpanded ? "Collapse" : "Expand"}
+              style={expandButtonStyle}
+            >
+              <ExpandIcon expanded={descriptionExpanded} />
+            </button>
+          </div>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onBlur={() => description !== (todo.description ?? "") && onUpdate(todo.id, { description })}
-            rows={3}
+            rows={descriptionExpanded ? 10 : 3}
             style={{ ...inputStyle, resize: "vertical" as const }}
           />
         </label>
@@ -226,6 +237,25 @@ function SubtaskRow({
     </div>
   );
 }
+
+function ExpandIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: expanded ? "rotate(180deg)" : "none" }}>
+      <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const expandButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--text-secondary)",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 2,
+};
 
 const inputStyle: CSSProperties = {
   display: "block",
