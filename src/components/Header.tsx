@@ -48,9 +48,10 @@ export function Header({ session, profile, page, onSetPage, onLogin, onSignup, o
                   key={item.key}
                   onClick={() => onSetPage(item.key)}
                   style={{
-                    background: page === item.key ? "var(--border)" : "none",
+                    background: "none",
                     border: "none",
-                    borderRadius: 8,
+                    borderBottom: `2px solid ${page === item.key ? "var(--accent)" : "transparent"}`,
+                    borderRadius: 0,
                     color: page === item.key ? "var(--text-primary)" : "var(--text-secondary)",
                     fontSize: 13,
                     fontWeight: 600,
