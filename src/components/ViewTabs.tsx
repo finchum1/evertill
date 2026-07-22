@@ -31,10 +31,10 @@ export function ViewTabs({
 }
 
 const tabButtonStyle = (active: boolean): CSSProperties => ({
-  background: active ? "#4f46e5" : "none",
+  background: active ? "var(--accent-strong)" : "none",
   border: "none",
   borderRadius: 8,
-  color: active ? "#fff" : "#94a3b8",
+  color: active ? "#fff" : "var(--text-tertiary)",
   fontSize: 13,
   fontWeight: 600,
   padding: "6px 14px",

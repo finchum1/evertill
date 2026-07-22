@@ -74,7 +74,7 @@ export interface TodoSubtask {
 // UUIDs, so they never collide with the two special keys below).
 export type View = "today" | "upcoming" | string;
 
-export type Page = "tasks" | "leads" | "pipeline" | "deals";
+export type Page = "tasks" | "leads" | "pipeline" | "deals" | "settings";
 
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
@@ -202,5 +202,44 @@ export interface DealNote {
   user_id: string;
   deal_id: string;
   body: string;
+  created_at: string;
+}
+
+// A deal template is a reusable checklist (task items + document items) a
+// user can seed onto new deals. Exactly one per user may be the default —
+// the one new deals are actually seeded from — enforced by a partial unique
+// index in schema.sql the same way todo_lists enforces one Inbox per user.
+export type DealChecklistKind = "task" | "document";
+
+export interface DealTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  is_default: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DealTemplateItem {
+  id: string;
+  user_id: string;
+  template_id: string;
+  kind: DealChecklistKind;
+  title: string;
+  sort_order: number;
+  created_at: string;
+}
+
+// The actual per-deal checklist instance, copied from a template's items at
+// deal-creation time (editing the template afterward shouldn't retroactively
+// change checklists already in progress on existing deals).
+export interface DealChecklistItem {
+  id: string;
+  user_id: string;
+  deal_id: string;
+  kind: DealChecklistKind;
+  title: string;
+  done: boolean;
+  sort_order: number;
   created_at: string;
 }

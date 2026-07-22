@@ -21,11 +21,16 @@ import { BoardListView } from "./components/BoardListView";
 import { BoardValueView } from "./components/BoardValueView";
 import { BoardCalendarView } from "./components/BoardCalendarView";
 import { useDeals } from "./hooks/useDeals";
+import { useDealTemplates } from "./hooks/useDealTemplates";
+import { useTheme } from "./hooks/useTheme";
+import { useProfile } from "./hooks/useProfile";
+import type { Session } from "@supabase/supabase-js";
 import { DealsBoard } from "./components/DealsBoard";
 import { DealsListView } from "./components/DealsListView";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
+import { SettingsPage } from "./components/SettingsPage";
 import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
 import type { Page, View } from "./types";
@@ -36,6 +41,7 @@ type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
 type PipelineData = ReturnType<typeof usePipeline>;
 type DealsData = ReturnType<typeof useDeals>;
+type DealTemplatesData = ReturnType<typeof useDealTemplates>;
 
 function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () => void }) {
   const {
@@ -68,7 +74,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -168,7 +174,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -252,7 +258,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -315,8 +321,22 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
   );
 }
 
-function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
-  const { deals, notes, loading, addDeal, updateDeal, deleteDeal, addNote, deleteNote } = dealsData;
+function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData; dealTemplatesData: DealTemplatesData }) {
+  const {
+    deals,
+    notes,
+    checklistItems,
+    loading,
+    addDeal,
+    updateDeal,
+    deleteDeal,
+    addNote,
+    deleteNote,
+    addChecklistItem,
+    toggleChecklistItem,
+    deleteChecklistItem,
+  } = dealsData;
+  const { seedDealChecklist } = dealTemplatesData;
 
   const [openDealId, setOpenDealId] = useState<string | null>(null);
   const [showNewDeal, setShowNewDeal] = useState(false);
@@ -324,7 +344,7 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -356,8 +376,8 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
       <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>Deals</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>Every transaction you have access to.</p>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Deals</h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Every transaction you have access to.</p>
         </div>
         <button onClick={() => setShowNewDeal(true)} style={newDealButtonStyle}>
           + New Deal
@@ -390,7 +410,10 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
           onCreate={async (address, type, acceptanceDate) => {
             const deal = await addDeal(address, type, acceptanceDate);
             setShowNewDeal(false);
-            if (deal) setOpenDealId(deal.id);
+            if (deal) {
+              await seedDealChecklist(deal.id);
+              setOpenDealId(deal.id);
+            }
           }}
         />
       )}
@@ -398,11 +421,15 @@ function DealsDashboard({ dealsData }: { dealsData: DealsData }) {
         <DealModal
           deal={openDeal}
           notes={notes.filter((n) => n.deal_id === openDeal.id)}
+          checklistItems={checklistItems.filter((i) => i.deal_id === openDeal.id)}
           onClose={() => setOpenDealId(null)}
           onUpdate={updateDeal}
           onDelete={deleteDeal}
           onAddNote={addNote}
           onDeleteNote={deleteNote}
+          onAddChecklistItem={addChecklistItem}
+          onToggleChecklistItem={toggleChecklistItem}
+          onDeleteChecklistItem={deleteChecklistItem}
         />
       )}
     </div>
@@ -418,19 +445,19 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
         alignItems: "center",
         justifyContent: "center",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        color: "#f1f5f9",
+        color: "var(--text-primary)",
         padding: 24,
         textAlign: "center",
       }}
     >
       <div style={{ maxWidth: 480 }}>
-        <div style={{ fontSize: 11, color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
           TC Dashboard
         </div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.03em", margin: "0 0 12px" }}>
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.03em", margin: "0 0 12px" }}>
           Tasks, leads, and deals in one place
         </h1>
-        <p style={{ color: "#475569", fontSize: 15, margin: "0 0 28px" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: 15, margin: "0 0 28px" }}>
           Sign up for your own private workspace — folders, lists, due dates, and subtasks, synced across
           every device.
         </p>
@@ -444,17 +471,25 @@ function Landing({ onGetStarted }: { onGetStarted: () => void }) {
 
 function PageContent({
   page,
+  session,
   tasksData,
   leadsData,
   pipelineData,
   dealsData,
+  dealTemplatesData,
+  profileData,
+  theme,
   onNewTask,
 }: {
   page: Page;
+  session: Session;
   tasksData: TasksData;
   leadsData: LeadsData;
   pipelineData: PipelineData;
   dealsData: DealsData;
+  dealTemplatesData: DealTemplatesData;
+  profileData: ReturnType<typeof useProfile>;
+  theme: ReturnType<typeof useTheme>;
   onNewTask: () => void;
 }) {
   switch (page) {
@@ -465,7 +500,9 @@ function PageContent({
     case "pipeline":
       return <PipelineDashboard pipeline={pipelineData} />;
     case "deals":
-      return <DealsDashboard dealsData={dealsData} />;
+      return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} />;
+    case "settings":
+      return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} />;
   }
 }
 
@@ -481,6 +518,9 @@ function App() {
   const leads = useLeads(session?.user.id);
   const pipeline = usePipeline(session?.user.id);
   const deals = useDeals(session?.user.id);
+  const dealTemplates = useDealTemplates(session?.user.id);
+  const profile = useProfile(session?.user.id);
+  const theme = useTheme();
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createLeadCardId, setCreateLeadCardId] = useState<string | null>(null);
@@ -514,7 +554,7 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#020817", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         Loading…
       </div>
     );
@@ -525,7 +565,7 @@ function App() {
   const createDeal = createDealId ? deals.deals.find((d) => d.id === createDealId) : undefined;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#020817" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
       <Header
         session={session}
         page={page}
@@ -537,10 +577,14 @@ function App() {
       {session ? (
         <PageContent
           page={page}
+          session={session}
           tasksData={tasks}
           leadsData={leads}
           pipelineData={pipeline}
           dealsData={deals}
+          dealTemplatesData={dealTemplates}
+          profileData={profile}
+          theme={theme}
           onNewTask={() => setQuickAddOpen(true)}
         />
       ) : (
@@ -591,7 +635,10 @@ function App() {
           onCreate={async (address, type, acceptanceDate) => {
             const deal = await deals.addDeal(address, type, acceptanceDate);
             setCreateShowNewDeal(false);
-            if (deal) setCreateDealId(deal.id);
+            if (deal) {
+              await dealTemplates.seedDealChecklist(deal.id);
+              setCreateDealId(deal.id);
+            }
           }}
         />
       )}
@@ -600,11 +647,15 @@ function App() {
         <DealModal
           deal={createDeal}
           notes={deals.notes.filter((n) => n.deal_id === createDeal.id)}
+          checklistItems={deals.checklistItems.filter((i) => i.deal_id === createDeal.id)}
           onClose={() => setCreateDealId(null)}
           onUpdate={deals.updateDeal}
           onDelete={deals.deleteDeal}
           onAddNote={deals.addNote}
           onDeleteNote={deals.deleteNote}
+          onAddChecklistItem={deals.addChecklistItem}
+          onToggleChecklistItem={deals.toggleChecklistItem}
+          onDeleteChecklistItem={deals.deleteChecklistItem}
         />
       )}
     </div>
@@ -614,7 +665,7 @@ function App() {
 export default App;
 
 const newDealButtonStyle = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",
@@ -625,7 +676,7 @@ const newDealButtonStyle = {
 };
 
 const ctaButtonStyle = {
-  background: "#6366f1",
+  background: "var(--accent)",
   border: "none",
   borderRadius: 10,
   color: "#fff",

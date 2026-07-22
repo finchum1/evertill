@@ -96,7 +96,7 @@ export function TaskListView({
 
   return (
     <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
-      <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: "0 0 16px" }}>{heading}</h1>
+      <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 16px" }}>{heading}</h1>
 
       {view !== "completed" && (
         <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -117,7 +117,7 @@ export function TaskListView({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {shown.length === 0 && (
-          <div style={{ color: "#475569", fontSize: 13, padding: "24px 0", textAlign: "center" }}>
+          <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>
             {view === "completed" ? "No completed tasks." : "Nothing here yet."}
           </div>
         )}
@@ -156,10 +156,10 @@ export function TaskListView({
 }
 
 const inputStyle: CSSProperties = {
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 14,
   padding: "9px 12px",
   outline: "none",
@@ -167,7 +167,7 @@ const inputStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",
@@ -181,7 +181,7 @@ const primaryButtonStyle: CSSProperties = {
 const sectionLabelStyle: CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: "#ef4444",
+  color: "var(--danger)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   margin: "4px 0 -2px",

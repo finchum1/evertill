@@ -17,11 +17,11 @@ export function DealsBoard({ deals, onOpenDeal }: DealsBoardProps) {
           return (
             <div key={status} style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#cbd5e1", flex: 1 }}>{status}</span>
-                <span style={{ fontSize: 11, color: "#475569" }}>{statusDeals.length}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-body)", flex: 1 }}>{status}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{statusDeals.length}</span>
               </div>
               {statusValue > 0 && (
-                <span style={{ fontSize: 11, color: "#475569", marginTop: -6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -6 }}>
                   {statusDeals.length} deal{statusDeals.length === 1 ? "" : "s"} · ${statusValue.toLocaleString()}
                 </span>
               )}
@@ -31,7 +31,7 @@ export function DealsBoard({ deals, onOpenDeal }: DealsBoardProps) {
                   <DealCardMini key={deal.id} deal={deal} onOpen={onOpenDeal} />
                 ))}
                 {statusDeals.length === 0 && (
-                  <div style={{ color: "#334155", fontSize: 12, padding: "12px 0" }}>No deals</div>
+                  <div style={{ color: "var(--border-strong)", fontSize: 12, padding: "12px 0" }}>No deals</div>
                 )}
               </div>
             </div>

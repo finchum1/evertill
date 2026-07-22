@@ -39,7 +39,7 @@ export function ListMenu({ name, color, onRename, onSetColor, onDelete }: ListMe
                     width: 18,
                     height: 18,
                     borderRadius: 99,
-                    border: c === color ? "2px solid #f1f5f9" : "2px solid transparent",
+                    border: c === color ? "2px solid var(--text-primary)" : "2px solid transparent",
                     background: LIST_COLOR_HEX[c],
                     cursor: "pointer",
                     padding: 0,
@@ -62,7 +62,7 @@ export function ListMenu({ name, color, onRename, onSetColor, onDelete }: ListMe
                 setOpen(false);
                 if (window.confirm(`Delete "${name}" and all its tasks? This can't be undone.`)) onDelete();
               }}
-              style={{ ...itemButtonStyle, color: "#ef4444" }}
+              style={{ ...itemButtonStyle, color: "var(--danger)" }}
             >
               Delete
             </button>
@@ -76,7 +76,7 @@ export function ListMenu({ name, color, onRename, onSetColor, onDelete }: ListMe
 const menuButtonStyle: CSSProperties = {
   background: "none",
   border: "none",
-  color: "#475569",
+  color: "var(--text-muted)",
   fontSize: 14,
   cursor: "pointer",
   padding: "4px 6px",
@@ -87,8 +87,8 @@ const panelStyle: CSSProperties = {
   position: "absolute",
   top: "calc(100% + 4px)",
   right: 0,
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border)",
   borderRadius: 10,
   padding: 6,
   display: "flex",
@@ -104,7 +104,7 @@ const itemButtonStyle: CSSProperties = {
   background: "none",
   border: "none",
   borderRadius: 8,
-  color: "#e2e8f0",
+  color: "var(--text-menu)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 10px",

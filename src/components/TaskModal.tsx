@@ -55,8 +55,8 @@ export function TaskModal({
           maxWidth: 480,
           maxHeight: "85vh",
           overflowY: "auto",
-          background: "#0f172a",
-          border: "1px solid #1e293b",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           padding: "28px",
           display: "flex",
@@ -125,7 +125,7 @@ export function TaskModal({
         </label>
 
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Subtasks</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Subtasks</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {openSubtasks.map((s) => (
               <SubtaskRow key={s.id} subtask={s} onToggle={onToggleSubtask} onDelete={onDeleteSubtask} />
@@ -134,7 +134,7 @@ export function TaskModal({
               <>
                 <button
                   onClick={() => setShowCompleted((v) => !v)}
-                  style={{ background: "none", border: "none", color: "#475569", fontSize: 12, cursor: "pointer", textAlign: "left", padding: "4px 0" }}
+                  style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", textAlign: "left", padding: "4px 0" }}
                 >
                   {showCompleted ? "Hide" : "Show"} {doneSubtasks.length} completed
                 </button>
@@ -203,8 +203,8 @@ function SubtaskRow({
           width: 15,
           height: 15,
           borderRadius: 99,
-          border: `2px solid ${subtask.checked ? "#22c55e" : "#334155"}`,
-          background: subtask.checked ? "#22c55e" : "transparent",
+          border: `2px solid ${subtask.checked ? "var(--success)" : "var(--border-strong)"}`,
+          background: subtask.checked ? "var(--success)" : "transparent",
           cursor: "pointer",
           padding: 0,
           flexShrink: 0,
@@ -214,13 +214,13 @@ function SubtaskRow({
         style={{
           flex: 1,
           fontSize: 13,
-          color: subtask.checked ? "#475569" : "#cbd5e1",
+          color: subtask.checked ? "var(--text-muted)" : "var(--text-body)",
           textDecoration: subtask.checked ? "line-through" : "none",
         }}
       >
         {subtask.title}
       </span>
-      <button onClick={() => onDelete(subtask.id)} style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 13 }}>
+      <button onClick={() => onDelete(subtask.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>
         ×
       </button>
     </div>
@@ -230,10 +230,10 @@ function SubtaskRow({
 const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 14,
   padding: "8px 10px",
   boxSizing: "border-box",
@@ -243,7 +243,7 @@ const inputStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontSize: 12,
-  color: "#64748b",
+  color: "var(--text-secondary)",
   display: "flex",
   flexDirection: "column",
   gap: 6,
@@ -251,9 +251,9 @@ const labelStyle: CSSProperties = {
 
 const ghostButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
@@ -264,7 +264,7 @@ const dangerButtonStyle: CSSProperties = {
   background: "rgba(239,68,68,0.12)",
   border: "1px solid rgba(239,68,68,0.3)",
   borderRadius: 8,
-  color: "#ef4444",
+  color: "var(--danger)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
@@ -273,7 +273,7 @@ const dangerButtonStyle: CSSProperties = {
 };
 
 const smallPrimaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",

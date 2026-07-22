@@ -25,7 +25,7 @@ export function LeadsBoard({
   return (
     <div style={{ padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>Leads</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Leads</h1>
         <button onClick={onAddColumn} style={primaryButtonStyle}>
           + Add Column
         </button>
@@ -39,10 +39,10 @@ export function LeadsBoard({
             <div key={column.id} style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[column.color], flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#cbd5e1", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-body)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {column.label}
                 </span>
-                <span style={{ fontSize: 11, color: "#475569" }}>{columnCards.length}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{columnCards.length}</span>
                 <button
                   title="Rename or delete column"
                   onClick={() => {
@@ -65,7 +65,7 @@ export function LeadsBoard({
                 </button>
               </div>
               {columnValue > 0 && (
-                <span style={{ fontSize: 11, color: "#475569", marginTop: -6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -6 }}>
                   {columnCards.length} lead{columnCards.length === 1 ? "" : "s"} · ${columnValue.toLocaleString()}
                 </span>
               )}
@@ -84,7 +84,7 @@ export function LeadsBoard({
         })}
 
         {columns.length === 0 && (
-          <div style={{ color: "#475569", fontSize: 13, padding: "40px 0" }}>
+          <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "40px 0" }}>
             No columns yet — click "+ Add Column" to start your board.
           </div>
         )}
@@ -94,7 +94,7 @@ export function LeadsBoard({
 }
 
 const primaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",
@@ -106,9 +106,9 @@ const primaryButtonStyle: CSSProperties = {
 
 const addCardButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px dashed #334155",
+  border: "1px dashed var(--border-strong)",
   borderRadius: 10,
-  color: "#64748b",
+  color: "var(--text-secondary)",
   fontSize: 13,
   fontWeight: 600,
   padding: "10px",
@@ -118,7 +118,7 @@ const addCardButtonStyle: CSSProperties = {
 const menuButtonStyle: CSSProperties = {
   background: "none",
   border: "none",
-  color: "#475569",
+  color: "var(--text-muted)",
   fontSize: 14,
   cursor: "pointer",
   padding: "2px 4px",

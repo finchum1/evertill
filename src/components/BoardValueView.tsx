@@ -33,7 +33,7 @@ export function BoardValueView({
         return (
           <div
             key={column.id}
-            style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, padding: 16 }}
+            style={{ background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[column.color], flexShrink: 0 }} />
@@ -41,7 +41,7 @@ export function BoardValueView({
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#cbd5e1",
+                  color: "var(--text-body)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -50,8 +50,8 @@ export function BoardValueView({
                 {column.label}
               </span>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>{formatCurrency(total)}</div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)" }}>{formatCurrency(total)}</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
               {columnCards.length} {itemNoun}
               {columnCards.length === 1 ? "" : "s"}
             </div>
@@ -59,7 +59,7 @@ export function BoardValueView({
         );
       })}
       {columns.length === 0 && (
-        <div style={{ color: "#475569", fontSize: 13, padding: "40px 0" }}>No columns yet.</div>
+        <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "40px 0" }}>No columns yet.</div>
       )}
     </div>
   );

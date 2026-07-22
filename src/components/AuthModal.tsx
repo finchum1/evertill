@@ -81,8 +81,8 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
         style={{
           width: "100%",
           maxWidth: 380,
-          background: "#0f172a",
-          border: "1px solid #1e293b",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           padding: "32px 28px",
           display: "flex",
@@ -101,7 +101,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
             right: 14,
             background: "none",
             border: "none",
-            color: "#475569",
+            color: "var(--text-muted)",
             fontSize: 18,
             cursor: "pointer",
             lineHeight: 1,
@@ -110,16 +110,16 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
           ×
         </button>
 
-        <div style={{ fontSize: 11, color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
           TC Dashboard
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
           {mode === "signin" ? "Sign in" : "Create your account"}
         </h1>
 
         {mode === "signup" && (
           <>
-            <label style={{ fontSize: 12, color: "#64748b" }}>
+            <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               Full name
               <input
                 required
@@ -129,14 +129,14 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
                 style={inputStyle}
               />
             </label>
-            <label style={{ fontSize: 12, color: "#64748b" }}>
+            <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               Company name
               <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} style={inputStyle} />
             </label>
           </>
         )}
 
-        <label style={{ fontSize: 12, color: "#64748b" }}>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>
           Email
           <input
             type="email"
@@ -147,7 +147,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
             style={inputStyle}
           />
         </label>
-        <label style={{ fontSize: 12, color: "#64748b" }}>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>
           Password
           <input
             type="password"
@@ -160,12 +160,12 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
         </label>
 
         {error && (
-          <div style={{ color: "#ef4444", fontSize: 13, background: "rgba(239,68,68,0.12)", padding: "8px 10px", borderRadius: 8 }}>
+          <div style={{ color: "var(--danger)", fontSize: 13, background: "rgba(239,68,68,0.12)", padding: "8px 10px", borderRadius: 8 }}>
             {error}
           </div>
         )}
         {notice && (
-          <div style={{ color: "#22c55e", fontSize: 13, background: "rgba(34,197,94,0.12)", padding: "8px 10px", borderRadius: 8 }}>
+          <div style={{ color: "var(--success)", fontSize: 13, background: "rgba(34,197,94,0.12)", padding: "8px 10px", borderRadius: 8 }}>
             {notice}
           </div>
         )}
@@ -175,7 +175,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
           disabled={submitting}
           style={{
             marginTop: 8,
-            background: "#6366f1",
+            background: "var(--accent)",
             border: "none",
             borderRadius: 8,
             color: "#fff",
@@ -189,7 +189,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
           {submitting ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
 
-        <div style={{ textAlign: "center", fontSize: 13, color: "#64748b" }}>
+        <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)" }}>
           {mode === "signin" ? (
             <>
               Don't have an account?{" "}
@@ -215,10 +215,10 @@ const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
   marginTop: 6,
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 15,
   padding: "9px 12px",
   boxSizing: "border-box",
@@ -228,7 +228,7 @@ const inputStyle: CSSProperties = {
 const linkStyle: CSSProperties = {
   background: "none",
   border: "none",
-  color: "#6366f1",
+  color: "var(--accent)",
   fontWeight: 600,
   fontSize: 13,
   cursor: "pointer",

@@ -1,20 +1,37 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import type { Deal, DealNote, DealStatus, DealType } from "../types";
+import type { Deal, DealChecklistItem, DealChecklistKind, DealNote, DealStatus, DealType } from "../types";
 import { DEAL_STATUSES } from "../types";
 import { openDatePicker } from "../lib/datePicker";
+import { DealChecklist } from "./DealChecklist";
 
 interface DealModalProps {
   deal: Deal;
   notes: DealNote[];
+  checklistItems: DealChecklistItem[];
   onClose: () => void;
   onUpdate: (id: string, patch: Partial<Deal>) => void;
   onDelete: (id: string) => void;
   onAddNote: (dealId: string, body: string) => void;
   onDeleteNote: (id: string) => void;
+  onAddChecklistItem: (dealId: string, kind: DealChecklistKind, title: string) => void;
+  onToggleChecklistItem: (id: string) => void;
+  onDeleteChecklistItem: (id: string) => void;
 }
 
-export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote, onDeleteNote }: DealModalProps) {
+export function DealModal({
+  deal,
+  notes,
+  checklistItems,
+  onClose,
+  onUpdate,
+  onDelete,
+  onAddNote,
+  onDeleteNote,
+  onAddChecklistItem,
+  onToggleChecklistItem,
+  onDeleteChecklistItem,
+}: DealModalProps) {
   const [address, setAddress] = useState(deal.address);
   const [value, setValue] = useState(String(deal.value || ""));
   const [price, setPrice] = useState(String(deal.price || ""));
@@ -45,8 +62,8 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
           maxWidth: 560,
           maxHeight: "85vh",
           overflowY: "auto",
-          background: "#0f172a",
-          border: "1px solid #1e293b",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           padding: 28,
           display: "flex",
@@ -94,7 +111,7 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
         </label>
 
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Milestone dates</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Milestone dates</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>
               Acceptance
@@ -116,7 +133,7 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
         </div>
 
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Value &amp; terms</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Value &amp; terms</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>
               Value
@@ -141,8 +158,15 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
           </label>
         </div>
 
+        <DealChecklist
+          items={checklistItems}
+          onAdd={(kind, title) => onAddChecklistItem(deal.id, kind, title)}
+          onToggle={onToggleChecklistItem}
+          onDelete={onDeleteChecklistItem}
+        />
+
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Notes</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Notes</div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -158,16 +182,16 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
             </button>
           </form>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {notes.length === 0 && <span style={{ fontSize: 12, color: "#334155" }}>No notes yet.</span>}
+            {notes.length === 0 && <span style={{ fontSize: 12, color: "var(--border-strong)" }}>No notes yet.</span>}
             {notes.map((n) => (
               <div key={n.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "#cbd5e1" }}>{n.body}</div>
-                  <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: "var(--text-body)" }}>{n.body}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                     {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                   </div>
                 </div>
-                <button onClick={() => onDeleteNote(n.id)} style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 13 }}>
+                <button onClick={() => onDeleteNote(n.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>
                   ×
                 </button>
               </div>
@@ -199,10 +223,10 @@ export function DealModal({ deal, notes, onClose, onUpdate, onDelete, onAddNote,
 const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 14,
   padding: "8px 10px",
   boxSizing: "border-box",
@@ -212,7 +236,7 @@ const inputStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontSize: 12,
-  color: "#64748b",
+  color: "var(--text-secondary)",
   display: "flex",
   flexDirection: "column",
   gap: 6,
@@ -220,9 +244,9 @@ const labelStyle: CSSProperties = {
 
 const ghostButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
@@ -233,7 +257,7 @@ const dangerButtonStyle: CSSProperties = {
   background: "rgba(239,68,68,0.12)",
   border: "1px solid rgba(239,68,68,0.3)",
   borderRadius: 8,
-  color: "#ef4444",
+  color: "var(--danger)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
@@ -242,7 +266,7 @@ const dangerButtonStyle: CSSProperties = {
 };
 
 const smallPrimaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",

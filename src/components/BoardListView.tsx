@@ -38,8 +38,8 @@ export function BoardListView<C extends BoardCardLike>({
           <div key={column.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[column.color], flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#cbd5e1" }}>{column.label}</span>
-              <span style={{ fontSize: 11, color: "#475569" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-body)" }}>{column.label}</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 {columnCards.length} {itemNoun}
                 {columnCards.length === 1 ? "" : "s"}
                 {columnValue > 0 ? ` · $${columnValue.toLocaleString()}` : ""}
@@ -48,14 +48,14 @@ export function BoardListView<C extends BoardCardLike>({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {columnCards.map((card) => renderCard(card))}
               {columnCards.length === 0 && (
-                <div style={{ color: "#475569", fontSize: 12, padding: "4px 0" }}>Nothing in this stage.</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 12, padding: "4px 0" }}>Nothing in this stage.</div>
               )}
             </div>
           </div>
         );
       })}
       {columns.length === 0 && (
-        <div style={{ color: "#475569", fontSize: 13, padding: "40px 0" }}>No columns yet.</div>
+        <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "40px 0" }}>No columns yet.</div>
       )}
     </div>
   );

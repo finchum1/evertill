@@ -67,7 +67,7 @@ export function BoardCalendarView<C extends BoardCalendarCardLike>({
           <button onClick={goNext} style={navArrowStyle} aria-label="Next">
             ›
           </button>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", marginLeft: 6 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-body)", marginLeft: 6 }}>
             {subView === "month" ? anchor.toLocaleDateString(undefined, { month: "long", year: "numeric" }) : weekHeading(anchor)}
           </span>
         </div>
@@ -97,7 +97,7 @@ function TodayList<C extends BoardCalendarCardLike>({ cards, onOpenCard }: { car
     .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
 
   if (due.length === 0) {
-    return <div style={{ color: "#475569", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due today.</div>;
+    return <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due today.</div>;
   }
 
   return (
@@ -115,14 +115,14 @@ function TodayList<C extends BoardCalendarCardLike>({ cards, onOpenCard }: { car
               gap: 10,
               padding: "10px 14px",
               borderRadius: 10,
-              border: "1px solid #1e293b",
-              background: "#0f172a",
+              border: "1px solid var(--border)",
+              background: "var(--bg-panel)",
               cursor: "pointer",
             }}
           >
-            <span style={{ fontSize: 14, color: "#f1f5f9" }}>{c.title}</span>
+            <span style={{ fontSize: 14, color: "var(--text-primary)" }}>{c.title}</span>
             {c.due_date && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: overdue ? "#ef4444" : "#64748b" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: overdue ? "var(--danger)" : "var(--text-secondary)" }}>
                 {formatDueDate(c.due_date)}
               </span>
             )}
@@ -152,7 +152,7 @@ function MonthGrid<C extends BoardCalendarCardLike>({
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 4 }}>
         {WEEKDAY_LABELS.map((w) => (
-          <div key={w} style={{ fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "center", padding: "4px 0" }}>
+          <div key={w} style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textAlign: "center", padding: "4px 0" }}>
             {w}
           </div>
         ))}
@@ -168,8 +168,8 @@ function MonthGrid<C extends BoardCalendarCardLike>({
               style={{
                 minHeight: 84,
                 borderRadius: 8,
-                border: "1px solid #1e293b",
-                background: key === tkey ? "#1e1b4b" : "#0f172a",
+                border: "1px solid var(--border)",
+                background: key === tkey ? "var(--accent-today-bg)" : "var(--bg-panel)",
                 padding: 6,
                 opacity: inMonth ? 1 : 0.4,
                 display: "flex",
@@ -177,13 +177,13 @@ function MonthGrid<C extends BoardCalendarCardLike>({
                 gap: 4,
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "#a5b4fc" : "#64748b" }}>{d.getDate()}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)" }}>{d.getDate()}</span>
               {dayCards.slice(0, 3).map((c) => (
                 <span key={c.id} onClick={() => onOpenCard(c.id)} style={miniChipStyle}>
                   {c.title}
                 </span>
               ))}
-              {dayCards.length > 3 && <span style={{ fontSize: 10, color: "#475569" }}>+{dayCards.length - 3} more</span>}
+              {dayCards.length > 3 && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>+{dayCards.length - 3} more</span>}
             </div>
           );
         })}
@@ -218,11 +218,11 @@ function WeekGrid<C extends BoardCalendarCardLike>({
                 textAlign: "center",
                 padding: "6px 0",
                 borderRadius: 8,
-                background: key === tkey ? "#1e1b4b" : "transparent",
+                background: key === tkey ? "var(--accent-today-bg)" : "transparent",
               }}
             >
-              <div style={{ fontSize: 11, color: "#64748b" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "#a5b4fc" : "#f1f5f9" }}>{d.getDate()}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "var(--accent-light)" : "var(--text-primary)" }}>{d.getDate()}</div>
             </div>
             <div
               style={{
@@ -230,7 +230,7 @@ function WeekGrid<C extends BoardCalendarCardLike>({
                 flexDirection: "column",
                 gap: 6,
                 minHeight: 120,
-                border: "1px solid #1e293b",
+                border: "1px solid var(--border)",
                 borderRadius: 8,
                 padding: 6,
               }}
@@ -250,8 +250,8 @@ function WeekGrid<C extends BoardCalendarCardLike>({
 
 const miniChipStyle: CSSProperties = {
   fontSize: 11,
-  color: "#cbd5e1",
-  background: "#1e293b",
+  color: "var(--text-body)",
+  background: "var(--border)",
   borderRadius: 4,
   padding: "1px 4px",
   cursor: "pointer",
@@ -261,10 +261,10 @@ const miniChipStyle: CSSProperties = {
 };
 
 const subTabButtonStyle = (active: boolean): CSSProperties => ({
-  background: active ? "#4f46e5" : "none",
+  background: active ? "var(--accent-strong)" : "none",
   border: "none",
   borderRadius: 8,
-  color: active ? "#fff" : "#94a3b8",
+  color: active ? "#fff" : "var(--text-tertiary)",
   fontSize: 13,
   fontWeight: 600,
   padding: "6px 14px",
@@ -273,9 +273,9 @@ const subTabButtonStyle = (active: boolean): CSSProperties => ({
 
 const navArrowStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 16,
   width: 32,
   height: 32,
@@ -284,9 +284,9 @@ const navArrowStyle: CSSProperties = {
 
 const todayButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "6px 14px",

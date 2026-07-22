@@ -122,7 +122,7 @@ export function Sidebar({
           style={{
             ...navButtonStyle(isActive),
             cursor: list.is_inbox ? "pointer" : "grab",
-            ...(isDragOver ? { background: "#312e81", boxShadow: "inset 0 0 0 2px #6366f1" } : {}),
+            ...(isDragOver ? { background: "var(--accent-subtle-bg)", boxShadow: "inset 0 0 0 2px var(--accent)" } : {}),
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -131,7 +131,7 @@ export function Sidebar({
             )}
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{list.name}</span>
           </span>
-          {count > 0 && <span style={{ fontSize: 11, color: isActive ? "#e0e7ff" : "#475569" }}>{count}</span>}
+          {count > 0 && <span style={{ fontSize: 11, color: isActive ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{count}</span>}
         </button>
         {!list.is_inbox && (
           <ListMenu
@@ -151,7 +151,7 @@ export function Sidebar({
       style={{
         width: 240,
         flexShrink: 0,
-        borderRight: "1px solid #1e293b",
+        borderRight: "1px solid var(--border)",
         padding: "20px 12px",
         display: "flex",
         flexDirection: "column",
@@ -164,30 +164,30 @@ export function Sidebar({
       </button>
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
         <span>Today</span>
-        {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "#e0e7ff" : "#475569" }}>{todayCount}</span>}
+        {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{todayCount}</span>}
       </button>
       <button onClick={() => onSetView("upcoming")} style={navButtonStyle(view === "upcoming")}>
         <span>Upcoming</span>
-        {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "#e0e7ff" : "#475569" }}>{upcomingCount}</span>}
+        {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{upcomingCount}</span>}
       </button>
       <button onClick={() => onSetView("calendar")} style={navButtonStyle(view === "calendar")}>
         <span>Calendar</span>
       </button>
 
       {inbox && (
-        <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #1e293b" }}>
+        <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
           {listRow(inbox)}
           <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
             <span>Completed</span>
             {completedCount > 0 && (
-              <span style={{ fontSize: 11, color: view === "completed" ? "#e0e7ff" : "#475569" }}>{completedCount}</span>
+              <span style={{ fontSize: 11, color: view === "completed" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{completedCount}</span>
             )}
           </button>
         </div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 4px" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Lists
         </span>
         <div style={{ display: "flex", gap: 4 }}>
@@ -237,10 +237,10 @@ export function Sidebar({
               padding: "4px 10px",
               borderRadius: 8,
               cursor: "grab",
-              ...(dragOverFolderId === folder.id ? { background: "#312e81", boxShadow: "inset 0 0 0 2px #6366f1" } : {}),
+              ...(dragOverFolderId === folder.id ? { background: "var(--accent-subtle-bg)", boxShadow: "inset 0 0 0 2px var(--accent)" } : {}),
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-tertiary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {folder.name.toUpperCase()}
             </span>
             <button title="Add list to this folder" onClick={() => onAddList(folder.id)} style={smallIconButtonStyle}>
@@ -282,7 +282,7 @@ const newTaskButtonStyle = {
   marginBottom: 10,
   borderRadius: 8,
   border: "none",
-  background: "#6366f1",
+  background: "var(--accent)",
   color: "#fff",
   fontSize: 13,
   fontWeight: 700,
@@ -299,8 +299,8 @@ function navButtonStyle(active: boolean) {
     padding: "8px 10px",
     borderRadius: 8,
     border: "none",
-    background: active ? "#4f46e5" : "transparent",
-    color: active ? "#fff" : "#cbd5e1",
+    background: active ? "var(--accent-strong)" : "transparent",
+    color: active ? "#fff" : "var(--text-body)",
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
@@ -311,7 +311,7 @@ function navButtonStyle(active: boolean) {
 const menuButtonStyle = {
   background: "none",
   border: "none",
-  color: "#475569",
+  color: "var(--text-muted)",
   fontSize: 14,
   cursor: "pointer",
   padding: "4px 6px",
@@ -321,7 +321,7 @@ const menuButtonStyle = {
 const smallIconButtonStyle = {
   background: "none",
   border: "none",
-  color: "#475569",
+  color: "var(--text-muted)",
   fontSize: 13,
   cursor: "pointer",
   padding: "2px 4px",

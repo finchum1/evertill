@@ -75,7 +75,7 @@ function CreateIcon({ type }: { type: CreateType }) {
 }
 
 const createButtonStyle: CSSProperties = {
-  background: "#6366f1",
+  background: "var(--accent)",
   border: "none",
   borderRadius: 8,
   color: "#fff",
@@ -89,8 +89,8 @@ const menuStyle: CSSProperties = {
   position: "absolute",
   top: "calc(100% + 6px)",
   right: 0,
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border)",
   borderRadius: 10,
   padding: 6,
   display: "flex",
@@ -108,7 +108,7 @@ const menuItemStyle: CSSProperties = {
   background: "none",
   border: "none",
   borderRadius: 8,
-  color: "#e2e8f0",
+  color: "var(--text-menu)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 10px",

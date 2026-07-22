@@ -63,7 +63,7 @@ export function CalendarView({
   return (
     <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>Calendar</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Calendar</h1>
         <div style={{ display: "flex", gap: 6 }}>
           {(["month", "week", "day"] as SubView[]).map((sv) => (
             <button key={sv} onClick={() => setSubView(sv)} style={tabButtonStyle(subView === sv)}>
@@ -83,7 +83,7 @@ export function CalendarView({
         <button onClick={goNext} style={navArrowStyle} aria-label="Next">
           ›
         </button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", marginLeft: 6 }}>{headingFor(subView, anchor)}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-body)", marginLeft: 6 }}>{headingFor(subView, anchor)}</span>
       </div>
 
       {subView === "month" && (
@@ -145,7 +145,7 @@ function MonthGrid({
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 4 }}>
         {WEEKDAY_LABELS.map((w) => (
-          <div key={w} style={{ fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "center", padding: "4px 0" }}>
+          <div key={w} style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textAlign: "center", padding: "4px 0" }}>
             {w}
           </div>
         ))}
@@ -177,8 +177,8 @@ function MonthGrid({
               style={{
                 minHeight: 84,
                 borderRadius: 8,
-                border: isDragOver ? "1px solid #6366f1" : "1px solid #1e293b",
-                background: isDragOver ? "#312e81" : key === tkey ? "#1e1b4b" : "#0f172a",
+                border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
+                background: isDragOver ? "var(--accent-subtle-bg)" : key === tkey ? "var(--accent-today-bg)" : "var(--bg-panel)",
                 padding: 6,
                 cursor: "pointer",
                 opacity: inMonth ? 1 : 0.4,
@@ -187,7 +187,7 @@ function MonthGrid({
                 gap: 4,
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "#a5b4fc" : "#64748b" }}>{d.getDate()}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)" }}>{d.getDate()}</span>
               {dayTodos.slice(0, 3).map((t) => (
                 <span
                   key={t.id}
@@ -206,7 +206,7 @@ function MonthGrid({
                   {t.title}
                 </span>
               ))}
-              {dayTodos.length > 3 && <span style={{ fontSize: 10, color: "#475569" }}>+{dayTodos.length - 3} more</span>}
+              {dayTodos.length > 3 && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>+{dayTodos.length - 3} more</span>}
             </div>
           );
         })}
@@ -248,11 +248,11 @@ function WeekGrid({
                 textAlign: "center",
                 padding: "6px 0",
                 borderRadius: 8,
-                background: key === tkey ? "#1e1b4b" : "transparent",
+                background: key === tkey ? "var(--accent-today-bg)" : "transparent",
               }}
             >
-              <div style={{ fontSize: 11, color: "#64748b" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "#a5b4fc" : "#f1f5f9" }}>{d.getDate()}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "var(--accent-light)" : "var(--text-primary)" }}>{d.getDate()}</div>
             </div>
             <div
               onDragOver={(e) => {
@@ -273,8 +273,8 @@ function WeekGrid({
                 flexDirection: "column",
                 gap: 6,
                 minHeight: 120,
-                border: isDragOver ? "1px solid #6366f1" : "1px solid #1e293b",
-                background: isDragOver ? "#312e81" : "transparent",
+                border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
+                background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
                 borderRadius: 8,
                 padding: 6,
               }}
@@ -324,7 +324,7 @@ function DayList({
   const dayTodos = todosByDay.get(dateToKey(day)) ?? [];
 
   if (dayTodos.length === 0) {
-    return <div style={{ color: "#475569", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due this day.</div>;
+    return <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due this day.</div>;
   }
 
   return (
@@ -347,8 +347,8 @@ function DayList({
 
 const miniChipStyle: CSSProperties = {
   fontSize: 11,
-  color: "#cbd5e1",
-  background: "#1e293b",
+  color: "var(--text-body)",
+  background: "var(--border)",
   borderRadius: 4,
   padding: "1px 4px",
   cursor: "pointer",
@@ -358,10 +358,10 @@ const miniChipStyle: CSSProperties = {
 };
 
 const tabButtonStyle = (active: boolean): CSSProperties => ({
-  background: active ? "#4f46e5" : "none",
+  background: active ? "var(--accent-strong)" : "none",
   border: "none",
   borderRadius: 8,
-  color: active ? "#fff" : "#94a3b8",
+  color: active ? "#fff" : "var(--text-tertiary)",
   fontSize: 13,
   fontWeight: 600,
   padding: "6px 14px",
@@ -370,9 +370,9 @@ const tabButtonStyle = (active: boolean): CSSProperties => ({
 
 const navArrowStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 16,
   width: 32,
   height: 32,
@@ -381,9 +381,9 @@ const navArrowStyle: CSSProperties = {
 
 const todayButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "6px 14px",

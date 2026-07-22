@@ -35,8 +35,8 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
           gap: 10,
           padding: "10px 14px",
           borderRadius: 10,
-          border: "1px solid #1e293b",
-          background: "#0f172a",
+          border: "1px solid var(--border)",
+          background: "var(--bg-panel)",
           cursor: "grab",
         }}
       >
@@ -50,8 +50,8 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
             width: 18,
             height: 18,
             borderRadius: 99,
-            border: `2px solid ${todo.completed ? "#22c55e" : "#334155"}`,
-            background: todo.completed ? "#22c55e" : "transparent",
+            border: `2px solid ${todo.completed ? "var(--success)" : "var(--border-strong)"}`,
+            background: todo.completed ? "var(--success)" : "transparent",
             cursor: "pointer",
             flexShrink: 0,
             padding: 0,
@@ -64,7 +64,7 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
           <span
             style={{
               fontSize: 14,
-              color: todo.completed ? "#475569" : "#f1f5f9",
+              color: todo.completed ? "var(--text-muted)" : "var(--text-primary)",
               textDecoration: todo.completed ? "line-through" : "none",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -74,7 +74,7 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
             {todo.title}
           </span>
           {(list || todo.description || subtasks.length > 0) && (
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#64748b" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
               {list && (
                 <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
@@ -111,7 +111,7 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
             style={{
               background: "none",
               border: "none",
-              color: "#64748b",
+              color: "var(--text-secondary)",
               fontSize: 12,
               cursor: "pointer",
               padding: 4,
@@ -133,8 +133,8 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
                 gap: 8,
                 padding: "6px 10px",
                 borderRadius: 8,
-                background: "#0b1220",
-                border: "1px solid #1e293b",
+                background: "var(--bg-panel-nested)",
+                border: "1px solid var(--border)",
               }}
             >
               <button
@@ -144,8 +144,8 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
                   width: 14,
                   height: 14,
                   borderRadius: 99,
-                  border: `2px solid ${s.checked ? "#22c55e" : "#334155"}`,
-                  background: s.checked ? "#22c55e" : "transparent",
+                  border: `2px solid ${s.checked ? "var(--success)" : "var(--border-strong)"}`,
+                  background: s.checked ? "var(--success)" : "transparent",
                   cursor: "pointer",
                   flexShrink: 0,
                   padding: 0,
@@ -154,7 +154,7 @@ export function TaskRow({ todo, list, subtasks, onToggleComplete, onToggleSubtas
               <span
                 style={{
                   fontSize: 13,
-                  color: s.checked ? "#475569" : "#cbd5e1",
+                  color: s.checked ? "var(--text-muted)" : "var(--text-body)",
                   textDecoration: s.checked ? "line-through" : "none",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -202,10 +202,10 @@ function DueDateBadge({
         }}
         onBlur={() => setEditing(false)}
         style={{
-          background: "#1e293b",
-          border: "1px solid #334155",
+          background: "var(--border)",
+          border: "1px solid var(--border-strong)",
           borderRadius: 6,
-          color: "#f1f5f9",
+          color: "var(--text-primary)",
           fontSize: 12,
           padding: "3px 6px",
           outline: "none",
@@ -226,7 +226,7 @@ function DueDateBadge({
       style={{
         fontSize: 12,
         fontWeight: 600,
-        color: todo.due_date ? (overdue ? "#ef4444" : "#64748b") : "#334155",
+        color: todo.due_date ? (overdue ? "var(--danger)" : "var(--text-secondary)") : "var(--border-strong)",
         flexShrink: 0,
         cursor: "pointer",
       }}

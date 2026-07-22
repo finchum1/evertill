@@ -404,3 +404,68 @@ create trigger on_deal_note_created
 
 alter publication supabase_realtime add table deals;
 alter publication supabase_realtime add table deal_notes;
+
+-- ---------------------------------------------------------------------
+-- Deal templates: reusable task/document checklists a user can maintain
+-- and seed onto new deals. Exactly one template may be the user's default
+-- (the one actually applied to new deals) — enforced the same way
+-- todo_lists enforces one Inbox per user, via a partial unique index rather
+-- than an app-level check, so it holds even under concurrent writes.
+-- deal_checklist_items is the per-deal COPY of a template's items at
+-- creation time, so editing a template later never retroactively changes
+-- a checklist already in progress on an existing deal.
+-- ---------------------------------------------------------------------
+create table if not exists deal_templates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null default 'New template',
+  is_default boolean not null default false,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists deal_template_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  template_id uuid not null references deal_templates(id) on delete cascade,
+  kind text not null check (kind in ('task', 'document')),
+  title text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists deal_checklist_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  deal_id uuid not null references deals(id) on delete cascade,
+  kind text not null check (kind in ('task', 'document')),
+  title text not null,
+  done boolean not null default false,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists deal_templates_one_default_per_user on deal_templates(user_id) where is_default = true;
+create index if not exists deal_templates_user_id_idx on deal_templates(user_id);
+create index if not exists deal_template_items_template_id_idx on deal_template_items(template_id);
+create index if not exists deal_checklist_items_deal_id_idx on deal_checklist_items(deal_id);
+
+alter table deal_templates enable row level security;
+alter table deal_template_items enable row level security;
+alter table deal_checklist_items enable row level security;
+
+drop policy if exists "deal_templates_owner_all" on deal_templates;
+create policy "deal_templates_owner_all" on deal_templates
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "deal_template_items_owner_all" on deal_template_items;
+create policy "deal_template_items_owner_all" on deal_template_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "deal_checklist_items_owner_all" on deal_checklist_items;
+create policy "deal_checklist_items_owner_all" on deal_checklist_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table deal_templates;
+alter publication supabase_realtime add table deal_template_items;
+alter publication supabase_realtime add table deal_checklist_items;

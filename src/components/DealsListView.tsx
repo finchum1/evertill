@@ -85,7 +85,7 @@ export function DealsListView({ deals, onOpenDeal }: DealsListViewProps) {
           <DealListRow key={deal.id} deal={deal} onOpen={onOpenDeal} />
         ))}
         {filtered.length === 0 && (
-          <div style={{ color: "#475569", fontSize: 13, padding: "40px 0", textAlign: "center" }}>No deals match these filters.</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "40px 0", textAlign: "center" }}>No deals match these filters.</div>
         )}
       </div>
 
@@ -135,20 +135,20 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
         gap: 20,
         padding: "18px 20px",
         borderRadius: 12,
-        border: `1px solid ${deal.status === "Closed" ? "#1e293b" : `${statusColor}40`}`,
-        background: "#0f172a",
+        border: `1px solid ${deal.status === "Closed" ? "var(--border)" : `${statusColor}40`}`,
+        background: "var(--bg-panel)",
         cursor: "pointer",
       }}
     >
       <div style={{ minWidth: 220, flexShrink: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: "0.06em", marginBottom: 4 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.06em", marginBottom: 4 }}>
           {deal.type === "Listing" ? "LISTING SIDE" : "BUYER SIDE"}
         </div>
         <div
           style={{
             fontSize: 15,
             fontWeight: 700,
-            color: "#f1f5f9",
+            color: "var(--text-primary)",
             marginBottom: 6,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -173,7 +173,7 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
       </div>
 
       <div style={{ flex: 1, display: "flex", alignItems: "flex-start", position: "relative", padding: "0 10px", minWidth: 0 }}>
-        <div style={{ position: "absolute", left: 10, right: 10, top: 5, height: 1, background: "#1e293b" }} />
+        <div style={{ position: "absolute", left: 10, right: 10, top: 5, height: 1, background: "var(--border)" }} />
         {withDates.map((m) => {
           const active = m.key === currentKey;
           return (
@@ -183,18 +183,18 @@ function DealListRow({ deal, onOpen }: { deal: Deal; onOpen: (id: string) => voi
                   width: active ? 12 : 8,
                   height: active ? 12 : 8,
                   borderRadius: 99,
-                  background: active ? statusColor : "#334155",
+                  background: active ? statusColor : "var(--border-strong)",
                 }}
               />
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", letterSpacing: "0.04em" }}>{m.label.toUpperCase()}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8" }}>{m.date ? formatMilestoneDate(m.date) : "—"}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em" }}>{m.label.toUpperCase()}</div>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{m.date ? formatMilestoneDate(m.date) : "—"}</div>
             </div>
           );
         })}
       </div>
 
       {deal.agent_name && (
-        <div style={{ fontSize: 12, color: "#64748b", minWidth: 120, flexShrink: 0, textAlign: "right" }}>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0, textAlign: "right" }}>
           Agent: {deal.agent_name}
         </div>
       )}
@@ -210,8 +210,8 @@ function formatMilestoneDate(dateStr: string): string {
 }
 
 const statCardStyle: CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border)",
   borderRadius: 12,
   padding: "18px 20px",
 };
@@ -219,7 +219,7 @@ const statCardStyle: CSSProperties = {
 const statLabelStyle: CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: "#64748b",
+  color: "var(--text-secondary)",
   letterSpacing: "0.06em",
   marginTop: 4,
 };
@@ -230,15 +230,15 @@ const filterLabelStyle: CSSProperties = {
   gap: 4,
   fontSize: 11,
   fontWeight: 700,
-  color: "#64748b",
+  color: "var(--text-secondary)",
   letterSpacing: "0.04em",
 };
 
 const selectStyle: CSSProperties = {
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 13,
   padding: "6px 10px",
   outline: "none",
@@ -247,9 +247,9 @@ const selectStyle: CSSProperties = {
 
 const showClosedButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#94a3b8",
+  color: "var(--text-tertiary)",
   fontSize: 12,
   fontWeight: 700,
   letterSpacing: "0.04em",

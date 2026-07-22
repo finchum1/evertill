@@ -20,7 +20,7 @@ export function SmartDateInput({ value, style, placeholder, onScroll, ...rest }:
   const [scrollLeft, setScrollLeft] = useState(0);
   const text = typeof value === "string" ? value : "";
   const match = matchSmartDuePhrase(text);
-  const baseColor = (style?.color as string) ?? "#f1f5f9";
+  const baseColor = (style?.color as string) ?? "var(--text-primary)";
 
   return (
     <div style={{ position: "relative", flex: style?.flex, minWidth: 0 }}>
@@ -48,14 +48,14 @@ export function SmartDateInput({ value, style, placeholder, onScroll, ...rest }:
             match ? (
               <>
                 {text.slice(0, match.start)}
-                <span style={{ background: "#4338ca", color: "#fff", borderRadius: 3 }}>{text.slice(match.start, match.end)}</span>
+                <span style={{ background: "var(--accent-deep)", color: "#fff", borderRadius: 3 }}>{text.slice(match.start, match.end)}</span>
                 {text.slice(match.end)}
               </>
             ) : (
               text
             )
           ) : (
-            <span style={{ color: "#64748b" }}>{placeholder}</span>
+            <span style={{ color: "var(--text-secondary)" }}>{placeholder}</span>
           )}
         </div>
       </div>

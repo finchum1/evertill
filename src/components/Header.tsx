@@ -28,12 +28,12 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
         alignItems: "center",
         justifyContent: "space-between",
         padding: "16px 24px",
-        borderBottom: "1px solid #1e293b",
+        borderBottom: "1px solid var(--border)",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
           TC Dashboard
         </div>
         {session && (
@@ -45,10 +45,10 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
                   key={item.key}
                   onClick={() => onSetPage(item.key)}
                   style={{
-                    background: page === item.key ? "#1e293b" : "none",
+                    background: page === item.key ? "var(--border)" : "none",
                     border: "none",
                     borderRadius: 8,
-                    color: page === item.key ? "#f1f5f9" : "#64748b",
+                    color: page === item.key ? "var(--text-primary)" : "var(--text-secondary)",
                     fontSize: 13,
                     fontWeight: 600,
                     padding: "7px 14px",
@@ -64,7 +64,27 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
       </div>
       {session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 13, color: "#64748b" }}>{session.user.email}</span>
+          <button
+            onClick={() => onSetPage("settings")}
+            title="Settings"
+            aria-label="Settings"
+            style={{
+              background: page === "settings" ? "var(--border)" : "none",
+              border: "none",
+              borderRadius: 8,
+              color: page === "settings" ? "var(--text-primary)" : "var(--text-secondary)",
+              width: 32,
+              height: 32,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              fontSize: 16,
+            }}
+          >
+            ⚙
+          </button>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{session.user.email}</span>
           <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
             Log out
           </button>
@@ -85,9 +105,9 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
 
 const ghostButtonStyle = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "7px 14px",
@@ -95,7 +115,7 @@ const ghostButtonStyle = {
 };
 
 const primaryButtonStyle = {
-  background: "#6366f1",
+  background: "var(--accent)",
   border: "none",
   borderRadius: 8,
   color: "#fff",

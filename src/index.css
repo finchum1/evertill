@@ -2,10 +2,63 @@
   box-sizing: border-box;
 }
 
+/* Dark is the default token set (unprefixed :root) since this app has always
+   been dark-first; light overrides only where [data-theme="light"] is set on
+   <html> by the theme-preference hook in useTheme.ts. Category/identity
+   colors (LIST_COLOR_HEX, DEAL_STATUS_COLOR, Buyer/Listing tag colors) are
+   deliberately NOT tokenized here — those represent user-chosen or fixed
+   category colors that should read the same regardless of theme, the same
+   way a label color in Notion/Todoist doesn't shift with dark/light mode. */
+:root {
+  --bg-app: #020817;
+  --bg-panel: #0f172a;
+  --bg-panel-nested: #0b1220;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --text-primary: #f1f5f9;
+  --text-body: #cbd5e1;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-muted: #475569;
+  --text-menu: #e2e8f0;
+  --accent: #6366f1;
+  --accent-strong: #4f46e5;
+  --accent-deep: #4338ca;
+  --accent-subtle-bg: #312e81;
+  --accent-today-bg: #1e1b4b;
+  --accent-contrast-text: #e0e7ff;
+  --accent-light: #a5b4fc;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
+
+:root[data-theme="light"] {
+  --bg-app: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-panel-nested: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-body: #334155;
+  --text-secondary: #64748b;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+  --text-menu: #1e293b;
+  --accent: #6366f1;
+  --accent-strong: #4f46e5;
+  --accent-deep: #4338ca;
+  --accent-subtle-bg: #e0e7ff;
+  --accent-today-bg: #eef2ff;
+  --accent-contrast-text: #3730a3;
+  --accent-light: #4338ca;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
 body {
   margin: 0;
-  background: #020817;
-  color: #cbd5e1;
+  background: var(--bg-app);
+  color: var(--text-body);
 }
 
 #root {

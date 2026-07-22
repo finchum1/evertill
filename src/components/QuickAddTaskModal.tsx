@@ -56,8 +56,8 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
         style={{
           width: "100%",
           maxWidth: 420,
-          background: "#0f172a",
-          border: "1px solid #1e293b",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           padding: 28,
           display: "flex",
@@ -66,7 +66,7 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
         }}
       >
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: "0 0 4px" }}>New Task</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Task</h1>
 
         <label style={labelStyle}>
           Title
@@ -114,10 +114,10 @@ const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
   marginTop: 6,
-  background: "#1e293b",
-  border: "1px solid #334155",
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: 14,
   padding: "9px 12px",
   boxSizing: "border-box",
@@ -127,14 +127,14 @@ const inputStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontSize: 12,
-  color: "#64748b",
+  color: "var(--text-secondary)",
 };
 
 const ghostButtonStyle: CSSProperties = {
   background: "none",
-  border: "1px solid #334155",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
-  color: "#cbd5e1",
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
@@ -142,7 +142,7 @@ const ghostButtonStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  background: "#4f46e5",
+  background: "var(--accent-strong)",
   border: "none",
   borderRadius: 8,
   color: "#fff",

@@ -14,8 +14,8 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
     <div
       onClick={() => onOpen(card.id)}
       style={{
-        background: "#0f172a",
-        border: "1px solid #1e293b",
+        background: "var(--bg-panel)",
+        border: "1px solid var(--border)",
         borderRadius: 10,
         padding: "12px 14px",
         cursor: "pointer",
@@ -29,7 +29,7 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
           style={{
             fontSize: 14,
             fontWeight: 600,
-            color: "#f1f5f9",
+            color: "var(--text-primary)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -38,7 +38,7 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
           {card.title}
         </span>
         {card.value > 0 && (
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-tertiary)", flexShrink: 0 }}>
             {formatCurrency(card.value)}
           </span>
         )}
@@ -55,7 +55,7 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
         <span
           style={{
             fontSize: 12,
-            color: "#475569",
+            color: "var(--text-muted)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -66,7 +66,7 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
       )}
 
       {card.due_date && (
-        <span style={{ fontSize: 11, fontWeight: 600, color: overdue ? "#ef4444" : "#64748b" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: overdue ? "var(--danger)" : "var(--text-secondary)" }}>
           Next: {formatDueDate(card.due_date)}
         </span>
       )}
