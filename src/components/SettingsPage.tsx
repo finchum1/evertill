@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent, CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { useProfile } from "../hooks/useProfile";
 import type { useTheme, ThemePreference } from "../hooks/useTheme";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
 import { DealTemplatesManager } from "./DealTemplatesManager";
+import { Avatar } from "./Avatar";
+import { resizeImageToDataUrl } from "../lib/imageResize";
 
 interface SettingsPageProps {
   session: Session;
@@ -44,6 +46,8 @@ function ProfileCard({ session, profileData }: { session: Session; profileData: 
   const { profile, loading, updateProfile } = profileData;
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile loads in async (after this card's first render), so seed the
   // editable fields once it arrives rather than trying to derive them
@@ -61,8 +65,39 @@ function ProfileCard({ session, profileData }: { session: Session; profileData: 
     await updateProfile({ full_name: fullName.trim() || null, company_name: companyName.trim() || null });
   }
 
+  async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoStatus("Uploading…");
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      await updateProfile({ avatar_data_url: dataUrl });
+      setPhotoStatus(null);
+    } catch (err) {
+      setPhotoStatus(err instanceof Error ? err.message : "Could not upload photo.");
+    }
+  }
+
   return (
     <Card title="Profile">
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <Avatar name={fullName || session.user.email} avatarDataUrl={profile?.avatar_data_url} size={64} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={() => fileInputRef.current?.click()} style={linkButtonStyle}>
+              Change photo
+            </button>
+            {profile?.avatar_data_url && (
+              <button onClick={() => updateProfile({ avatar_data_url: null })} style={linkButtonStyle}>
+                Remove photo
+              </button>
+            )}
+          </div>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{photoStatus ?? "JPG or PNG"}</span>
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handlePhotoChange} style={{ display: "none" }} />
+        </div>
+      </div>
       <label style={labelStyle}>
         Name
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" style={inputStyle} />
@@ -218,6 +253,16 @@ const dangerButtonStyle: CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
+  cursor: "pointer",
+};
+
+const linkButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--accent-light)",
+  fontSize: 12,
+  fontWeight: 600,
+  padding: 0,
   cursor: "pointer",
 };
 

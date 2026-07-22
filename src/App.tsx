@@ -581,6 +581,7 @@ function App() {
     <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
       <Header
         session={session}
+        profile={profile.profile}
         page={page}
         onSetPage={setPage}
         onLogin={() => setAuthModal("signin")}

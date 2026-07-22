@@ -1,11 +1,14 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { Page } from "../types";
+import type { Profile } from "../hooks/useProfile";
 import { CreateMenu } from "./CreateMenu";
 import type { CreateType } from "./CreateMenu";
+import { Avatar } from "./Avatar";
 
 interface HeaderProps {
   session: Session | null;
+  profile: Profile | null;
   page: Page;
   onSetPage: (page: Page) => void;
   onLogin: () => void;
@@ -20,7 +23,7 @@ const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "deals", label: "Deals" },
 ];
 
-export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }: HeaderProps) {
+export function Header({ session, profile, page, onSetPage, onLogin, onSignup, onCreate }: HeaderProps) {
   return (
     <div
       style={{
@@ -66,25 +69,23 @@ export function Header({ session, page, onSetPage, onLogin, onSignup, onCreate }
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <button
             onClick={() => onSetPage("settings")}
-            title="Settings"
-            aria-label="Settings"
+            title="Go to Settings"
             style={{
-              background: page === "settings" ? "var(--border)" : "none",
-              border: "none",
-              borderRadius: 8,
-              color: page === "settings" ? "var(--text-primary)" : "var(--text-secondary)",
-              width: 32,
-              height: 32,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: 8,
+              background: page === "settings" ? "var(--border)" : "none",
+              border: "none",
+              borderRadius: 99,
+              padding: "4px 10px 4px 4px",
               cursor: "pointer",
-              fontSize: 16,
             }}
           >
-            ⚙
+            <Avatar name={profile?.full_name || session.user.email} avatarDataUrl={profile?.avatar_data_url} size={28} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: page === "settings" ? "var(--text-primary)" : "var(--text-secondary)" }}>
+              {profile?.full_name || session.user.email}
+            </span>
           </button>
-          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{session.user.email}</span>
           <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
             Log out
           </button>

@@ -15,8 +15,16 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   company_name text,
+  avatar_data_url text,
   created_at timestamptz not null default now()
 );
+
+-- Migration for an already-existing profiles table (this project's live
+-- database included): adds the avatar column. Safe to re-run. Stored as a
+-- data: URL (client-side-resized to a small JPEG before upload) rather than
+-- in Supabase Storage — avoids needing a storage bucket + its own RLS
+-- policies for what's a small, infrequently-changed image.
+alter table profiles add column if not exists avatar_data_url text;
 
 alter table profiles enable row level security;
 
