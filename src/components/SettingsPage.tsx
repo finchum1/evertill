@@ -3,7 +3,7 @@ import type { ChangeEvent, CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { useProfile } from "../hooks/useProfile";
-import type { useTheme, ThemePreference } from "../hooks/useTheme";
+import type { useTheme, ThemePreference, AccentColor } from "../hooks/useTheme";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
 import { DealTemplatesManager } from "./DealTemplatesManager";
 import { Avatar } from "./Avatar";
@@ -20,6 +20,17 @@ const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
   { key: "system", label: "System" },
   { key: "dark", label: "Dark" },
   { key: "light", label: "Light" },
+];
+
+// Swatch colors are the accent's solid shade, shown the same regardless of
+// which accent is currently active — unlike the rest of the app's chrome,
+// these can't just read var(--accent) since all 4 options need to render
+// simultaneously.
+const ACCENT_OPTIONS: { key: AccentColor; label: string; swatch: string }[] = [
+  { key: "indigo", label: "Indigo", swatch: "#6366f1" },
+  { key: "red", label: "Red", swatch: "#ef4444" },
+  { key: "green", label: "Green", swatch: "#10b981" },
+  { key: "charcoal", label: "Charcoal", swatch: "#3f3f46" },
 ];
 
 export function SettingsPage({ session, profileData, theme, dealTemplatesData }: SettingsPageProps) {
@@ -176,6 +187,27 @@ function AppearanceCard({ theme }: { theme: ReturnType<typeof useTheme> }) {
           >
             {opt.label}
           </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 8 }}>Accent color</div>
+      <div style={{ display: "flex", gap: 14 }}>
+        {ACCENT_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => theme.setAccent(opt.key)}
+            title={opt.label}
+            aria-label={opt.label}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: opt.swatch,
+              border: "none",
+              cursor: "pointer",
+              boxShadow: theme.accent === opt.key ? `0 0 0 2px var(--bg-panel), 0 0 0 4px ${opt.swatch}` : "none",
+            }}
+          />
         ))}
       </div>
     </Card>

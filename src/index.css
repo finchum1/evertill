@@ -55,6 +55,69 @@
   --success: #16a34a;
 }
 
+/* Accent color themes: an independent axis from dark/light (data-theme) —
+   [data-accent] on <html>, set by the theme-preference hook in useTheme.ts.
+   Indigo (the original default) needs no override block since its values
+   already live in the two blocks above; these three add Red/Green/Charcoal,
+   each following the exact same 7-token dark/light formula as indigo
+   (solid accent/accent-strong/accent-deep stay the same hex across both
+   modes; the subtle/today/contrast/light tokens flip per mode). Source
+   order matters here: these come after the base :root/[data-theme="light"]
+   blocks so same-specificity overrides (e.g. [data-accent="red"] vs.
+   [data-theme="light"]) resolve correctly, and the combined
+   [data-accent="red"][data-theme="light"] selector's higher specificity
+   wins over both for the mode-conditional tokens. */
+:root[data-accent="red"] {
+  --accent: #ef4444;
+  --accent-strong: #dc2626;
+  --accent-deep: #b91c1c;
+  --accent-subtle-bg: #7f1d1d;
+  --accent-today-bg: #450a0a;
+  --accent-contrast-text: #fee2e2;
+  --accent-light: #fca5a5;
+}
+
+:root[data-accent="red"][data-theme="light"] {
+  --accent-subtle-bg: #fee2e2;
+  --accent-today-bg: #fef2f2;
+  --accent-contrast-text: #991b1b;
+  --accent-light: #b91c1c;
+}
+
+:root[data-accent="green"] {
+  --accent: #10b981;
+  --accent-strong: #059669;
+  --accent-deep: #047857;
+  --accent-subtle-bg: #064e3b;
+  --accent-today-bg: #022c22;
+  --accent-contrast-text: #d1fae5;
+  --accent-light: #6ee7b7;
+}
+
+:root[data-accent="green"][data-theme="light"] {
+  --accent-subtle-bg: #d1fae5;
+  --accent-today-bg: #ecfdf5;
+  --accent-contrast-text: #065f46;
+  --accent-light: #047857;
+}
+
+:root[data-accent="charcoal"] {
+  --accent: #52525b;
+  --accent-strong: #3f3f46;
+  --accent-deep: #27272a;
+  --accent-subtle-bg: #27272a;
+  --accent-today-bg: #18181b;
+  --accent-contrast-text: #f4f4f5;
+  --accent-light: #d4d4d8;
+}
+
+:root[data-accent="charcoal"][data-theme="light"] {
+  --accent-subtle-bg: #f4f4f5;
+  --accent-today-bg: #fafafa;
+  --accent-contrast-text: #27272a;
+  --accent-light: #3f3f46;
+}
+
 body {
   margin: 0;
   background: var(--bg-app);
