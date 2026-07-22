@@ -131,7 +131,7 @@ export function Sidebar({
             )}
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{list.name}</span>
           </span>
-          {count > 0 && <span style={{ fontSize: 11, color: isActive ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{count}</span>}
+          {count > 0 && <span style={{ fontSize: 11, color: isActive ? "#fff" : "var(--text-muted)" }}>{count}</span>}
         </button>
         {!list.is_inbox && (
           <ListMenu
@@ -164,11 +164,11 @@ export function Sidebar({
       </button>
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
         <span>Today</span>
-        {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{todayCount}</span>}
+        {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "#fff" : "var(--text-muted)" }}>{todayCount}</span>}
       </button>
       <button onClick={() => onSetView("upcoming")} style={navButtonStyle(view === "upcoming")}>
         <span>Upcoming</span>
-        {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{upcomingCount}</span>}
+        {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "#fff" : "var(--text-muted)" }}>{upcomingCount}</span>}
       </button>
       <button onClick={() => onSetView("calendar")} style={navButtonStyle(view === "calendar")}>
         <span>Calendar</span>
@@ -180,7 +180,7 @@ export function Sidebar({
           <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
             <span>Completed</span>
             {completedCount > 0 && (
-              <span style={{ fontSize: 11, color: view === "completed" ? "var(--accent-contrast-text)" : "var(--text-muted)" }}>{completedCount}</span>
+              <span style={{ fontSize: 11, color: view === "completed" ? "#fff" : "var(--text-muted)" }}>{completedCount}</span>
             )}
           </button>
         </div>
