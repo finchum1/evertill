@@ -662,8 +662,11 @@ function App() {
         <QuickAddTaskModal
           lists={tasks.lists}
           onClose={() => setQuickAddOpen(false)}
-          onCreate={(listId, title, description, dueDate, recurrence) => {
-            tasks.addTodo(listId, title, dueDate, { description, recurrence });
+          onCreate={async (listId, title, description, dueDate, recurrence, subtaskTitles) => {
+            const newTodo = await tasks.addTodo(listId, title, dueDate, { description, recurrence });
+            if (newTodo) {
+              for (const subtaskTitle of subtaskTitles) await tasks.addSubtask(newTodo.id, subtaskTitle);
+            }
             setQuickAddOpen(false);
           }}
         />

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Recurrence, TodoList } from "../types";
 import { SmartDateInput } from "./SmartDateInput";
@@ -15,6 +16,9 @@ interface TaskComposerProps {
   onDueDateChange: (v: string | null) => void;
   recurrence: Recurrence;
   onRecurrenceChange: (r: Recurrence) => void;
+  subtaskTitles: string[];
+  onAddSubtaskTitle: (title: string) => void;
+  onRemoveSubtaskTitle: (index: number) => void;
   onCancel: () => void;
   onSubmit: (e: FormEvent) => void;
   submitLabel?: string;
@@ -39,6 +43,9 @@ export function TaskComposer({
   onDueDateChange,
   recurrence,
   onRecurrenceChange,
+  subtaskTitles,
+  onAddSubtaskTitle,
+  onRemoveSubtaskTitle,
   onCancel,
   onSubmit,
   submitLabel = "Add task",
@@ -46,6 +53,15 @@ export function TaskComposer({
   style,
 }: TaskComposerProps) {
   const selectedList = lists.find((l) => l.id === listId);
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskInput, setSubtaskInput] = useState("");
+
+  function submitSubtask() {
+    const t = subtaskInput.trim();
+    if (t) onAddSubtaskTitle(t);
+    setSubtaskInput("");
+    setAddingSubtask(false);
+  }
 
   return (
     <form
@@ -81,6 +97,49 @@ export function TaskComposer({
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
         <DatePickerField value={dueDate} onChange={onDueDateChange} recurrence={recurrence} onRecurrenceChange={onRecurrenceChange} />
       </div>
+
+      {subtaskTitles.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {subtaskTitles.map((t, i) => (
+            <div key={i} style={subtaskRowStyle}>
+              <SubtaskDotIcon />
+              <span style={{ flex: 1 }}>{t}</span>
+              <button type="button" onClick={() => onRemoveSubtaskTitle(i)} style={subtaskRemoveButtonStyle}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {addingSubtask ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            autoFocus
+            value={subtaskInput}
+            onChange={(e) => setSubtaskInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitSubtask();
+              } else if (e.key === "Escape") {
+                setSubtaskInput("");
+                setAddingSubtask(false);
+              }
+            }}
+            placeholder="Subtask name"
+            style={subtaskInputStyle}
+          />
+          <button type="button" onClick={submitSubtask} style={subtaskAddButtonStyle}>
+            Add
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAddingSubtask(true)} style={addSubtaskButtonStyle}>
+          <PlusIcon />
+          Add subtask
+        </button>
+      )}
 
       <div style={dividerStyle} />
 
@@ -127,6 +186,20 @@ function ChevronIcon() {
     </svg>
   );
 }
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+function SubtaskDotIcon() {
+  return (
+    <svg width="6" height="6" viewBox="0 0 6 6" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="3" cy="3" r="3" fill="var(--text-muted)" />
+    </svg>
+  );
+}
 
 const titleInputStyle: CSSProperties = {
   display: "block",
@@ -160,6 +233,61 @@ const dividerStyle: CSSProperties = {
   height: 1,
   background: "var(--border)",
   margin: "4px 0",
+};
+
+const addSubtaskButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  alignSelf: "flex-start",
+  background: "none",
+  border: "none",
+  color: "var(--text-secondary)",
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "4px 2px",
+  cursor: "pointer",
+};
+
+const subtaskRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  fontSize: 13,
+  color: "var(--text-body)",
+  padding: "2px 2px",
+};
+
+const subtaskRemoveButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--text-muted)",
+  cursor: "pointer",
+  fontSize: 13,
+  lineHeight: 1,
+};
+
+const subtaskInputStyle: CSSProperties = {
+  flex: 1,
+  background: "var(--border)",
+  border: "1px solid var(--border-strong)",
+  borderRadius: 8,
+  color: "var(--text-primary)",
+  fontSize: 13,
+  padding: "7px 10px",
+  outline: "none",
+  fontFamily: "inherit",
+};
+
+const subtaskAddButtonStyle: CSSProperties = {
+  background: "var(--accent-strong)",
+  border: "none",
+  borderRadius: 8,
+  color: "#fff",
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "7px 14px",
+  cursor: "pointer",
 };
 
 const listPillStyle: CSSProperties = {

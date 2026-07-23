@@ -17,7 +17,7 @@ interface TaskListViewProps {
     title: string,
     dueDate: string | null,
     extra?: { description?: string; recurrence?: Recurrence }
-  ) => void;
+  ) => Promise<Todo | undefined> | void;
   onToggleComplete: (id: string) => void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
@@ -47,6 +47,7 @@ export function TaskListView({
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [composerListId, setComposerListId] = useState("");
+  const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
 
   // Switching pages/views while the inline composer is open would otherwise
   // leave a stale, still-open form behind (this component instance persists
@@ -106,10 +107,11 @@ export function TaskListView({
     setDescription("");
     setDueDate(view === "today" ? tkey : null);
     setRecurrence("none");
+    setSubtaskTitles([]);
     setAdding(true);
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const rawTitle = title.trim();
     if (!rawTitle || !composerListId) return;
@@ -127,7 +129,10 @@ export function TaskListView({
       }
     }
 
-    onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    if (newTodo) {
+      for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
+    }
     setAdding(false);
   }
 
@@ -168,6 +173,9 @@ export function TaskListView({
               onDueDateChange={setDueDate}
               recurrence={recurrence}
               onRecurrenceChange={setRecurrence}
+              subtaskTitles={subtaskTitles}
+              onAddSubtaskTitle={(t) => setSubtaskTitles((prev) => [...prev, t])}
+              onRemoveSubtaskTitle={(i) => setSubtaskTitles((prev) => prev.filter((_, idx) => idx !== i))}
               onCancel={() => setAdding(false)}
               onSubmit={handleSubmit}
               autoFocus

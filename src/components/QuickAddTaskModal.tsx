@@ -7,7 +7,14 @@ import { TaskComposer } from "./TaskComposer";
 interface QuickAddTaskModalProps {
   lists: TodoList[];
   onClose: () => void;
-  onCreate: (listId: string, title: string, description: string, dueDate: string | null, recurrence: Recurrence) => void;
+  onCreate: (
+    listId: string,
+    title: string,
+    description: string,
+    dueDate: string | null,
+    recurrence: Recurrence,
+    subtaskTitles: string[]
+  ) => void;
 }
 
 export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModalProps) {
@@ -17,6 +24,7 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
   const [listId, setListId] = useState(inbox?.id ?? lists[0]?.id ?? "");
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
+  const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -34,7 +42,7 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
         finalTitle = parsed.title || rawTitle;
       }
     }
-    onCreate(listId, finalTitle, description.trim(), finalDueDate, recurrence);
+    onCreate(listId, finalTitle, description.trim(), finalDueDate, recurrence, subtaskTitles);
   }
 
   return (
@@ -64,6 +72,9 @@ export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModa
           onDueDateChange={setDueDate}
           recurrence={recurrence}
           onRecurrenceChange={setRecurrence}
+          subtaskTitles={subtaskTitles}
+          onAddSubtaskTitle={(t) => setSubtaskTitles((prev) => [...prev, t])}
+          onRemoveSubtaskTitle={(i) => setSubtaskTitles((prev) => prev.filter((_, idx) => idx !== i))}
           onCancel={onClose}
           onSubmit={handleSubmit}
           autoFocus

@@ -178,17 +178,22 @@ export function useTasks(userId: string | undefined) {
   ) {
     if (!userId) return;
     const existing = todos.filter((t) => t.list_id === listId);
-    const { error } = await supabase.from("todos").insert({
-      user_id: userId,
-      list_id: listId,
-      title,
-      due_date: dueDate,
-      description: extra?.description || null,
-      recurrence: extra?.recurrence ?? "none",
-      sort_order: existing.length,
-    });
+    const { data, error } = await supabase
+      .from("todos")
+      .insert({
+        user_id: userId,
+        list_id: listId,
+        title,
+        due_date: dueDate,
+        description: extra?.description || null,
+        recurrence: extra?.recurrence ?? "none",
+        sort_order: existing.length,
+      })
+      .select()
+      .single();
     if (error) throw error;
     await refresh();
+    return data as Todo;
   }
 
   async function updateTodo(id: string, patch: Partial<Todo>) {
