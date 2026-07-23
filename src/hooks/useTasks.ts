@@ -164,12 +164,23 @@ export function useTasks(userId: string | undefined) {
   }
 
   // -- Todos ------------------------------------------------------------------
-  async function addTodo(listId: string, title: string, dueDate: string | null = null) {
+  async function addTodo(
+    listId: string,
+    title: string,
+    dueDate: string | null = null,
+    extra?: { description?: string; recurrence?: Recurrence }
+  ) {
     if (!userId) return;
     const existing = todos.filter((t) => t.list_id === listId);
-    const { error } = await supabase
-      .from("todos")
-      .insert({ user_id: userId, list_id: listId, title, due_date: dueDate, sort_order: existing.length });
+    const { error } = await supabase.from("todos").insert({
+      user_id: userId,
+      list_id: listId,
+      title,
+      due_date: dueDate,
+      description: extra?.description || null,
+      recurrence: extra?.recurrence ?? "none",
+      sort_order: existing.length,
+    });
     if (error) throw error;
     await refresh();
   }

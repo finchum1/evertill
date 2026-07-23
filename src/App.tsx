@@ -662,8 +662,8 @@ function App() {
         <QuickAddTaskModal
           lists={tasks.lists}
           onClose={() => setQuickAddOpen(false)}
-          onCreate={(listId, title, dueDate) => {
-            tasks.addTodo(listId, title, dueDate);
+          onCreate={(listId, title, description, dueDate, recurrence) => {
+            tasks.addTodo(listId, title, dueDate, { description, recurrence });
             setQuickAddOpen(false);
           }}
         />

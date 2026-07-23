@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
-import { openDatePicker } from "../lib/datePicker";
+import { DatePickerField } from "./DatePickerField";
 
 interface TaskModalProps {
   todo: Todo;
@@ -73,46 +73,14 @@ export function TaskModal({
           style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0" }}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label style={labelStyle}>
-            List
-            <select
-              value={todo.list_id}
-              onChange={(e) => onUpdate(todo.id, { list_id: e.target.value })}
-              style={inputStyle}
-            >
-              {lists.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={labelStyle}>
-            Due date
-            <input
-              type="date"
-              value={todo.due_date ?? ""}
-              onChange={(e) => onUpdate(todo.id, { due_date: e.target.value || null })}
-              onClick={openDatePicker}
-              style={inputStyle}
-            />
-          </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <DatePickerField
+            value={todo.due_date}
+            onChange={(due_date) => onUpdate(todo.id, { due_date })}
+            recurrence={todo.recurrence}
+            onRecurrenceChange={(recurrence: Recurrence) => onUpdate(todo.id, { recurrence })}
+          />
         </div>
-
-        <label style={labelStyle}>
-          Repeat
-          <select
-            value={todo.recurrence}
-            onChange={(e) => onUpdate(todo.id, { recurrence: e.target.value as Recurrence })}
-            style={inputStyle}
-          >
-            <option value="none">Does not repeat</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </label>
 
         <label style={labelStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -176,21 +144,44 @@ export function TaskModal({
           </form>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button onClick={onClose} style={ghostButtonStyle}>
-            Close
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete "${todo.title}"? This can't be undone.`)) {
-                onDelete(todo.id);
-                onClose();
-              }
-            }}
-            style={dangerButtonStyle}
-          >
-            Delete Task
-          </button>
+        <div style={dividerStyle} />
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ position: "relative" }}>
+            <div style={listPillStyle}>
+              <ListIcon />
+              {lists.find((l) => l.id === todo.list_id)?.name ?? "List"}
+              <ChevronIcon />
+            </div>
+            <select
+              value={todo.list_id}
+              onChange={(e) => onUpdate(todo.id, { list_id: e.target.value })}
+              style={listSelectOverlayStyle}
+            >
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} style={ghostButtonStyle}>
+              Close
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm(`Delete "${todo.title}"? This can't be undone.`)) {
+                  onDelete(todo.id);
+                  onClose();
+                }
+              }}
+              style={dangerButtonStyle}
+            >
+              Delete Task
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -299,7 +290,46 @@ const dangerButtonStyle: CSSProperties = {
   fontWeight: 600,
   padding: "8px 16px",
   cursor: "pointer",
-  flex: 1,
+};
+
+function ListIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+      <path d="M2 3.5H12M2 7H12M2 10.5H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function ChevronIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+      <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const dividerStyle: CSSProperties = {
+  height: 1,
+  background: "var(--border)",
+  margin: "2px 0",
+};
+
+const listPillStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  color: "var(--text-body)",
+  fontSize: 13,
+  fontWeight: 700,
+  padding: "6px 2px",
+  cursor: "pointer",
+};
+
+const listSelectOverlayStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  opacity: 0,
+  cursor: "pointer",
+  border: "none",
 };
 
 const smallPrimaryButtonStyle: CSSProperties = {

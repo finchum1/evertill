@@ -39,3 +39,14 @@ export function startOfWeek(d: Date): Date {
   copy.setHours(0, 0, 0, 0);
   return copy;
 }
+
+export function parseDateKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// Nearest date strictly after `from` that falls on `targetDay` (0=Sun..6=Sat).
+export function nextWeekday(from: Date, targetDay: number): Date {
+  const diff = ((targetDay - from.getDay() + 7) % 7) || 7;
+  return addDays(from, diff);
+}
