@@ -121,6 +121,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           subtasks={subtasks}
           onOpenTodo={setOpenTodoId}
           onToggleComplete={toggleTodoComplete}
+          onAddTodo={addTodo}
           onAddSubtask={addSubtask}
           onToggleSubtask={toggleSubtask}
           onEditSubtask={updateSubtask}

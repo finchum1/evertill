@@ -1,10 +1,13 @@
 import { useState } from "react";
-import type { CSSProperties } from "react";
-import type { Todo, TodoList, TodoSubtask } from "../types";
+import type { CSSProperties, FormEvent } from "react";
+import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { addDays, addMonths, dateToKey, startOfWeek, todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
 import { TaskRow } from "./TaskRow";
+import { TaskComposer } from "./TaskComposer";
+import { QuickAddTaskModal } from "./QuickAddTaskModal";
+import { parseSmartDueDate } from "../lib/smartDate";
 
 type SubView = "month" | "week" | "day";
 
@@ -14,6 +17,12 @@ interface CalendarViewProps {
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onAddTodo: (
+    listId: string,
+    title: string,
+    dueDate: string | null,
+    extra?: { description?: string; recurrence?: Recurrence }
+  ) => Promise<Todo | undefined> | void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
   onEditSubtask: (id: string, title: string) => void;
@@ -30,6 +39,7 @@ export function CalendarView({
   subtasks,
   onOpenTodo,
   onToggleComplete,
+  onAddTodo,
   onAddSubtask,
   onToggleSubtask,
   onEditSubtask,
@@ -39,6 +49,22 @@ export function CalendarView({
 }: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
   const [anchor, setAnchor] = useState(() => new Date());
+  const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
+
+  async function handleQuickAddCreate(
+    listId: string,
+    title: string,
+    description: string,
+    dueDate: string | null,
+    recurrence: Recurrence,
+    subtaskTitles: string[]
+  ) {
+    const newTodo = await onAddTodo(listId, title, dueDate, { description, recurrence });
+    if (newTodo) {
+      for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
+    }
+    setQuickAddDate(null);
+  }
 
   // Calendar never shows completed tasks — they live in the Completed view instead.
   const todosByDay = new Map<string, Todo[]>();
@@ -101,6 +127,7 @@ export function CalendarView({
           onOpenDay={openDay}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
+          onQuickAddDate={setQuickAddDate}
           onDropTodoOnDate={onDropTodoOnDate}
         />
       )}
@@ -112,6 +139,7 @@ export function CalendarView({
           onOpenDay={openDay}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
+          onQuickAddDate={setQuickAddDate}
           onDropTodoOnDate={onDropTodoOnDate}
         />
       )}
@@ -123,12 +151,17 @@ export function CalendarView({
           subtasks={subtasks}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
+          onAddTodo={onAddTodo}
           onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
           onEditSubtask={onEditSubtask}
           onDeleteSubtask={onDeleteSubtask}
           onUpdateDueDate={onUpdateDueDate}
         />
+      )}
+
+      {quickAddDate && (
+        <QuickAddTaskModal lists={lists} initialDueDate={quickAddDate} onClose={() => setQuickAddDate(null)} onCreate={handleQuickAddCreate} />
       )}
     </div>
   );
@@ -155,6 +188,7 @@ function MonthGrid({
   onOpenDay,
   onOpenTodo,
   onToggleComplete,
+  onQuickAddDate,
   onDropTodoOnDate,
 }: {
   anchor: Date;
@@ -163,6 +197,7 @@ function MonthGrid({
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onQuickAddDate: (dateKey: string) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -189,7 +224,8 @@ function MonthGrid({
           return (
             <div
               key={key}
-              onClick={() => onOpenDay(d)}
+              onClick={() => onQuickAddDate(key)}
+              title="Add a task for this day"
               onDragOver={(e) => {
                 if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
               }}
@@ -218,7 +254,21 @@ function MonthGrid({
                 overflow: "hidden",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)", flexShrink: 0 }}>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDay(d);
+                }}
+                title="Open this day"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)",
+                  flexShrink: 0,
+                  alignSelf: "flex-start",
+                  cursor: "pointer",
+                }}
+              >
                 {d.getDate()}
               </span>
               {dayTodos.slice(0, 3).map((t) => (
@@ -256,6 +306,7 @@ function WeekGrid({
   onOpenDay,
   onOpenTodo,
   onToggleComplete,
+  onQuickAddDate,
   onDropTodoOnDate,
 }: {
   anchor: Date;
@@ -264,6 +315,7 @@ function WeekGrid({
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onQuickAddDate: (dateKey: string) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -293,6 +345,8 @@ function WeekGrid({
               <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "var(--accent-light)" : "var(--text-primary)" }}>{d.getDate()}</div>
             </div>
             <div
+              onClick={() => onQuickAddDate(key)}
+              title="Add a task for this day"
               onDragOver={(e) => {
                 if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
               }}
@@ -316,6 +370,7 @@ function WeekGrid({
                 background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
                 borderRadius: 8,
                 padding: 6,
+                cursor: "pointer",
               }}
             >
               {dayTodos.map((t) => (
@@ -327,7 +382,10 @@ function WeekGrid({
                     e.dataTransfer.setData(TODO_DRAG_MIME, t.id);
                     e.dataTransfer.effectAllowed = "move";
                   }}
-                  onClick={() => onOpenTodo(t.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenTodo(t.id);
+                  }}
                   style={{ ...miniChipStyle, flexShrink: 0, cursor: "grab" }}
                 >
                   <MiniCheckbox todo={t} list={lists.find((l) => l.id === t.list_id)} onToggleComplete={onToggleComplete} />
@@ -349,6 +407,7 @@ function DayList({
   subtasks,
   onOpenTodo,
   onToggleComplete,
+  onAddTodo,
   onAddSubtask,
   onToggleSubtask,
   onEditSubtask,
@@ -361,36 +420,121 @@ function DayList({
   subtasks: TodoSubtask[];
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
+  onAddTodo: (
+    listId: string,
+    title: string,
+    dueDate: string | null,
+    extra?: { description?: string; recurrence?: Recurrence }
+  ) => Promise<Todo | undefined> | void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
   onEditSubtask: (id: string, title: string) => void;
   onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
 }) {
-  const dayTodos = todosByDay.get(dateToKey(day)) ?? [];
+  const dayKey = dateToKey(day);
+  const dayTodos = todosByDay.get(dayKey) ?? [];
+  const inbox = lists.find((l) => l.is_inbox);
 
-  if (dayTodos.length === 0) {
-    return <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due this day.</div>;
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState<string | null>(dayKey);
+  const [recurrence, setRecurrence] = useState<Recurrence>("none");
+  const [composerListId, setComposerListId] = useState(inbox?.id ?? lists[0]?.id ?? "");
+  const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
+
+  function openComposer() {
+    setComposerListId(inbox?.id ?? lists[0]?.id ?? "");
+    setTitle("");
+    setDescription("");
+    setDueDate(dayKey);
+    setRecurrence("none");
+    setSubtaskTitles([]);
+    setAdding(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const rawTitle = title.trim();
+    if (!rawTitle || !composerListId) return;
+
+    let finalTitle = rawTitle;
+    let finalDueDate = dueDate;
+    if (!finalDueDate) {
+      const parsed = parseSmartDueDate(rawTitle);
+      if (parsed) {
+        finalDueDate = parsed.dueDate;
+        finalTitle = parsed.title || rawTitle;
+      }
+    }
+
+    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    if (newTodo) {
+      for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
+    }
+    setAdding(false);
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {dayTodos.map((t) => (
-        <TaskRow
-          key={t.id}
-          todo={t}
-          list={lists.find((l) => l.id === t.list_id)}
-          subtasks={subtasks.filter((s) => s.todo_id === t.id)}
-          onToggleComplete={onToggleComplete}
-          onAddSubtask={onAddSubtask}
-          onToggleSubtask={onToggleSubtask}
-          onEditSubtask={onEditSubtask}
-          onDeleteSubtask={onDeleteSubtask}
-          onUpdateDueDate={onUpdateDueDate}
-          onOpen={onOpenTodo}
-        />
-      ))}
+      <div>
+        {adding ? (
+          <TaskComposer
+            lists={lists}
+            listId={composerListId}
+            onListChange={setComposerListId}
+            title={title}
+            onTitleChange={setTitle}
+            description={description}
+            onDescriptionChange={setDescription}
+            dueDate={dueDate}
+            onDueDateChange={setDueDate}
+            recurrence={recurrence}
+            onRecurrenceChange={setRecurrence}
+            subtaskTitles={subtaskTitles}
+            onAddSubtaskTitle={(t) => setSubtaskTitles((prev) => [...prev, t])}
+            onRemoveSubtaskTitle={(i) => setSubtaskTitles((prev) => prev.filter((_, idx) => idx !== i))}
+            onCancel={() => setAdding(false)}
+            onSubmit={handleSubmit}
+            autoFocus
+          />
+        ) : (
+          <button type="button" onClick={openComposer} style={addTaskButtonStyle}>
+            <PlusIcon />
+            Add task
+          </button>
+        )}
+      </div>
+
+      {dayTodos.length === 0 ? (
+        <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>Nothing due this day.</div>
+      ) : (
+        dayTodos.map((t) => (
+          <TaskRow
+            key={t.id}
+            todo={t}
+            list={lists.find((l) => l.id === t.list_id)}
+            subtasks={subtasks.filter((s) => s.todo_id === t.id)}
+            onToggleComplete={onToggleComplete}
+            onAddSubtask={onAddSubtask}
+            onToggleSubtask={onToggleSubtask}
+            onEditSubtask={onEditSubtask}
+            onDeleteSubtask={onDeleteSubtask}
+            onUpdateDueDate={onUpdateDueDate}
+            onOpen={onOpenTodo}
+          />
+        ))
+      )}
     </div>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -424,6 +568,19 @@ function MiniCheckbox({
     />
   );
 }
+
+const addTaskButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "none",
+  border: "none",
+  color: "var(--text-secondary)",
+  fontSize: 14,
+  fontWeight: 600,
+  padding: "8px 4px",
+  cursor: "pointer",
+};
 
 const miniChipStyle: CSSProperties = {
   display: "flex",

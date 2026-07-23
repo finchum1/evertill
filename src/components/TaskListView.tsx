@@ -4,7 +4,7 @@ import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
-import { isOverdue, todayKey } from "../lib/dates";
+import { addDays, dateToKey, formatDueDate, isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
 
 interface TaskListViewProps {
@@ -99,6 +99,21 @@ export function TaskListView({
     ? lists.map((l) => ({ list: l, todos: restShown.filter((t) => t.list_id === l.id) })).filter((g) => g.todos.length > 0)
     : null;
   const restMarginTop = overdueShown.length > 0 ? 12 : 0;
+
+  // Completed groups by the day each task was actually completed (not due
+  // date, which is meaningless once done) — "shown" is already sorted by
+  // updated_at descending, so groups come out newest-first for free.
+  const completedGroups =
+    view === "completed"
+      ? shown.reduce<{ key: string; label: string; todos: Todo[] }[]>((groups, t) => {
+          if (!t.updated_at) return groups;
+          const key = dateToKey(new Date(t.updated_at));
+          const existing = groups.find((g) => g.key === key);
+          if (existing) existing.todos.push(t);
+          else groups.push({ key, label: completionDateLabel(key), todos: [t] });
+          return groups;
+        }, [])
+      : null;
 
   function openComposer() {
     const defaultListId = view === "today" || view === "upcoming" ? (inbox?.id ?? lists[0]?.id ?? "") : view;
@@ -201,7 +216,16 @@ export function TaskListView({
             {overdueShown.map((t) => renderRow(t, showListBadge))}
           </div>
         )}
-        {restGroups ? (
+        {completedGroups ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {completedGroups.map((g) => (
+              <div key={g.key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={listGroupHeaderStyle}>{g.label}</div>
+                {g.todos.map((t) => renderRow(t, showListBadge))}
+              </div>
+            ))}
+          </div>
+        ) : restGroups ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: restMarginTop }}>
             {restGroups.map(({ list: l, todos: groupTodos }) => (
               <div key={l.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -223,6 +247,13 @@ export function TaskListView({
       </div>
     </div>
   );
+}
+
+function completionDateLabel(key: string): string {
+  const tkey = todayKey();
+  if (key === tkey) return "Today";
+  if (key === dateToKey(addDays(new Date(), -1))) return "Yesterday";
+  return formatDueDate(key);
 }
 
 function PlusIcon() {

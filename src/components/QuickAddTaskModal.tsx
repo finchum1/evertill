@@ -6,6 +6,7 @@ import { TaskComposer } from "./TaskComposer";
 
 interface QuickAddTaskModalProps {
   lists: TodoList[];
+  initialDueDate?: string | null;
   onClose: () => void;
   onCreate: (
     listId: string,
@@ -17,12 +18,12 @@ interface QuickAddTaskModalProps {
   ) => void;
 }
 
-export function QuickAddTaskModal({ lists, onClose, onCreate }: QuickAddTaskModalProps) {
+export function QuickAddTaskModal({ lists, initialDueDate = null, onClose, onCreate }: QuickAddTaskModalProps) {
   const inbox = lists.find((l) => l.is_inbox);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [listId, setListId] = useState(inbox?.id ?? lists[0]?.id ?? "");
-  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState<string | null>(initialDueDate);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
 
