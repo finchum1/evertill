@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
-import type { Todo, TodoList, TodoSubtask } from "../types";
+import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { formatDueDate, isOverdue } from "../lib/dates";
-import { openDatePicker } from "../lib/datePicker";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
+import { DatePickerField } from "./DatePickerField";
 
 interface TaskRowProps {
   todo: Todo;
@@ -16,6 +16,7 @@ interface TaskRowProps {
   onEditSubtask: (id: string, title: string) => void;
   onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
+  onUpdateRecurrence: (id: string, recurrence: Recurrence) => void;
   onOpen: (id: string) => void;
 }
 
@@ -29,6 +30,7 @@ export function TaskRow({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onUpdateRecurrence,
   onOpen,
 }: TaskRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -124,7 +126,12 @@ export function TaskRow({
             </span>
           )}
         </div>
-        <DueDateBadge todo={todo} overdue={overdue} onUpdateDueDate={onUpdateDueDate} />
+        <DueDateBadge
+          todo={todo}
+          overdue={overdue}
+          onUpdateDueDate={onUpdateDueDate}
+          onUpdateRecurrence={onUpdateRecurrence}
+        />
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -289,64 +296,44 @@ function DueDateBadge({
   todo,
   overdue,
   onUpdateDueDate,
+  onUpdateRecurrence,
 }: {
   todo: Todo;
   overdue: boolean;
   onUpdateDueDate: (id: string, date: string | null) => void;
+  onUpdateRecurrence: (id: string, recurrence: Recurrence) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!editing || !inputRef.current) return;
-    inputRef.current.focus();
-    openDatePicker({ currentTarget: inputRef.current });
-  }, [editing]);
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        type="date"
-        defaultValue={todo.due_date ?? ""}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => {
-          onUpdateDueDate(todo.id, e.target.value || null);
-          setEditing(false);
-        }}
-        onBlur={() => setEditing(false)}
-        style={{
-          background: "var(--border)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: 6,
-          color: "var(--text-primary)",
-          fontSize: 12,
-          padding: "3px 6px",
-          outline: "none",
-          fontFamily: "inherit",
-          flexShrink: 0,
-        }}
-      />
-    );
-  }
-
   return (
-    <span
-      onClick={(e) => {
-        e.stopPropagation();
-        setEditing(true);
-      }}
-      title="Click to change due date"
-      style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: todo.due_date ? (overdue ? "var(--danger)" : "var(--text-secondary)") : "var(--border-strong)",
-        flexShrink: 0,
-        cursor: "pointer",
-      }}
-    >
-      {todo.due_date ? formatDueDate(todo.due_date) : "Set date"}
-    </span>
+    <DatePickerField
+      value={todo.due_date}
+      onChange={(date) => onUpdateDueDate(todo.id, date)}
+      recurrence={todo.recurrence}
+      onRecurrenceChange={(r) => onUpdateRecurrence(todo.id, r)}
+      renderTrigger={({ onClick, triggerRef }) => (
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          title="Click to change due date"
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            fontSize: 12,
+            fontWeight: 600,
+            color: todo.due_date ? (overdue ? "var(--danger)" : "var(--text-secondary)") : "var(--border-strong)",
+            flexShrink: 0,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          {todo.due_date ? formatDueDate(todo.due_date) : "Set date"}
+        </button>
+      )}
+    />
   );
 }
 

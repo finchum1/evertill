@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import type { Recurrence } from "../types";
 import { addDays, addMonths, dateToKey, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
 
@@ -8,6 +8,11 @@ interface DatePickerFieldProps {
   onChange: (value: string | null) => void;
   recurrence?: Recurrence;
   onRecurrenceChange?: (r: Recurrence) => void;
+  // Lets a caller swap in its own trigger element (e.g. TaskRow's compact
+  // text badge) while still reusing this component's popover/panel wholesale
+  // — otherwise every consumer wanting the same picker experience with a
+  // different-looking trigger would have to duplicate the whole panel.
+  renderTrigger?: (args: { onClick: () => void; triggerRef: RefObject<HTMLButtonElement | null> }) => ReactNode;
 }
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -62,7 +67,7 @@ function recurrenceOption(r: Recurrence, refDate: Date): { main: string; detail?
 // ListMenu/CreateMenu) replacing the native <input type="date">, styled after
 // a Todoist-style quick date picker: smart shortcuts, a month grid, and an
 // optional Repeat row when recurrence props are supplied.
-export function DatePickerField({ value, onChange, recurrence, onRecurrenceChange }: DatePickerFieldProps) {
+export function DatePickerField({ value, onChange, recurrence, onRecurrenceChange, renderTrigger }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
   const [panelMaxHeight, setPanelMaxHeight] = useState(420);
@@ -113,27 +118,31 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => (open ? setOpen(false) : openPopover())}
-        style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}
-      >
-        <CalendarIcon />
-        {label()}
-        {value && (
-          <span
-            role="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              pick(null);
-            }}
-            style={clearButtonStyle}
-          >
-            ×
-          </span>
-        )}
-      </button>
+      {renderTrigger ? (
+        renderTrigger({ onClick: () => (open ? setOpen(false) : openPopover()), triggerRef })
+      ) : (
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => (open ? setOpen(false) : openPopover())}
+          style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}
+        >
+          <CalendarIcon />
+          {label()}
+          {value && (
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                pick(null);
+              }}
+              style={clearButtonStyle}
+            >
+              ×
+            </span>
+          )}
+        </button>
+      )}
 
       {open && (
         <>

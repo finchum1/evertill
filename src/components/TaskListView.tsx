@@ -24,6 +24,7 @@ interface TaskListViewProps {
   onEditSubtask: (id: string, title: string) => void;
   onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
+  onUpdateRecurrence: (id: string, recurrence: Recurrence) => void;
   onOpenTodo: (id: string) => void;
 }
 
@@ -39,6 +40,7 @@ export function TaskListView({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onUpdateRecurrence,
   onOpenTodo,
 }: TaskListViewProps) {
   const [adding, setAdding] = useState(false);
@@ -164,6 +166,7 @@ export function TaskListView({
         onEditSubtask={onEditSubtask}
         onDeleteSubtask={onDeleteSubtask}
         onUpdateDueDate={onUpdateDueDate}
+        onUpdateRecurrence={onUpdateRecurrence}
         onOpen={onOpenTodo}
       />
     );

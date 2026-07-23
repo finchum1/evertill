@@ -28,6 +28,7 @@ interface CalendarViewProps {
   onEditSubtask: (id: string, title: string) => void;
   onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
+  onUpdateRecurrence: (id: string, recurrence: Recurrence) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }
 
@@ -45,6 +46,7 @@ export function CalendarView({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onUpdateRecurrence,
   onDropTodoOnDate,
 }: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
@@ -157,6 +159,7 @@ export function CalendarView({
           onEditSubtask={onEditSubtask}
           onDeleteSubtask={onDeleteSubtask}
           onUpdateDueDate={onUpdateDueDate}
+          onUpdateRecurrence={onUpdateRecurrence}
         />
       )}
 
@@ -413,6 +416,7 @@ function DayList({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onUpdateRecurrence,
 }: {
   day: Date;
   todosByDay: Map<string, Todo[]>;
@@ -431,6 +435,7 @@ function DayList({
   onEditSubtask: (id: string, title: string) => void;
   onDeleteSubtask: (id: string) => void;
   onUpdateDueDate: (id: string, date: string | null) => void;
+  onUpdateRecurrence: (id: string, recurrence: Recurrence) => void;
 }) {
   const dayKey = dateToKey(day);
   const dayTodos = todosByDay.get(dayKey) ?? [];
@@ -522,6 +527,7 @@ function DayList({
             onEditSubtask={onEditSubtask}
             onDeleteSubtask={onDeleteSubtask}
             onUpdateDueDate={onUpdateDueDate}
+            onUpdateRecurrence={onUpdateRecurrence}
             onOpen={onOpenTodo}
           />
         ))

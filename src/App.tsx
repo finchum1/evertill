@@ -127,6 +127,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           onEditSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}
           onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
+          onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
           onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
         />
       ) : (
@@ -142,6 +143,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           onEditSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}
           onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
+          onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
           onOpenTodo={setOpenTodoId}
         />
       )}
