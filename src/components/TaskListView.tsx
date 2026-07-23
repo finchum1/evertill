@@ -1,19 +1,23 @@
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
-import type { Todo, TodoList, TodoSubtask, View } from "../types";
+import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
+import { TaskComposer } from "./TaskComposer";
 import { isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
-import { openDatePicker } from "../lib/datePicker";
-import { SmartDateInput } from "./SmartDateInput";
 
 interface TaskListViewProps {
   view: View;
   lists: TodoList[];
   todos: Todo[];
   subtasks: TodoSubtask[];
-  onAddTodo: (listId: string, title: string, dueDate: string | null) => void;
+  onAddTodo: (
+    listId: string,
+    title: string,
+    dueDate: string | null,
+    extra?: { description?: string; recurrence?: Recurrence }
+  ) => void;
   onToggleComplete: (id: string) => void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
@@ -37,8 +41,12 @@ export function TaskListView({
   onUpdateDueDate,
   onOpenTodo,
 }: TaskListViewProps) {
+  const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [recurrence, setRecurrence] = useState<Recurrence>("none");
+  const [composerListId, setComposerListId] = useState("");
 
   const inbox = lists.find((l) => l.is_inbox);
   const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);
@@ -84,19 +92,26 @@ export function TaskListView({
     : null;
   const restMarginTop = overdueShown.length > 0 ? 12 : 0;
 
+  function openComposer() {
+    const defaultListId = view === "today" || view === "upcoming" ? (inbox?.id ?? lists[0]?.id ?? "") : view;
+    setComposerListId(defaultListId);
+    setTitle("");
+    setDescription("");
+    setDueDate(view === "today" ? tkey : null);
+    setRecurrence("none");
+    setAdding(true);
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const rawTitle = title.trim();
-    if (!rawTitle) return;
-    const targetListId = view === "today" || view === "upcoming" ? inbox?.id : view;
-    if (!targetListId) return;
+    if (!rawTitle || !composerListId) return;
 
     let finalTitle = rawTitle;
-    let finalDueDate = dueDate || null;
+    let finalDueDate = dueDate;
     // An explicitly-picked date wins; only smart-parse the title for a date
     // phrase ("tomorrow", "next Thursday"...) when the date field was left
-    // blank — true whenever a picker is shown but empty, and always true for
-    // Today/Upcoming, which have no picker at all.
+    // blank, so this never overrides an explicit user choice.
     if (!finalDueDate) {
       const parsed = parseSmartDueDate(rawTitle);
       if (parsed) {
@@ -104,11 +119,9 @@ export function TaskListView({
         finalTitle = parsed.title || rawTitle;
       }
     }
-    if (!finalDueDate && view === "today") finalDueDate = tkey;
 
-    onAddTodo(targetListId, finalTitle, finalDueDate);
-    setTitle("");
-    setDueDate("");
+    onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    setAdding(false);
   }
 
   function renderRow(t: Todo, withListBadge: boolean) {
@@ -134,20 +147,31 @@ export function TaskListView({
       <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 16px" }}>{heading}</h1>
 
       {view !== "completed" && (
-        <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <SmartDateInput
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={view === "today" ? "Add a task for today…" : "Add a task…"}
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          {view !== "today" && view !== "upcoming" && (
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} onClick={openDatePicker} style={inputStyle} />
+        <div style={{ marginBottom: 16 }}>
+          {adding ? (
+            <TaskComposer
+              lists={lists}
+              listId={composerListId}
+              onListChange={setComposerListId}
+              title={title}
+              onTitleChange={setTitle}
+              description={description}
+              onDescriptionChange={setDescription}
+              dueDate={dueDate}
+              onDueDateChange={setDueDate}
+              recurrence={recurrence}
+              onRecurrenceChange={setRecurrence}
+              onCancel={() => setAdding(false)}
+              onSubmit={handleSubmit}
+              autoFocus
+            />
+          ) : (
+            <button type="button" onClick={openComposer} style={addTaskButtonStyle}>
+              <PlusIcon />
+              Add task
+            </button>
           )}
-          <button type="submit" style={primaryButtonStyle}>
-            Add
-          </button>
-        </form>
+        </div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -186,27 +210,25 @@ export function TaskListView({
   );
 }
 
-const inputStyle: CSSProperties = {
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-primary)",
-  fontSize: 14,
-  padding: "9px 12px",
-  outline: "none",
-  fontFamily: "inherit",
-};
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 2V12M2 7H12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 
-const primaryButtonStyle: CSSProperties = {
-  background: "var(--accent-strong)",
+const addTaskButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "none",
   border: "none",
-  borderRadius: 8,
-  color: "#fff",
+  color: "var(--text-secondary)",
   fontSize: 14,
   fontWeight: 600,
-  padding: "9px 18px",
+  padding: "8px 4px",
   cursor: "pointer",
-  flexShrink: 0,
 };
 
 const sectionLabelStyle: CSSProperties = {
