@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Todo, TodoList, TodoSubtask } from "../types";
+import { LIST_COLOR_HEX } from "../types";
 import { addDays, addMonths, dateToKey, startOfWeek, todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
 import { TaskRow } from "./TaskRow";
@@ -93,10 +94,26 @@ export function CalendarView({
       </div>
 
       {subView === "month" && (
-        <MonthGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} onDropTodoOnDate={onDropTodoOnDate} />
+        <MonthGrid
+          anchor={anchor}
+          todosByDay={todosByDay}
+          lists={lists}
+          onOpenDay={openDay}
+          onOpenTodo={onOpenTodo}
+          onToggleComplete={onToggleComplete}
+          onDropTodoOnDate={onDropTodoOnDate}
+        />
       )}
       {subView === "week" && (
-        <WeekGrid anchor={anchor} todosByDay={todosByDay} onOpenDay={openDay} onOpenTodo={onOpenTodo} onDropTodoOnDate={onDropTodoOnDate} />
+        <WeekGrid
+          anchor={anchor}
+          todosByDay={todosByDay}
+          lists={lists}
+          onOpenDay={openDay}
+          onOpenTodo={onOpenTodo}
+          onToggleComplete={onToggleComplete}
+          onDropTodoOnDate={onDropTodoOnDate}
+        />
       )}
       {subView === "day" && (
         <DayList
@@ -134,14 +151,18 @@ function headingFor(subView: SubView, anchor: Date): string {
 function MonthGrid({
   anchor,
   todosByDay,
+  lists,
   onOpenDay,
   onOpenTodo,
+  onToggleComplete,
   onDropTodoOnDate,
 }: {
   anchor: Date;
   todosByDay: Map<string, Todo[]>;
+  lists: TodoList[];
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
+  onToggleComplete: (id: string) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -215,7 +236,7 @@ function MonthGrid({
                   }}
                   style={{ ...miniChipStyle, cursor: "grab" }}
                 >
-                  <span style={miniChipDotStyle} />
+                  <MiniCheckbox todo={t} list={lists.find((l) => l.id === t.list_id)} onToggleComplete={onToggleComplete} />
                   <span style={miniChipLabelStyle}>{t.title}</span>
                 </span>
               ))}
@@ -231,14 +252,18 @@ function MonthGrid({
 function WeekGrid({
   anchor,
   todosByDay,
+  lists,
   onOpenDay,
   onOpenTodo,
+  onToggleComplete,
   onDropTodoOnDate,
 }: {
   anchor: Date;
   todosByDay: Map<string, Todo[]>;
+  lists: TodoList[];
   onOpenDay: (d: Date) => void;
   onOpenTodo: (id: string) => void;
+  onToggleComplete: (id: string) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -305,7 +330,7 @@ function WeekGrid({
                   onClick={() => onOpenTodo(t.id)}
                   style={{ ...miniChipStyle, flexShrink: 0, cursor: "grab" }}
                 >
-                  <span style={miniChipDotStyle} />
+                  <MiniCheckbox todo={t} list={lists.find((l) => l.id === t.list_id)} onToggleComplete={onToggleComplete} />
                   <span style={miniChipLabelStyle}>{t.title}</span>
                 </span>
               ))}
@@ -369,14 +394,47 @@ function DayList({
   );
 }
 
+function MiniCheckbox({
+  todo,
+  list,
+  onToggleComplete,
+}: {
+  todo: Todo;
+  list: TodoList | undefined;
+  onToggleComplete: (id: string) => void;
+}) {
+  const color = list ? LIST_COLOR_HEX[list.color] : "var(--border-strong)";
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggleComplete(todo.id);
+      }}
+      aria-label="Mark complete"
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: 99,
+        border: `2px solid ${color}`,
+        background: "none",
+        cursor: "pointer",
+        padding: 0,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 const miniChipStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 4,
+  gap: 5,
   fontSize: 11,
   color: "var(--text-body)",
   background: "none",
-  padding: "1px 0",
+  border: "1px solid var(--border-strong)",
+  borderRadius: 99,
+  padding: "2px 7px",
   cursor: "pointer",
   overflow: "hidden",
 };
@@ -385,14 +443,6 @@ const miniChipLabelStyle: CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-};
-
-const miniChipDotStyle: CSSProperties = {
-  width: 5,
-  height: 5,
-  borderRadius: 99,
-  background: "var(--accent)",
-  flexShrink: 0,
 };
 
 const tabButtonStyle = (active: boolean): CSSProperties => ({
