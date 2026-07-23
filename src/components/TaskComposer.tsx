@@ -99,10 +99,10 @@ export function TaskComposer({
       </div>
 
       {subtaskTitles.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {subtaskTitles.map((t, i) => (
             <div key={i} style={subtaskRowStyle}>
-              <SubtaskDotIcon />
+              <SubtaskCheckIcon />
               <span style={{ flex: 1 }}>{t}</span>
               <button type="button" onClick={() => onRemoveSubtaskTitle(i)} style={subtaskRemoveButtonStyle}>
                 ×
@@ -113,7 +113,8 @@ export function TaskComposer({
       )}
 
       {addingSubtask ? (
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <SubtaskCheckIcon />
           <input
             autoFocus
             value={subtaskInput}
@@ -193,11 +194,17 @@ function PlusIcon() {
     </svg>
   );
 }
-function SubtaskDotIcon() {
+function SubtaskCheckIcon() {
   return (
-    <svg width="6" height="6" viewBox="0 0 6 6" fill="none" style={{ flexShrink: 0 }}>
-      <circle cx="3" cy="3" r="3" fill="var(--text-muted)" />
-    </svg>
+    <span
+      style={{
+        width: 14,
+        height: 14,
+        borderRadius: 99,
+        border: "2px solid var(--border-strong)",
+        flexShrink: 0,
+      }}
+    />
   );
 }
 
@@ -269,12 +276,13 @@ const subtaskRemoveButtonStyle: CSSProperties = {
 
 const subtaskInputStyle: CSSProperties = {
   flex: 1,
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
+  background: "none",
+  border: "none",
+  borderBottom: "1px solid var(--border-strong)",
+  borderRadius: 0,
   color: "var(--text-primary)",
   fontSize: 13,
-  padding: "7px 10px",
+  padding: "4px 0",
   outline: "none",
   fontFamily: "inherit",
 };

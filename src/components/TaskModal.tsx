@@ -70,7 +70,7 @@ export function TaskModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => title.trim() && title !== todo.title && onUpdate(todo.id, { title: title.trim() })}
-          style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0" }}
+          style={titleInputStyle}
         />
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -132,11 +132,12 @@ export function TaskModal({
             }}
             style={{ display: "flex", gap: 8, marginTop: 8 }}
           >
+            <NewSubtaskDot />
             <input
               value={newSubtask}
               onChange={(e) => setNewSubtask(e.target.value)}
               placeholder="Add a subtask…"
-              style={{ ...inputStyle, flex: 1 }}
+              style={subtaskInputStyle}
             />
             <button type="submit" style={smallPrimaryButtonStyle}>
               Add
@@ -229,6 +230,20 @@ function SubtaskRow({
   );
 }
 
+function NewSubtaskDot() {
+  return (
+    <span
+      style={{
+        width: 15,
+        height: 15,
+        borderRadius: 99,
+        border: "2px solid var(--border-strong)",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 function ExpandIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: expanded ? "rotate(180deg)" : "none" }}>
@@ -246,6 +261,33 @@ const expandButtonStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: 2,
+};
+
+const titleInputStyle: CSSProperties = {
+  display: "block",
+  width: "100%",
+  background: "none",
+  border: "none",
+  color: "var(--text-primary)",
+  fontSize: 18,
+  fontWeight: 700,
+  padding: "4px 0",
+  boxSizing: "border-box",
+  outline: "none",
+  fontFamily: "inherit",
+};
+
+const subtaskInputStyle: CSSProperties = {
+  flex: 1,
+  background: "none",
+  border: "none",
+  borderBottom: "1px solid var(--border-strong)",
+  borderRadius: 0,
+  color: "var(--text-primary)",
+  fontSize: 13,
+  padding: "4px 0",
+  outline: "none",
+  fontFamily: "inherit",
 };
 
 const inputStyle: CSSProperties = {
