@@ -34,7 +34,7 @@ import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
-import type { Page, View } from "./types";
+import type { Deal, Page, View } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
 
@@ -329,7 +329,15 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
   );
 }
 
-function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData; dealTemplatesData: DealTemplatesData }) {
+function DealsDashboard({
+  dealsData,
+  dealTemplatesData,
+  onMoveDealToPipeline,
+}: {
+  dealsData: DealsData;
+  dealTemplatesData: DealTemplatesData;
+  onMoveDealToPipeline: (deal: Deal) => void;
+}) {
   const {
     deals,
     notes,
@@ -450,6 +458,7 @@ function DealsDashboard({ dealsData, dealTemplatesData }: { dealsData: DealsData
           onAddContactField={addContactField}
           onUpdateContactField={updateContactField}
           onDeleteContactField={deleteContactField}
+          onMoveToPipeline={onMoveDealToPipeline}
         />
       )}
     </div>
@@ -500,6 +509,7 @@ function PageContent({
   profileData,
   theme,
   onNewTask,
+  onMoveDealToPipeline,
 }: {
   page: Page;
   session: Session;
@@ -511,6 +521,7 @@ function PageContent({
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
   onNewTask: () => void;
+  onMoveDealToPipeline: (deal: Deal) => void;
 }) {
   switch (page) {
     case "tasks":
@@ -520,7 +531,7 @@ function PageContent({
     case "pipeline":
       return <PipelineDashboard pipeline={pipelineData} />;
     case "deals":
-      return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} />;
+      return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} onMoveDealToPipeline={onMoveDealToPipeline} />;
     case "settings":
       return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} />;
   }
@@ -547,6 +558,35 @@ function App() {
   const [createPipelineCardId, setCreatePipelineCardId] = useState<string | null>(null);
   const [createShowNewDeal, setCreateShowNewDeal] = useState(false);
   const [createDealId, setCreateDealId] = useState<string | null>(null);
+
+  // "Bust" a deal: convert it into a Pipeline card (first column) carrying
+  // over address/value/type-as-tags plus its note history, then remove it
+  // from Deals — same conversion invariant as the other module-to-module
+  // moves (a card lives in exactly one of the four modules at a time).
+  async function handleMoveDealToPipeline(deal: Deal) {
+    const column = pipeline.columns[0];
+    if (!column) {
+      setPage("pipeline");
+      return;
+    }
+    const newCard = await pipeline.addCardFromDeal(column.id, {
+      title: deal.address,
+      address: deal.address,
+      value: deal.value,
+      tagBuyer: deal.type === "Buyer",
+      tagListing: deal.type === "Listing",
+      lastActivityText: "Moved back from Deals (deal busted)",
+    });
+    if (newCard) {
+      const dealNotes = deals.notes.filter((n) => n.deal_id === deal.id);
+      for (const note of dealNotes) {
+        await pipeline.addNote(newCard.id, note.body);
+      }
+    }
+    await deals.deleteDeal(deal.id);
+    setPage("pipeline");
+    if (newCard) setCreatePipelineCardId(newCard.id);
+  }
 
   async function handleCreate(type: CreateType) {
     if (type === "task") {
@@ -607,6 +647,7 @@ function App() {
           profileData={profile}
           theme={theme}
           onNewTask={() => setQuickAddOpen(true)}
+          onMoveDealToPipeline={handleMoveDealToPipeline}
         />
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />
@@ -682,6 +723,7 @@ function App() {
           onAddContactField={deals.addContactField}
           onUpdateContactField={deals.updateContactField}
           onDeleteContactField={deals.deleteContactField}
+          onMoveToPipeline={handleMoveDealToPipeline}
         />
       )}
     </div>

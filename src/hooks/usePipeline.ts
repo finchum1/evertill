@@ -94,6 +94,36 @@ export function usePipeline(userId: string | undefined) {
     await refresh();
   }
 
+  // Inserts a fully-populated card in one go (rather than the usual blank
+  // addCard + edit-in-place flow) — used to convert a busted Deal back into
+  // Pipeline, where the fields are already known up front.
+  async function addCardFromDeal(
+    columnId: string,
+    fields: { title: string; address: string | null; value: number; tagBuyer: boolean; tagListing: boolean; lastActivityText: string }
+  ) {
+    if (!userId) return;
+    const existing = cards.filter((c) => c.column_id === columnId);
+    const { data, error } = await supabase
+      .from("pipeline_cards")
+      .insert({
+        user_id: userId,
+        column_id: columnId,
+        title: fields.title,
+        address: fields.address,
+        value: fields.value,
+        tag_buyer: fields.tagBuyer,
+        tag_listing: fields.tagListing,
+        last_activity_at: new Date().toISOString(),
+        last_activity_text: fields.lastActivityText,
+        sort_order: existing.length,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    await refresh();
+    return data as PipelineCard;
+  }
+
   async function moveCardToColumn(id: string, columnId: string) {
     const existing = cards.filter((c) => c.column_id === columnId);
     await updateCard(id, { column_id: columnId, sort_order: existing.length });
@@ -129,6 +159,7 @@ export function usePipeline(userId: string | undefined) {
     setColumnColor,
     deleteColumn,
     addCard,
+    addCardFromDeal,
     updateCard,
     moveCardToColumn,
     deleteCard,

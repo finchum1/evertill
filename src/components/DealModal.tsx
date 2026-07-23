@@ -24,6 +24,7 @@ interface DealModalProps {
   onAddContactField: (dealId: string, label: string) => void;
   onUpdateContactField: (id: string, value: string) => void;
   onDeleteContactField: (id: string) => void;
+  onMoveToPipeline: (deal: Deal) => void;
 }
 
 const TABS = ["Overview", "Contacts", "Notes"] as const;
@@ -48,6 +49,7 @@ export function DealModal({
   onAddContactField,
   onUpdateContactField,
   onDeleteContactField,
+  onMoveToPipeline,
 }: DealModalProps) {
   const [tab, setTab] = useState<DealTab>("Overview");
   const [address, setAddress] = useState(deal.address);
@@ -156,7 +158,18 @@ export function DealModal({
         )}
         {tab === "Notes" && <NotesTab deal={deal} notes={notes} onAddNote={onAddNote} onDeleteNote={onDeleteNote} />}
 
-        <div style={{ display: "flex", marginTop: 4 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+          <button
+            onClick={() => {
+              if (window.confirm(`Move "${deal.address}" back to Pipeline? This removes it from Deals — use this when a deal busts.`)) {
+                onMoveToPipeline(deal);
+                onClose();
+              }
+            }}
+            style={secondaryButtonStyle}
+          >
+            Move to Pipeline
+          </button>
           <button
             onClick={() => {
               if (window.confirm(`Delete "${deal.address}"? This can't be undone.`)) {
@@ -444,6 +457,17 @@ const dangerButtonStyle: CSSProperties = {
   border: "1px solid rgba(239,68,68,0.3)",
   borderRadius: 8,
   color: "var(--danger)",
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "8px 16px",
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle: CSSProperties = {
+  background: "none",
+  border: "1px solid var(--border-strong)",
+  borderRadius: 8,
+  color: "var(--text-body)",
   fontSize: 13,
   fontWeight: 600,
   padding: "8px 16px",
