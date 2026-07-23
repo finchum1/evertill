@@ -99,7 +99,7 @@ export function TaskModal({
             onChange={(e) => setDescription(e.target.value)}
             onBlur={() => description !== (todo.description ?? "") && onUpdate(todo.id, { description })}
             rows={descriptionExpanded ? 10 : 3}
-            style={{ ...inputStyle, resize: "vertical" as const }}
+            style={descriptionInputStyle}
           />
         </label>
 
@@ -290,18 +290,18 @@ const subtaskInputStyle: CSSProperties = {
   fontFamily: "inherit",
 };
 
-const inputStyle: CSSProperties = {
+const descriptionInputStyle: CSSProperties = {
   display: "block",
   width: "100%",
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
+  background: "none",
+  border: "none",
   color: "var(--text-primary)",
   fontSize: 14,
-  padding: "8px 10px",
+  padding: "0",
   boxSizing: "border-box",
   outline: "none",
   fontFamily: "inherit",
+  resize: "vertical" as const,
 };
 
 const labelStyle: CSSProperties = {

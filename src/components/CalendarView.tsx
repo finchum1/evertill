@@ -184,7 +184,7 @@ function MonthGrid({
                 if (todoId) onDropTodoOnDate(todoId, key);
               }}
               style={{
-                minHeight: 84,
+                height: 96,
                 borderRadius: 8,
                 border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
                 background: isDragOver ? "var(--accent-subtle-bg)" : key === tkey ? "var(--accent-today-bg)" : "var(--bg-panel)",
@@ -194,9 +194,12 @@ function MonthGrid({
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
+                overflow: "hidden",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)" }}>{d.getDate()}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: key === tkey ? "var(--accent-light)" : "var(--text-secondary)", flexShrink: 0 }}>
+                {d.getDate()}
+              </span>
               {dayTodos.slice(0, 3).map((t) => (
                 <span
                   key={t.id}
@@ -212,10 +215,11 @@ function MonthGrid({
                   }}
                   style={{ ...miniChipStyle, cursor: "grab" }}
                 >
-                  {t.title}
+                  <span style={miniChipDotStyle} />
+                  <span style={miniChipLabelStyle}>{t.title}</span>
                 </span>
               ))}
-              {dayTodos.length > 3 && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>+{dayTodos.length - 3} more</span>}
+              {dayTodos.length > 3 && <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>+{dayTodos.length - 3} more</span>}
             </div>
           );
         })}
@@ -281,7 +285,8 @@ function WeekGrid({
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
-                minHeight: 120,
+                height: 120,
+                overflowY: "auto",
                 border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
                 background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
                 borderRadius: 8,
@@ -298,9 +303,10 @@ function WeekGrid({
                     e.dataTransfer.effectAllowed = "move";
                   }}
                   onClick={() => onOpenTodo(t.id)}
-                  style={{ ...miniChipStyle, padding: "4px 6px", cursor: "grab" }}
+                  style={{ ...miniChipStyle, flexShrink: 0, cursor: "grab" }}
                 >
-                  {t.title}
+                  <span style={miniChipDotStyle} />
+                  <span style={miniChipLabelStyle}>{t.title}</span>
                 </span>
               ))}
             </div>
@@ -364,15 +370,29 @@ function DayList({
 }
 
 const miniChipStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
   fontSize: 11,
   color: "var(--text-body)",
-  background: "var(--border)",
-  borderRadius: 4,
-  padding: "1px 4px",
+  background: "none",
+  padding: "1px 0",
   cursor: "pointer",
+  overflow: "hidden",
+};
+
+const miniChipLabelStyle: CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+};
+
+const miniChipDotStyle: CSSProperties = {
+  width: 5,
+  height: 5,
+  borderRadius: 99,
+  background: "var(--accent)",
+  flexShrink: 0,
 };
 
 const tabButtonStyle = (active: boolean): CSSProperties => ({
