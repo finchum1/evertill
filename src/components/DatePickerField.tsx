@@ -71,6 +71,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
   const [panelMaxHeight, setPanelMaxHeight] = useState(420);
+  const [panelAlign, setPanelAlign] = useState<"left" | "right">("left");
   const [repeatOpen, setRepeatOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -96,6 +97,13 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
     const rect = triggerRef.current?.getBoundingClientRect();
     const available = rect ? window.innerHeight - rect.bottom - 16 : 420;
     setPanelMaxHeight(Math.max(200, Math.min(420, available)));
+    // The panel is a fixed 280px wide, anchored to the trigger's left edge by
+    // default — fine for a composer near the left of a narrow form, but a
+    // trigger sitting near the right edge of a wide row (e.g. TaskRow's due-
+    // date badge) would push most of the panel off-screen with no way to
+    // reach it. Flip to anchoring off the trigger's right edge instead
+    // whenever there isn't enough room to the right.
+    setPanelAlign(rect && window.innerWidth - rect.left < 280 + 16 ? "right" : "left");
     setRepeatOpen(false);
     setOpen(true);
   }
@@ -147,7 +155,13 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div style={{ ...panelStyle, maxHeight: panelMaxHeight }}>
+          <div
+            style={{
+              ...panelStyle,
+              maxHeight: panelMaxHeight,
+              ...(panelAlign === "right" ? { left: "auto", right: 0 } : {}),
+            }}
+          >
             <div style={{ display: "flex", flexDirection: "column" }}>
               {shortcuts.map((s) => (
                 <button key={s.label} type="button" onClick={() => pick(s.date)} style={rowButtonStyle}>
