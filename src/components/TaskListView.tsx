@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
@@ -47,6 +47,13 @@ export function TaskListView({
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [composerListId, setComposerListId] = useState("");
+
+  // Switching pages/views while the inline composer is open would otherwise
+  // leave a stale, still-open form behind (this component instance persists
+  // across view changes — no `key` forces a remount) — auto-cancel instead.
+  useEffect(() => {
+    setAdding(false);
+  }, [view]);
 
   const inbox = lists.find((l) => l.is_inbox);
   const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);

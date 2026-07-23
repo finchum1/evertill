@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Recurrence } from "../types";
 import { addDays, addMonths, dateToKey, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
@@ -32,6 +32,8 @@ function fullShortcutLabel(d: Date): string {
 export function DatePickerField({ value, onChange, recurrence, onRecurrenceChange }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
+  const [panelMaxHeight, setPanelMaxHeight] = useState(420);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const today = new Date();
   const tkey = todayKey();
@@ -45,6 +47,16 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
 
   function openPopover() {
     setDisplayMonth(value ? parseDateKey(value) : new Date());
+    // Cap the panel to whatever room is actually left below the trigger in
+    // the viewport — a plain CSS maxHeight based on 100vh still lets the
+    // panel's own box extend past the visible viewport when the trigger
+    // sits low on the page (the surrounding fixed-overlay modal has no
+    // scroll container of its own to reveal it), leaving the bottom of the
+    // popover permanently unreachable. Measuring here keeps the whole panel
+    // — and therefore its own scrollbar — inside what's actually visible.
+    const rect = triggerRef.current?.getBoundingClientRect();
+    const available = rect ? window.innerHeight - rect.bottom - 16 : 420;
+    setPanelMaxHeight(Math.max(200, Math.min(420, available)));
     setOpen(true);
   }
 
@@ -67,6 +79,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openPopover())}
         style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}
@@ -90,7 +103,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div style={panelStyle}>
+          <div style={{ ...panelStyle, maxHeight: panelMaxHeight }}>
             <div style={{ display: "flex", flexDirection: "column" }}>
               {shortcuts.map((s) => (
                 <button key={s.label} type="button" onClick={() => pick(s.date)} style={rowButtonStyle}>
@@ -277,6 +290,8 @@ const panelStyle: CSSProperties = {
   borderRadius: 12,
   padding: 10,
   width: 280,
+  overflowY: "auto",
+  overscrollBehavior: "contain",
   zIndex: 50,
   boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
 };
