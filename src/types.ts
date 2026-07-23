@@ -25,7 +25,7 @@ export const LIST_COLOR_HEX: Record<ListColor, string> = {
   pink: "#ec4899",
 };
 
-export type Recurrence = "none" | "daily" | "weekly" | "monthly";
+export type Recurrence = "none" | "daily" | "weekly" | "monthly" | "weekday" | "yearly";
 
 export interface TodoFolder {
   id: string;

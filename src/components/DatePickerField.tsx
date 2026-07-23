@@ -11,18 +11,51 @@ interface DatePickerFieldProps {
 }
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-const RECURRENCE_LABELS: Record<Recurrence, string> = {
-  none: "Does not repeat",
-  daily: "Repeats daily",
-  weekly: "Repeats weekly",
-  monthly: "Repeats monthly",
-};
+const RECURRENCE_OPTIONS: Recurrence[] = ["daily", "weekly", "weekday", "monthly", "yearly"];
 
 function shortLabel(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short" });
 }
 function fullShortcutLabel(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+// Two-part (bold main + muted detail) label for each repeat option, computed
+// against whichever date is currently relevant — the picked due date if one
+// is set, otherwise today — so "Every week" always shows the actual weekday
+// it'll land on, matching the reference's "Every week on Thursday" style.
+function recurrenceOption(r: Recurrence, refDate: Date): { main: string; detail?: string } {
+  switch (r) {
+    case "daily":
+      return { main: "Every day" };
+    case "weekly":
+      return { main: "Every week", detail: `on ${refDate.toLocaleDateString(undefined, { weekday: "long" })}` };
+    case "weekday":
+      return { main: "Every weekday", detail: "(Mon – Fri)" };
+    case "monthly":
+      return { main: "Every month", detail: `on the ${ordinal(refDate.getDate())}` };
+    case "yearly":
+      return {
+        main: "Every year",
+        detail: `on ${refDate.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`,
+      };
+    default:
+      return { main: "Does not repeat" };
+  }
 }
 
 // Anchored pill + popover (same self-contained trigger/panel pattern as
@@ -33,6 +66,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
   const [panelMaxHeight, setPanelMaxHeight] = useState(420);
+  const [repeatOpen, setRepeatOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const today = new Date();
@@ -57,6 +91,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
     const rect = triggerRef.current?.getBoundingClientRect();
     const available = rect ? window.innerHeight - rect.bottom - 16 : 420;
     setPanelMaxHeight(Math.max(200, Math.min(420, available)));
+    setRepeatOpen(false);
     setOpen(true);
   }
 
@@ -168,22 +203,51 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
             {onRecurrenceChange && (
               <>
                 <div style={dividerStyle} />
-                <div style={{ position: "relative" }}>
-                  <div style={rowButtonStyle}>
-                    <RepeatIcon />
-                    <span style={{ flex: 1, textAlign: "left" }}>{RECURRENCE_LABELS[recurrence ?? "none"]}</span>
+                <button
+                  type="button"
+                  onClick={() => setRepeatOpen((o) => !o)}
+                  style={{ ...rowButtonStyle, ...(repeatOpen ? repeatHeaderOpenStyle : {}) }}
+                >
+                  <RepeatIcon />
+                  <span style={{ flex: 1, textAlign: "left" }}>
+                    {recurrence && recurrence !== "none" ? recurrenceOption(recurrence, value ? parseDateKey(value) : today).main : "Repeat"}
+                  </span>
+                </button>
+                {repeatOpen && (
+                  <div style={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
+                    {RECURRENCE_OPTIONS.map((r) => {
+                      const opt = recurrenceOption(r, value ? parseDateKey(value) : today);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            onRecurrenceChange(r);
+                            setRepeatOpen(false);
+                          }}
+                          style={{ ...rowButtonStyle, ...(recurrence === r ? repeatSelectedRowStyle : {}) }}
+                        >
+                          <span style={{ flex: 1, textAlign: "left" }}>
+                            {opt.main}
+                            {opt.detail && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> {opt.detail}</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {recurrence && recurrence !== "none" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onRecurrenceChange("none");
+                          setRepeatOpen(false);
+                        }}
+                        style={{ ...rowButtonStyle, color: "var(--danger)" }}
+                      >
+                        <span style={{ flex: 1, textAlign: "left" }}>Does not repeat</span>
+                      </button>
+                    )}
                   </div>
-                  <select
-                    value={recurrence ?? "none"}
-                    onChange={(e) => onRecurrenceChange(e.target.value as Recurrence)}
-                    style={recurrenceSelectOverlayStyle}
-                  >
-                    <option value="none">Does not repeat</option>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
+                )}
               </>
             )}
           </div>
@@ -337,10 +401,10 @@ const dayButtonStyle: CSSProperties = {
   textAlign: "center",
 };
 
-const recurrenceSelectOverlayStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  opacity: 0,
-  cursor: "pointer",
-  border: "none",
+const repeatHeaderOpenStyle: CSSProperties = {
+  background: "var(--border)",
+};
+
+const repeatSelectedRowStyle: CSSProperties = {
+  color: "var(--accent-light)",
 };

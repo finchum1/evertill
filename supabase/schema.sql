@@ -110,11 +110,19 @@ create table if not exists todos (
   due_date date,
   completed boolean not null default false,
   recurrence text not null default 'none'
-    check (recurrence in ('none', 'daily', 'weekly', 'monthly')),
+    check (recurrence in ('none', 'daily', 'weekly', 'monthly', 'weekday', 'yearly')),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migration for an already-existing todos table (this project's live database
+-- already had the old 4-value recurrence enum before this change): widens the
+-- check constraint to also allow 'weekday' (Mon-Fri) and 'yearly'. Safe to
+-- re-run.
+alter table todos drop constraint if exists todos_recurrence_check;
+alter table todos add constraint todos_recurrence_check
+  check (recurrence in ('none', 'daily', 'weekly', 'monthly', 'weekday', 'yearly'));
 
 create table if not exists todo_subtasks (
   id uuid primary key default gen_random_uuid(),

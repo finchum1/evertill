@@ -8,6 +8,12 @@ function nextRecurrenceDate(dateStr: string, recurrence: Recurrence): string {
   if (recurrence === "daily") d.setDate(d.getDate() + 1);
   else if (recurrence === "weekly") d.setDate(d.getDate() + 7);
   else if (recurrence === "monthly") d.setMonth(d.getMonth() + 1);
+  else if (recurrence === "yearly") d.setFullYear(d.getFullYear() + 1);
+  else if (recurrence === "weekday") {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+    else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  }
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${mm}-${dd}`;
