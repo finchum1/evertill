@@ -169,6 +169,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
     loading,
     addColumn,
     renameColumn,
+    setColumnColor,
     deleteColumn,
     addCard,
     updateCard,
@@ -204,6 +205,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
             if (label?.trim()) addColumn(label.trim());
           }}
           onRenameColumn={renameColumn}
+          onSetColumnColor={setColumnColor}
           onDeleteColumn={deleteColumn}
           onAddCard={async (columnId) => {
             const card = await addCard(columnId);
@@ -253,6 +255,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
     loading,
     addColumn,
     renameColumn,
+    setColumnColor,
     deleteColumn,
     addCard,
     updateCard,
@@ -288,6 +291,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
             if (label?.trim()) addColumn(label.trim());
           }}
           onRenameColumn={renameColumn}
+          onSetColumnColor={setColumnColor}
           onDeleteColumn={deleteColumn}
           onAddCard={async (columnId) => {
             const card = await addCard(columnId);

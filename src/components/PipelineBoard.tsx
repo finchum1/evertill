@@ -1,13 +1,15 @@
 import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
-import type { PipelineCard, PipelineColumn } from "../types";
+import type { PipelineCard, PipelineColumn, ListColor } from "../types";
 import { PipelineCardMini } from "./PipelineCardMini";
+import { ListMenu } from "./ListMenu";
 
 interface PipelineBoardProps {
   columns: PipelineColumn[];
   cards: PipelineCard[];
   onAddColumn: () => void;
   onRenameColumn: (id: string, label: string) => void;
+  onSetColumnColor: (id: string, color: ListColor) => void;
   onDeleteColumn: (id: string) => void;
   onAddCard: (columnId: string) => void;
   onOpenCard: (id: string) => void;
@@ -18,6 +20,7 @@ export function PipelineBoard({
   cards,
   onAddColumn,
   onRenameColumn,
+  onSetColumnColor,
   onDeleteColumn,
   onAddCard,
   onOpenCard,
@@ -43,26 +46,14 @@ export function PipelineBoard({
                   {column.label}
                 </span>
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{columnCards.length}</span>
-                <button
-                  title="Rename or delete column"
-                  onClick={() => {
-                    const action = window.prompt(
-                      `"${column.label}" — type "delete" to delete (its cards go too), or type a new name to rename:`,
-                      column.label
-                    );
-                    if (action === null) return;
-                    if (action.trim().toLowerCase() === "delete") {
-                      if (window.confirm(`Delete column "${column.label}" and all its cards? This can't be undone.`)) {
-                        onDeleteColumn(column.id);
-                      }
-                    } else if (action.trim()) {
-                      onRenameColumn(column.id, action.trim());
-                    }
-                  }}
-                  style={menuButtonStyle}
-                >
-                  ⋯
-                </button>
+                <ListMenu
+                  name={column.label}
+                  color={column.color}
+                  onRename={(label) => onRenameColumn(column.id, label)}
+                  onSetColor={(color) => onSetColumnColor(column.id, color)}
+                  onDelete={() => onDeleteColumn(column.id)}
+                  itemNoun="clients"
+                />
               </div>
               {columnValue > 0 && (
                 <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -6 }}>
@@ -113,14 +104,4 @@ const addCardButtonStyle: CSSProperties = {
   fontWeight: 600,
   padding: "10px",
   cursor: "pointer",
-};
-
-const menuButtonStyle: CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  fontSize: 14,
-  cursor: "pointer",
-  padding: "2px 4px",
-  flexShrink: 0,
 };

@@ -9,12 +9,14 @@ interface ListMenuProps {
   onRename: (name: string) => void;
   onSetColor: (color: ListColor) => void;
   onDelete: () => void;
+  itemNoun?: string;
 }
 
 // Small anchored popover (same pattern as CreateMenu) replacing the old
 // prompt()/confirm()-only "⋯" handler — adds a color swatch picker while
 // keeping rename/delete as simple browser prompts, unchanged behavior-wise.
-export function ListMenu({ name, color, onRename, onSetColor, onDelete }: ListMenuProps) {
+// Reused for Tasks lists as well as Lead/Pipeline columns, hence itemNoun.
+export function ListMenu({ name, color, onRename, onSetColor, onDelete, itemNoun = "tasks" }: ListMenuProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -60,7 +62,7 @@ export function ListMenu({ name, color, onRename, onSetColor, onDelete }: ListMe
             <button
               onClick={() => {
                 setOpen(false);
-                if (window.confirm(`Delete "${name}" and all its tasks? This can't be undone.`)) onDelete();
+                if (window.confirm(`Delete "${name}" and all its ${itemNoun}? This can't be undone.`)) onDelete();
               }}
               style={{ ...itemButtonStyle, color: "var(--danger)" }}
             >
