@@ -125,7 +125,10 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
   const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ position: "relative", display: "inline-block" }}
+    >
       {renderTrigger ? (
         renderTrigger({ onClick: () => (open ? setOpen(false) : openPopover()), triggerRef })
       ) : (
