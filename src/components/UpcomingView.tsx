@@ -3,7 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
-import { parseDateKey, todayKey } from "../lib/dates";
+import { addDays, dateToKey, parseDateKey, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
 
 interface UpcomingViewProps {
@@ -67,15 +67,24 @@ export function UpcomingView({
     if (existing) existing.todos.push(t);
     else groups.push({ key, todos: [t] });
   }
-  // Today always anchors the top of the agenda — even with nothing due —
-  // so there's always a same-day "+ Add task" reachable from Upcoming.
-  if (!groups.some((g) => g.key === tkey)) groups.push({ key: tkey, todos: [] });
+  // The agenda always shows at least 10 consecutive days starting today —
+  // even the empty ones — so there's a full scrollable week-and-a-half of
+  // "+ Add task" slots, not just whichever days happen to already have a
+  // task. Any real task due further out still gets its own group beyond
+  // that minimum (nothing is ever truncated, only guaranteed padded out).
+  const minDays = 10;
+  for (let i = 0; i < minDays; i++) {
+    const key = dateToKey(addDays(new Date(), i));
+    if (!groups.some((g) => g.key === key)) groups.push({ key, todos: [] });
+  }
   groups.sort((a, b) => a.key.localeCompare(b.key));
 
   function dayLabel(key: string): string {
-    if (key === tkey) return "Today";
     const d = parseDateKey(key);
-    return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${d.toLocaleDateString(undefined, { weekday: "long" })}`;
+    const datePart = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    if (key === tkey) return `Today · ${datePart}`;
+    if (key === dateToKey(addDays(new Date(), 1))) return `Tomorrow · ${datePart}`;
+    return `${d.toLocaleDateString(undefined, { weekday: "long" })} · ${datePart}`;
   }
 
   function openComposer(dateKey: string) {
