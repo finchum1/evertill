@@ -347,11 +347,11 @@ function TodayNavIcon() {
   return (
     <span
       style={{
-        width: 18,
-        height: 18,
-        borderRadius: 5,
+        width: 14,
+        height: 14,
+        borderRadius: 4,
         border: "1.4px solid currentColor",
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 800,
         display: "flex",
         alignItems: "center",
@@ -430,9 +430,9 @@ function CompletedNavIcon() {
   return (
     <span
       style={{
-        width: 18,
-        height: 18,
-        borderRadius: 5,
+        width: 14,
+        height: 14,
+        borderRadius: 4,
         border: "1.4px solid currentColor",
         display: "flex",
         alignItems: "center",
@@ -440,7 +440,7 @@ function CompletedNavIcon() {
         flexShrink: 0,
       }}
     >
-      <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
+      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
         <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
