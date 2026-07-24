@@ -5,6 +5,7 @@ import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
 import { addDays, dateToKey, parseDateKey, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
+import { TODO_DRAG_MIME } from "../lib/dragTypes";
 
 interface UpcomingViewProps {
   lists: TodoList[];
@@ -46,6 +47,7 @@ export function UpcomingView({
 }: UpcomingViewProps) {
   const [overdueCollapsed, setOverdueCollapsed] = useState(false);
   const [addingDate, setAddingDate] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -161,8 +163,33 @@ export function UpcomingView({
           </div>
         )}
 
-        {groups.map((g) => (
-          <div key={g.key} style={{ marginBottom: 24 }}>
+        {groups.map((g) => {
+          const isDragOver = dragOverKey === g.key;
+          return (
+          <div
+            key={g.key}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+            }}
+            onDragEnter={(e) => {
+              if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverKey(g.key);
+            }}
+            onDragLeave={() => setDragOverKey((cur) => (cur === g.key ? null : cur))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverKey(null);
+              const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
+              if (todoId) onUpdateDueDate(todoId, g.key);
+            }}
+            style={{
+              marginBottom: 24,
+              borderRadius: 8,
+              padding: 8,
+              border: isDragOver ? "1px dashed var(--accent)" : "1px solid transparent",
+              background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
+              transition: "background 120ms ease, border-color 120ms ease",
+            }}
+          >
             <div style={{ ...dateHeaderStyle, ...(g.key === tkey ? dateHeaderTodayStyle : {}) }}>{dayLabel(g.key)}</div>
             <div style={dateHeaderRuleStyle} />
             {g.todos.length > 0 && (
@@ -195,7 +222,8 @@ export function UpcomingView({
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
