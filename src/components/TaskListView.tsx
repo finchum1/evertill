@@ -4,6 +4,7 @@ import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
+import { UpcomingView } from "./UpcomingView";
 import { addDays, dateToKey, formatDueDate, isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
 
@@ -43,6 +44,61 @@ export function TaskListView({
   onUpdateRecurrence,
   onOpenTodo,
 }: TaskListViewProps) {
+  // Upcoming's day-grouped agenda layout (today always first, per-day
+  // composers, a collapsible Overdue section) is different enough from
+  // every other view's per-list grouping that it's its own component
+  // rather than another branch threaded through the logic below.
+  if (view === "upcoming") {
+    return (
+      <UpcomingView
+        lists={lists}
+        todos={todos}
+        subtasks={subtasks}
+        onAddTodo={onAddTodo}
+        onToggleComplete={onToggleComplete}
+        onAddSubtask={onAddSubtask}
+        onToggleSubtask={onToggleSubtask}
+        onEditSubtask={onEditSubtask}
+        onDeleteSubtask={onDeleteSubtask}
+        onUpdateDueDate={onUpdateDueDate}
+        onUpdateRecurrence={onUpdateRecurrence}
+        onOpenTodo={onOpenTodo}
+      />
+    );
+  }
+
+  return <TaskListViewInner
+    view={view}
+    lists={lists}
+    todos={todos}
+    subtasks={subtasks}
+    onAddTodo={onAddTodo}
+    onToggleComplete={onToggleComplete}
+    onAddSubtask={onAddSubtask}
+    onToggleSubtask={onToggleSubtask}
+    onEditSubtask={onEditSubtask}
+    onDeleteSubtask={onDeleteSubtask}
+    onUpdateDueDate={onUpdateDueDate}
+    onUpdateRecurrence={onUpdateRecurrence}
+    onOpenTodo={onOpenTodo}
+  />;
+}
+
+function TaskListViewInner({
+  view,
+  lists,
+  todos,
+  subtasks,
+  onAddTodo,
+  onToggleComplete,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onUpdateDueDate,
+  onUpdateRecurrence,
+  onOpenTodo,
+}: TaskListViewProps) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -59,7 +115,7 @@ export function TaskListView({
   }, [view]);
 
   const inbox = lists.find((l) => l.is_inbox);
-  const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);
+  const list = view === "today" ? undefined : lists.find((l) => l.id === view);
   const tkey = todayKey();
 
   let shown: Todo[];
@@ -67,9 +123,6 @@ export function TaskListView({
   if (view === "today") {
     shown = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey);
     heading = "Today";
-  } else if (view === "upcoming") {
-    shown = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey);
-    heading = "Upcoming";
   } else if (view === "completed") {
     shown = todos.filter((t) => t.completed);
     heading = "Completed";
@@ -83,16 +136,16 @@ export function TaskListView({
       : [...shown].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
 
   // Overdue tasks get their own group above the rest, wherever mixing
-  // overdue with non-overdue tasks is possible — Upcoming only ever
-  // contains future dates by definition, and Completed doesn't apply.
-  const canGroupOverdue = view !== "upcoming" && view !== "completed";
+  // overdue with non-overdue tasks is possible — Completed doesn't apply
+  // (Upcoming has its own collapsible Overdue section in UpcomingView).
+  const canGroupOverdue = view !== "completed";
   const overdueShown = canGroupOverdue ? shown.filter((t) => t.due_date && isOverdue(t.due_date)) : [];
   const restShown = canGroupOverdue ? shown.filter((t) => !(t.due_date && isOverdue(t.due_date))) : shown;
 
-  // Today/Upcoming further group the non-overdue tasks by which list they
-  // belong to — in `lists`' own order (already sort_order-sorted), skipping
-  // any list with nothing shown in it.
-  const canGroupByList = view === "today" || view === "upcoming";
+  // Today further groups the non-overdue tasks by which list they belong
+  // to — in `lists`' own order (already sort_order-sorted), skipping any
+  // list with nothing shown in it.
+  const canGroupByList = view === "today";
   const restGroups = canGroupByList
     ? lists.map((l) => ({ list: l, todos: restShown.filter((t) => t.list_id === l.id) })).filter((g) => g.todos.length > 0)
     : null;
@@ -114,7 +167,7 @@ export function TaskListView({
       : null;
 
   function openComposer() {
-    const defaultListId = view === "today" || view === "upcoming" ? (inbox?.id ?? lists[0]?.id ?? "") : view;
+    const defaultListId = view === "today" ? (inbox?.id ?? lists[0]?.id ?? "") : view;
     setComposerListId(defaultListId);
     setTitle("");
     setDescription("");
