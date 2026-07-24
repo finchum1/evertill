@@ -174,7 +174,7 @@ export function TaskListView({
 
   return (
     <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
-    <div style={{ maxWidth: 760, margin: "0 auto" }}>
+    <div style={{ maxWidth: "min(1100px, 92%)", margin: "0 auto" }}>
       <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 16px" }}>{heading}</h1>
 
       {view !== "completed" && (
