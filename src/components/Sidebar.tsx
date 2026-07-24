@@ -154,7 +154,7 @@ export function Sidebar({
         width: 240,
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
-        padding: "20px 12px",
+        padding: "12px 12px 20px",
         display: "flex",
         flexDirection: "column",
         gap: 2,
@@ -288,7 +288,7 @@ export function Sidebar({
 const newTaskButtonStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
+  justifyContent: "flex-start",
   gap: 8,
   width: "100%",
   padding: "8px 10px",
