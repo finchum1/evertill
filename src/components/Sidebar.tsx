@@ -165,6 +165,7 @@ export function Sidebar({
         <AddTaskPlusIcon />
         Add Task
       </button>
+      {inbox && listRow(inbox)}
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           <TodayNavIcon />
@@ -188,7 +189,6 @@ export function Sidebar({
 
       {inbox && (
         <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
-          {listRow(inbox)}
           <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
             <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <CompletedNavIcon />
