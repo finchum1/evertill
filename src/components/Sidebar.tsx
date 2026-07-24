@@ -337,10 +337,12 @@ const smallIconButtonStyle = {
   padding: "2px 4px",
 };
 
-// Today's icon always reads as its own fixed red chip with the live date
-// number (matching the reference: a "24"-style icon), independent of the
-// row's own active/inactive highlight — the number recomputes on every
-// render, so it stays correct across a day boundary without a timer.
+// Today's icon shows the live date number (matching the reference: a
+// "24"-style icon) — outlined rather than filled, same plain-icon visual
+// weight as Upcoming/Calendar/Inbox below, just tinted its own fixed red
+// instead of currentColor so it still reads as "Today" at a glance
+// regardless of the row's active state. Recomputed on every render, so it
+// stays correct across a day boundary without a timer.
 function TodayNavIcon() {
   const day = new Date().getDate();
   return (
@@ -349,8 +351,8 @@ function TodayNavIcon() {
         width: 18,
         height: 18,
         borderRadius: 5,
-        background: "var(--danger)",
-        color: "#fff",
+        border: "1.4px solid var(--danger)",
+        color: "var(--danger)",
         fontSize: 10,
         fontWeight: 800,
         display: "flex",
@@ -422,9 +424,10 @@ function InboxNavIcon() {
   );
 }
 
-// A fixed green chip with the same checkmark glyph already used for a
-// completed task's own checkbox (TaskRow's AnimatedCheckbox) — "matching my
-// style" by literally reusing the app's existing complete/success language.
+// Outlined rather than filled — same plain-icon treatment as the others —
+// with the same checkmark glyph already used for a completed task's own
+// checkbox (TaskRow's AnimatedCheckbox), tinted fixed green so it still
+// reads as "Completed" regardless of the row's active state.
 function CompletedNavIcon() {
   return (
     <span
@@ -432,7 +435,7 @@ function CompletedNavIcon() {
         width: 18,
         height: 18,
         borderRadius: 5,
-        background: "var(--success)",
+        border: "1.4px solid var(--success)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -440,7 +443,7 @@ function CompletedNavIcon() {
       }}
     >
       <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
-        <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="var(--success)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   );
