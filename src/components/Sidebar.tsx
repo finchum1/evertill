@@ -125,7 +125,9 @@ export function Sidebar({
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            {!list.is_inbox && (
+            {list.is_inbox ? (
+              <InboxNavIcon />
+            ) : (
               <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
             )}
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{list.name}</span>
@@ -162,22 +164,34 @@ export function Sidebar({
         + New Task
       </button>
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
-        <span>Today</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <TodayNavIcon />
+          <span>Today</span>
+        </span>
         {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "#fff" : "var(--text-muted)" }}>{todayCount}</span>}
       </button>
       <button onClick={() => onSetView("upcoming")} style={navButtonStyle(view === "upcoming")}>
-        <span>Upcoming</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <UpcomingNavIcon />
+          <span>Upcoming</span>
+        </span>
         {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "#fff" : "var(--text-muted)" }}>{upcomingCount}</span>}
       </button>
       <button onClick={() => onSetView("calendar")} style={navButtonStyle(view === "calendar")}>
-        <span>Calendar</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <CalendarNavIcon />
+          <span>Calendar</span>
+        </span>
       </button>
 
       {inbox && (
         <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
           {listRow(inbox)}
           <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
-            <span>Completed</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <CompletedNavIcon />
+              <span>Completed</span>
+            </span>
           </button>
         </div>
       )}
@@ -322,3 +336,112 @@ const smallIconButtonStyle = {
   cursor: "pointer",
   padding: "2px 4px",
 };
+
+// Today's icon always reads as its own fixed red chip with the live date
+// number (matching the reference: a "24"-style icon), independent of the
+// row's own active/inactive highlight — the number recomputes on every
+// render, so it stays correct across a day boundary without a timer.
+function TodayNavIcon() {
+  const day = new Date().getDate();
+  return (
+    <span
+      style={{
+        width: 18,
+        height: 18,
+        borderRadius: 5,
+        background: "var(--danger)",
+        color: "#fff",
+        fontSize: 10,
+        fontWeight: 800,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        lineHeight: 1,
+      }}
+    >
+      {day}
+    </span>
+  );
+}
+
+// A calendar frame with a couple of thick agenda lines inside — reads as
+// "a list of upcoming days," distinct from Calendar's own dot-grid icon
+// below. Plain currentColor line icon (no fixed chip), so it recolors with
+// the row's own active/inactive state same as the label text.
+function UpcomingNavIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+      <rect x="3" y="4" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M7 2.5V5.5M13 2.5V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M6.5 11H10.5M6.5 13.5H13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A calendar frame with a small dot grid — reads as "a month view," distinct
+// from Upcoming's list-style icon above. Same plain currentColor treatment.
+function CalendarNavIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+      <rect x="3" y="4" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M7 2.5V5.5M13 2.5V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="7" cy="11.5" r="1" fill="currentColor" />
+      <circle cx="10" cy="11.5" r="1" fill="currentColor" />
+      <circle cx="13" cy="11.5" r="1" fill="currentColor" />
+      <circle cx="7" cy="14.5" r="1" fill="currentColor" />
+      <circle cx="10" cy="14.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Inbox tray glyph (slanted funnel sides + a notched lip), matching the
+// reference screenshot — plain currentColor, no fixed chip, same as Upcoming
+// and Calendar's icons.
+function InboxNavIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+      <path
+        d="M3.5 9.5L5.3 4.3C5.45 3.85 5.87 3.5 6.35 3.5H13.65C14.13 3.5 14.55 3.85 14.7 4.3L16.5 9.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.5 9.5V14.5C3.5 15.6 4.4 16.5 5.5 16.5H14.5C15.6 16.5 16.5 15.6 16.5 14.5V9.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M3.5 9.5H7.3L8.1 11.2H11.9L12.7 9.5H16.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A fixed green chip with the same checkmark glyph already used for a
+// completed task's own checkbox (TaskRow's AnimatedCheckbox) — "matching my
+// style" by literally reusing the app's existing complete/success language.
+function CompletedNavIcon() {
+  return (
+    <span
+      style={{
+        width: 18,
+        height: 18,
+        borderRadius: 5,
+        background: "var(--success)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
+        <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
