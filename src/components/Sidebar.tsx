@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
 import type { ListColor, Todo, TodoFolder, TodoList, View } from "../types";
 import { todayKey } from "../lib/dates";
@@ -337,6 +338,21 @@ const smallIconButtonStyle = {
   padding: "2px 4px",
 };
 
+// A fixed 18x18 slot every nav icon sits inside (Upcoming/Calendar/Inbox's
+// own <svg width={18} height={18}> already fill this exactly) so every row
+// reports the same content height to its flex row regardless of how big
+// the icon's own visible glyph is inside — otherwise Today/Completed's
+// smaller 14x14 chip made just those two rows a few px shorter than the
+// rest, breaking the sidebar's vertical rhythm.
+const iconSlotStyle: CSSProperties = {
+  width: 18,
+  height: 18,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+
 // Today's icon shows the live date number (matching the reference: a
 // "24"-style icon) — same currentColor treatment as Upcoming/Calendar/Inbox,
 // so it recolors with the row's own active/inactive state exactly like
@@ -345,22 +361,23 @@ const smallIconButtonStyle = {
 function TodayNavIcon() {
   const day = new Date().getDate();
   return (
-    <span
-      style={{
-        width: 14,
-        height: 14,
-        borderRadius: 4,
-        border: "1.4px solid currentColor",
-        fontSize: 9,
-        fontWeight: 800,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        lineHeight: 1,
-      }}
-    >
-      {day}
+    <span style={iconSlotStyle}>
+      <span
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 4,
+          border: "1.4px solid currentColor",
+          fontSize: 9,
+          fontWeight: 800,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          lineHeight: 1,
+        }}
+      >
+        {day}
+      </span>
     </span>
   );
 }
@@ -428,21 +445,22 @@ function InboxNavIcon() {
 // checkbox (TaskRow's AnimatedCheckbox).
 function CompletedNavIcon() {
   return (
-    <span
-      style={{
-        width: 14,
-        height: 14,
-        borderRadius: 4,
-        border: "1.4px solid currentColor",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
-    >
-      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-        <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <span style={iconSlotStyle}>
+      <span
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 4,
+          border: "1.4px solid currentColor",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     </span>
   );
 }
