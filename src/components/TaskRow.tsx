@@ -90,39 +90,37 @@ export function TaskRow({
           <StrikeThroughText checked={checked} fontSize={14} color="var(--text-primary)">
             {todo.title}
           </StrikeThroughText>
-          {(list || todo.description || subtasks.length > 0) && (
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
-              {list && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {list.is_inbox ? "Inbox" : list.name}
-                  </span>
-                </span>
-              )}
-              {!!todo.description && <DescriptionIcon />}
-              {subtasks.length > 0 && (
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded((x) => !x);
-                  }}
-                  style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
-                  title={expanded ? "Collapse subtasks" : "Expand subtasks"}
-                >
-                  <SubtaskIcon />
-                  {open}
-                </span>
-              )}
-            </span>
-          )}
+          <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
+            <DueDateBadge
+              todo={todo}
+              overdue={overdue}
+              onUpdateDueDate={onUpdateDueDate}
+              onUpdateRecurrence={onUpdateRecurrence}
+            />
+            {!!todo.description && <DescriptionIcon />}
+            {subtasks.length > 0 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((x) => !x);
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                title={expanded ? "Collapse subtasks" : "Expand subtasks"}
+              >
+                <SubtaskIcon />
+                {open}
+              </span>
+            )}
+          </span>
         </div>
-        <DueDateBadge
-          todo={todo}
-          overdue={overdue}
-          onUpdateDueDate={onUpdateDueDate}
-          onUpdateRecurrence={onUpdateRecurrence}
-        />
+        {list && (
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0, maxWidth: 100 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {list.is_inbox ? "Inbox" : list.name}
+            </span>
+          </span>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -301,10 +299,12 @@ function DueDateBadge({
           }}
           title="Click to change due date"
           style={{
+            display: "flex",
+            alignItems: "center",
             background: "none",
             border: "none",
             padding: 0,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
             color: todo.due_date ? (overdue ? "var(--danger)" : "var(--text-secondary)") : "var(--border-strong)",
             flexShrink: 0,
