@@ -61,10 +61,6 @@ export function TaskListView({
   const inbox = lists.find((l) => l.is_inbox);
   const list = view === "today" || view === "upcoming" ? undefined : lists.find((l) => l.id === view);
   const tkey = todayKey();
-  // Today/Upcoming group tasks under per-list headers instead (see
-  // restGroups below), so the per-row list badge is only needed on
-  // Completed, which stays a flat list mixing every list together.
-  const showListBadge = view === "completed";
 
   let shown: Todo[];
   let heading: string;
@@ -153,12 +149,12 @@ export function TaskListView({
     setAdding(false);
   }
 
-  function renderRow(t: Todo, withListBadge: boolean) {
+  function renderRow(t: Todo) {
     return (
       <TaskRow
         key={t.id}
         todo={t}
-        list={withListBadge ? lists.find((l) => l.id === t.list_id) : undefined}
+        list={lists.find((l) => l.id === t.list_id)}
         subtasks={subtasks.filter((s) => s.todo_id === t.id)}
         onToggleComplete={onToggleComplete}
         onAddSubtask={onAddSubtask}
@@ -217,7 +213,7 @@ export function TaskListView({
         {overdueShown.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={sectionLabelStyle}>Overdue</div>
-            {overdueShown.map((t) => renderRow(t, showListBadge))}
+            {overdueShown.map((t) => renderRow(t))}
           </div>
         )}
         {completedGroups ? (
@@ -225,7 +221,7 @@ export function TaskListView({
             {completedGroups.map((g) => (
               <div key={g.key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={listGroupHeaderStyle}>{g.label}</div>
-                {g.todos.map((t) => renderRow(t, showListBadge))}
+                {g.todos.map((t) => renderRow(t))}
               </div>
             ))}
           </div>
@@ -237,14 +233,14 @@ export function TaskListView({
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[l.color] }} />
                   {l.is_inbox ? "Inbox" : l.name}
                 </div>
-                {groupTodos.map((t) => renderRow(t, false))}
+                {groupTodos.map((t) => renderRow(t))}
               </div>
             ))}
           </div>
         ) : (
           restShown.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: restMarginTop }}>
-              {restShown.map((t) => renderRow(t, showListBadge))}
+              {restShown.map((t) => renderRow(t))}
             </div>
           )
         )}
