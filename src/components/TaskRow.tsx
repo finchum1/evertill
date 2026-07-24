@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { formatDueDate, isOverdue } from "../lib/dates";
@@ -38,6 +38,13 @@ export function TaskRow({
   const open = subtasks.filter((s) => !s.checked).length;
   const overdue = !!todo.due_date && !todo.completed && isOverdue(todo.due_date);
 
+  // Local, instantly-flipped mirror of todo.completed so the check/strike
+  // animation plays immediately on click rather than waiting on this app's
+  // refetch-not-optimistic data layer — synced back in sync with the prop
+  // once the real update lands (a no-op in the common case).
+  const [checked, setChecked] = useState(todo.completed);
+  useEffect(() => setChecked(todo.completed), [todo.completed]);
+
   function handleAddSubtask(e: FormEvent) {
     e.preventDefault();
     const title = newSubtask.trim();
@@ -66,39 +73,23 @@ export function TaskRow({
           cursor: "grab",
         }}
       >
-        <button
-          onClick={(e) => {
+        <AnimatedCheckbox
+          checked={checked}
+          onToggle={(e) => {
             e.stopPropagation();
+            setChecked((c) => !c);
             onToggleComplete(todo.id);
           }}
-          aria-label={todo.completed ? "Mark incomplete" : "Mark complete"}
-          style={{
-            width: 18,
-            height: 18,
-            borderRadius: 99,
-            border: `2px solid ${todo.completed ? "var(--success)" : "var(--border-strong)"}`,
-            background: todo.completed ? "var(--success)" : "transparent",
-            cursor: "pointer",
-            flexShrink: 0,
-            padding: 0,
-          }}
+          size={18}
+          ariaLabel={checked ? "Mark incomplete" : "Mark complete"}
         />
         <div
           onClick={() => onOpen(todo.id)}
           style={{ flex: 1, minWidth: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
         >
-          <span
-            style={{
-              fontSize: 14,
-              color: todo.completed ? "var(--text-muted)" : "var(--text-primary)",
-              textDecoration: todo.completed ? "line-through" : "none",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <StrikeThroughText checked={checked} fontSize={14} color="var(--text-primary)">
             {todo.title}
-          </span>
+          </StrikeThroughText>
           {(list || todo.description || subtasks.length > 0) && (
             <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
               {list && (
@@ -211,6 +202,8 @@ function SubtaskRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(subtask.title);
+  const [checked, setChecked] = useState(subtask.checked);
+  useEffect(() => setChecked(subtask.checked), [subtask.checked]);
 
   return (
     <div
@@ -224,19 +217,14 @@ function SubtaskRow({
         border: "1px solid var(--border)",
       }}
     >
-      <button
-        onClick={() => onToggle(subtask.id)}
-        aria-label={subtask.checked ? "Mark subtask incomplete" : "Mark subtask complete"}
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: 99,
-          border: `2px solid ${subtask.checked ? "var(--success)" : "var(--border-strong)"}`,
-          background: subtask.checked ? "var(--success)" : "transparent",
-          cursor: "pointer",
-          flexShrink: 0,
-          padding: 0,
+      <AnimatedCheckbox
+        checked={checked}
+        onToggle={() => {
+          setChecked((c) => !c);
+          onToggle(subtask.id);
         }}
+        size={14}
+        ariaLabel={checked ? "Mark subtask incomplete" : "Mark subtask complete"}
       />
       {editing ? (
         <input
@@ -263,23 +251,17 @@ function SubtaskRow({
           }}
         />
       ) : (
-        <span
+        <StrikeThroughText
+          checked={checked}
+          fontSize={13}
+          color="var(--text-body)"
           onClick={() => setEditing(true)}
           title="Click to edit"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: 13,
-            color: subtask.checked ? "var(--text-muted)" : "var(--text-body)",
-            textDecoration: subtask.checked ? "line-through" : "none",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            cursor: "text",
-          }}
+          cursor="text"
+          flex
         >
           {subtask.title}
-        </span>
+        </StrikeThroughText>
       )}
       <button
         onClick={() => onDelete(subtask.id)}
@@ -352,5 +334,120 @@ function SubtaskIcon() {
       <rect x="2" y="2" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
       <path d="M4.5 8L7 10.5L11.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+// Shared by TaskRow's main checkbox and SubtaskRow's: fills to the theme
+// success color and draws in a checkmark on check, matching the reverse on
+// uncheck for free since these are CSS transitions, not one-shot keyframes.
+function AnimatedCheckbox({
+  checked,
+  onToggle,
+  size,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onToggle: (e: MouseEvent<HTMLButtonElement>) => void;
+  size: number;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={ariaLabel}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 99,
+        border: `2px solid ${checked ? "var(--success)" : "var(--border-strong)"}`,
+        background: checked ? "var(--success)" : "transparent",
+        cursor: "pointer",
+        flexShrink: 0,
+        padding: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "background-color 160ms ease, border-color 160ms ease",
+      }}
+    >
+      <svg
+        width={size * 0.55}
+        height={size * 0.55}
+        viewBox="0 0 10 10"
+        fill="none"
+        style={{
+          opacity: checked ? 1 : 0,
+          transform: checked ? "scale(1)" : "scale(0.4)",
+          transition: checked
+            ? "opacity 140ms ease 90ms, transform 140ms cubic-bezier(0.34,1.56,0.64,1) 90ms"
+            : "opacity 100ms ease, transform 100ms ease",
+        }}
+      >
+        <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+// Shared by TaskRow's title and SubtaskRow's: instead of a plain CSS
+// text-decoration flip (which can't animate smoothly across browsers), a
+// separate line overlay scales in from the left over the text, timed to
+// start just after the checkbox's own fill/checkmark animation finishes.
+function StrikeThroughText({
+  checked,
+  children,
+  fontSize,
+  color,
+  mutedColor = "var(--text-muted)",
+  onClick,
+  title,
+  cursor,
+  flex,
+}: {
+  checked: boolean;
+  children: ReactNode;
+  fontSize: number;
+  color: string;
+  mutedColor?: string;
+  onClick?: () => void;
+  title?: string;
+  cursor?: CSSProperties["cursor"];
+  flex?: boolean;
+}) {
+  return (
+    <span
+      onClick={onClick}
+      title={title}
+      style={{ position: "relative", display: "block", minWidth: 0, flex: flex ? 1 : undefined, cursor }}
+    >
+      <span
+        style={{
+          display: "block",
+          fontSize,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          color: checked ? mutedColor : color,
+          transition: "color 180ms ease 200ms",
+        }}
+      >
+        {children}
+      </span>
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: "50%",
+          height: 1,
+          background: mutedColor,
+          transform: checked ? "scaleX(1)" : "scaleX(0)",
+          transformOrigin: "left",
+          transition: "transform 220ms ease 190ms",
+          pointerEvents: "none",
+        }}
+      />
+    </span>
   );
 }
