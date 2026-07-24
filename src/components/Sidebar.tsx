@@ -162,7 +162,8 @@ export function Sidebar({
       }}
     >
       <button onClick={onNewTask} style={newTaskButtonStyle}>
-        + New Task
+        <AddTaskPlusIcon />
+        Add Task
       </button>
       <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -284,21 +285,47 @@ export function Sidebar({
   );
 }
 
-const newTaskButtonStyle = {
+const newTaskButtonStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  gap: 8,
   width: "100%",
   padding: "8px 10px",
   marginBottom: 10,
   borderRadius: 8,
   border: "none",
-  background: "var(--accent)",
-  color: "#fff",
+  background: "none",
+  color: "var(--accent)",
   fontSize: 13,
   fontWeight: 700,
   cursor: "pointer",
 };
+
+// A boxed "+" (border + glyph both currentColor, so it always matches the
+// button's own accent-colored text in either theme) instead of a plain
+// plus-sign character — same fixed-slot convention as the nav icons above.
+function AddTaskPlusIcon() {
+  return (
+    <span style={iconSlotStyle}>
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          border: "1.4px solid currentColor",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M5 1V9M1 5H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      </span>
+    </span>
+  );
+}
 
 function navButtonStyle(active: boolean) {
   return {
