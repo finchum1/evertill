@@ -529,3 +529,50 @@ create policy "deal_contact_fields_owner_all" on deal_contact_fields
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 alter publication supabase_realtime add table deal_contact_fields;
+
+-- ---------------------------------------------------------------------
+-- Notes module: note_folders -> notes (two levels only, unlike Tasks'
+-- folder -> list -> item depth — a note folder is the direct, colored
+-- content container, playing the role todo_lists plays for Tasks, not
+-- todo_folders). notes.folder_id is nullable (an "All Notes" view shows
+-- everything, folder-less notes included) so, unlike todos.list_id which
+-- requires the seeded Inbox list as a fallback, no handle_new_user()
+-- seeding is needed here — a notes list works fine with zero folders.
+-- ---------------------------------------------------------------------
+create table if not exists note_folders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null default 'New Folder',
+  color text not null default 'slate',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  folder_id uuid references note_folders(id) on delete set null,
+  title text not null default 'Untitled note',
+  body text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists note_folders_user_id_idx on note_folders(user_id);
+create index if not exists notes_user_id_idx on notes(user_id);
+create index if not exists notes_folder_id_idx on notes(folder_id);
+
+alter table note_folders enable row level security;
+alter table notes enable row level security;
+
+drop policy if exists "note_folders_owner_all" on note_folders;
+create policy "note_folders_owner_all" on note_folders
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "notes_owner_all" on notes;
+create policy "notes_owner_all" on notes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table note_folders;
+alter publication supabase_realtime add table notes;

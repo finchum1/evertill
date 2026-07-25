@@ -3,12 +3,16 @@ import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
+import { useNotes } from "./hooks/useNotes";
 import { Header } from "./components/Header";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
 import { TaskListView } from "./components/TaskListView";
 import { TaskModal } from "./components/TaskModal";
 import { CalendarView } from "./components/CalendarView";
+import { NotesSidebar } from "./components/NotesSidebar";
+import { NotesListView } from "./components/NotesListView";
+import { NoteModal } from "./components/NoteModal";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { LeadCardMini } from "./components/LeadCardMini";
@@ -43,6 +47,7 @@ type LeadsData = ReturnType<typeof useLeads>;
 type PipelineData = ReturnType<typeof usePipeline>;
 type DealsData = ReturnType<typeof useDeals>;
 type DealTemplatesData = ReturnType<typeof useDealTemplates>;
+type NotesData = ReturnType<typeof useNotes>;
 
 function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () => void }) {
   const {
@@ -159,6 +164,58 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
         />
+      )}
+    </div>
+  );
+}
+
+function NotesDashboard({ notes }: { notes: NotesData }) {
+  const { folders, notes: allNotes, loading, addFolder, renameFolder, setFolderColor, deleteFolder, addNote, updateNote, deleteNote } = notes;
+
+  const [view, setView] = useState<"all" | string>("all");
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  const openNote = openNoteId ? allNotes.find((n) => n.id === openNoteId) : undefined;
+
+  return (
+    <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
+      <NotesSidebar
+        folders={folders}
+        notes={allNotes}
+        view={view}
+        onSetView={setView}
+        onAddFolder={() => {
+          const name = window.prompt("Folder name:");
+          if (name?.trim()) addFolder(name.trim());
+        }}
+        onRenameFolder={renameFolder}
+        onSetFolderColor={setFolderColor}
+        onDeleteFolder={(id) => {
+          if (view === id) setView("all");
+          deleteFolder(id);
+        }}
+      />
+      <NotesListView
+        view={view}
+        folders={folders}
+        notes={allNotes}
+        onAddNote={async () => {
+          const folderId = view === "all" ? null : view;
+          const note = await addNote(folderId);
+          if (note) setOpenNoteId(note.id);
+        }}
+        onOpenNote={setOpenNoteId}
+      />
+      {openNote && (
+        <NoteModal note={openNote} folders={folders} onClose={() => setOpenNoteId(null)} onUpdate={updateNote} onDelete={deleteNote} />
       )}
     </div>
   );
@@ -513,6 +570,7 @@ function PageContent({
   pipelineData,
   dealsData,
   dealTemplatesData,
+  notesData,
   profileData,
   theme,
   onNewTask,
@@ -525,6 +583,7 @@ function PageContent({
   pipelineData: PipelineData;
   dealsData: DealsData;
   dealTemplatesData: DealTemplatesData;
+  notesData: NotesData;
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
   onNewTask: () => void;
@@ -539,6 +598,8 @@ function PageContent({
       return <PipelineDashboard pipeline={pipelineData} />;
     case "deals":
       return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} onMoveDealToPipeline={onMoveDealToPipeline} />;
+    case "notes":
+      return <NotesDashboard notes={notesData} />;
     case "settings":
       return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} />;
   }
@@ -557,10 +618,12 @@ function App() {
   const pipeline = usePipeline(session?.user.id);
   const deals = useDeals(session?.user.id);
   const dealTemplates = useDealTemplates(session?.user.id);
+  const notes = useNotes(session?.user.id);
   const profile = useProfile(session?.user.id);
   const theme = useTheme();
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [createNoteId, setCreateNoteId] = useState<string | null>(null);
   const [createLeadCardId, setCreateLeadCardId] = useState<string | null>(null);
   const [createPipelineCardId, setCreatePipelineCardId] = useState<string | null>(null);
   const [createShowNewDeal, setCreateShowNewDeal] = useState(false);
@@ -614,8 +677,13 @@ function App() {
       }
       const card = await pipeline.addCard(column.id);
       if (card) setCreatePipelineCardId(card.id);
-    } else {
+    } else if (type === "deal") {
       setCreateShowNewDeal(true);
+    } else {
+      // Unlike Lead/Pipeline cards, a note doesn't need a column to exist
+      // first — it's created unfiled (folder_id null) and opened directly.
+      const note = await notes.addNote(null);
+      if (note) setCreateNoteId(note.id);
     }
   }
 
@@ -630,6 +698,7 @@ function App() {
   const createLeadCard = createLeadCardId ? leads.cards.find((c) => c.id === createLeadCardId) : undefined;
   const createPipelineCard = createPipelineCardId ? pipeline.cards.find((c) => c.id === createPipelineCardId) : undefined;
   const createDeal = createDealId ? deals.deals.find((d) => d.id === createDealId) : undefined;
+  const createNote = createNoteId ? notes.notes.find((n) => n.id === createNoteId) : undefined;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
@@ -651,6 +720,7 @@ function App() {
           pipelineData={pipeline}
           dealsData={deals}
           dealTemplatesData={dealTemplates}
+          notesData={notes}
           profileData={profile}
           theme={theme}
           onNewTask={() => setQuickAddOpen(true)}
@@ -734,6 +804,16 @@ function App() {
           onUpdateContactField={deals.updateContactField}
           onDeleteContactField={deals.deleteContactField}
           onMoveToPipeline={handleMoveDealToPipeline}
+        />
+      )}
+
+      {createNote && (
+        <NoteModal
+          note={createNote}
+          folders={notes.folders}
+          onClose={() => setCreateNoteId(null)}
+          onUpdate={notes.updateNote}
+          onDelete={notes.deleteNote}
         />
       )}
     </div>

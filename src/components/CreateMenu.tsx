@@ -1,13 +1,14 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 
-export type CreateType = "task" | "lead" | "pipeline" | "deal";
+export type CreateType = "task" | "lead" | "pipeline" | "deal" | "note";
 
 const ITEMS: { key: CreateType; label: string }[] = [
   { key: "task", label: "Task" },
   { key: "lead", label: "Lead" },
   { key: "pipeline", label: "Pipeline" },
   { key: "deal", label: "Deal" },
+  { key: "note", label: "Note" },
 ];
 
 export function CreateMenu({ onSelect }: { onSelect: (type: CreateType) => void }) {
@@ -63,6 +64,19 @@ function CreateIcon({ type }: { type: CreateType }) {
     return (
       <svg {...common}>
         <path d="M2 8h10M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (type === "note") {
+    return (
+      <svg {...common}>
+        <path
+          d="M4.5 2.5H9.5L12.5 5.5V13C12.5 13.28 12.28 13.5 12 13.5H4.5C4.22 13.5 4 13.28 4 13V3C4 2.72 4.22 2.5 4.5 2.5Z"
+          stroke="currentColor"
+          strokeWidth="1.3"
+          strokeLinejoin="round"
+        />
+        <path d="M6 8H10.5M6 10.5H10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       </svg>
     );
   }

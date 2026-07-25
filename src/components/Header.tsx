@@ -21,6 +21,7 @@ const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "leads", label: "Leads" },
   { key: "pipeline", label: "Pipeline" },
   { key: "deals", label: "Deals" },
+  { key: "notes", label: "Notes" },
 ];
 
 export function Header({ session, profile, page, onSetPage, onLogin, onSignup, onCreate }: HeaderProps) {

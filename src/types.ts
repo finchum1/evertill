@@ -74,7 +74,7 @@ export interface TodoSubtask {
 // UUIDs, so they never collide with the two special keys below).
 export type View = "today" | "upcoming" | string;
 
-export type Page = "tasks" | "leads" | "pipeline" | "deals" | "settings";
+export type Page = "tasks" | "leads" | "pipeline" | "deals" | "notes" | "settings";
 
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
@@ -265,4 +265,29 @@ export interface DealContactField {
   value: string;
   sort_order: number;
   created_at: string;
+}
+
+// Notes module: note_folders -> notes, two levels only (unlike Tasks'
+// folder -> list -> item depth) — a note folder is the direct, colored
+// content container, so it reuses the same ListColor palette rather than
+// introducing a separate color system.
+export interface NoteFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  color: ListColor;
+  sort_order: number;
+  created_at: string;
+}
+
+// folder_id is nullable — an unfiled note still shows up in "All Notes".
+export interface Note {
+  id: string;
+  user_id: string;
+  folder_id: string | null;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
