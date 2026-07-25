@@ -207,7 +207,7 @@ export function Sidebar({
             +
           </button>
           <button title="New folder" onClick={onAddFolder} style={smallIconButtonStyle}>
-            📁
+            <FolderIcon />
           </button>
         </div>
       </div>
@@ -462,6 +462,22 @@ function InboxNavIcon() {
         strokeLinejoin="round"
       />
       <path d="M3.5 9.5H7.3L8.1 11.2H11.9L12.7 9.5H16.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Same plain currentColor line-icon treatment as the nav icons above,
+// replacing the old folder emoji so the "New folder" trigger matches the
+// rest of the sidebar's icon language instead of standing out on its own.
+function FolderIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+      <path
+        d="M2 4.5C2 3.67 2.67 3 3.5 3H6.5L8 4.5H12.5C13.33 4.5 14 5.17 14 6V11.5C14 12.33 13.33 13 12.5 13H3.5C2.67 13 2 12.33 2 11.5V4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
