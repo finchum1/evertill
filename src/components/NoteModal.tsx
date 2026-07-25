@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Note, NoteFolder } from "../types";
+import { NoteEditor } from "./NoteEditor";
 
 interface NoteModalProps {
   note: Note;
@@ -8,14 +9,15 @@ interface NoteModalProps {
   onClose: () => void;
   onUpdate: (id: string, patch: Partial<Note>) => void;
   onDelete: (id: string) => void;
+  onTogglePinned: (id: string) => void;
 }
 
-// Same overlay/card shell as TaskModal — title input + body textarea both
-// save on blur (not a submit button), matching the established convention
-// for text fields across this app.
-export function NoteModal({ note, folders, onClose, onUpdate, onDelete }: NoteModalProps) {
+// Same overlay/card shell as TaskModal — title input saves on blur (not a
+// submit button), matching the established convention for text fields
+// across this app; the body is a rich-text NoteEditor (Tiptap), also
+// saving on blur.
+export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onTogglePinned }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
-  const [body, setBody] = useState(note.body);
 
   return (
     <div
@@ -48,21 +50,24 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete }: NoteMo
           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
         }}
       >
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => title.trim() && title !== note.title && onUpdate(note.id, { title: title.trim() })}
-          style={titleInputStyle}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title.trim() && title !== note.title && onUpdate(note.id, { title: title.trim() })}
+            style={{ ...titleInputStyle, flex: 1 }}
+          />
+          <button
+            type="button"
+            title={note.pinned ? "Unpin" : "Pin"}
+            onClick={() => onTogglePinned(note.id)}
+            style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: note.pinned ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }}
+          >
+            <PinIcon filled={note.pinned} />
+          </button>
+        </div>
 
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onBlur={() => body !== note.body && onUpdate(note.id, { body })}
-          rows={12}
-          placeholder="Write a note…"
-          style={bodyInputStyle}
-        />
+        <NoteEditor content={note.body} onBlur={(html) => html !== note.body && onUpdate(note.id, { body: html })} />
 
         <div style={dividerStyle} />
 
@@ -109,6 +114,22 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete }: NoteMo
   );
 }
 
+function PinIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M8 4H12M8.5 4L8.8 9.2L6.5 11.5H13.5L11.2 9.2L11.5 4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={filled ? "currentColor" : "none"}
+      />
+      <path d="M10 11.5V16.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function FolderIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -142,22 +163,6 @@ const titleInputStyle: CSSProperties = {
   boxSizing: "border-box",
   outline: "none",
   fontFamily: "inherit",
-};
-
-const bodyInputStyle: CSSProperties = {
-  display: "block",
-  width: "100%",
-  background: "none",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-primary)",
-  fontSize: 14,
-  lineHeight: 1.5,
-  padding: "10px 12px",
-  boxSizing: "border-box",
-  outline: "none",
-  fontFamily: "inherit",
-  resize: "vertical" as const,
 };
 
 const dividerStyle: CSSProperties = {

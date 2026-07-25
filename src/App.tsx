@@ -170,9 +170,9 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 }
 
 function NotesDashboard({ notes }: { notes: NotesData }) {
-  const { folders, notes: allNotes, loading, addFolder, renameFolder, setFolderColor, deleteFolder, addNote, updateNote, deleteNote } = notes;
+  const { folders, notes: allNotes, loading, addFolder, renameFolder, setFolderColor, deleteFolder, addNote, updateNote, deleteNote, togglePinned } = notes;
 
-  const [view, setView] = useState<"all" | string>("all");
+  const [view, setView] = useState<"all" | "pinned" | string>("all");
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
 
   if (loading) {
@@ -208,14 +208,22 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
         folders={folders}
         notes={allNotes}
         onAddNote={async () => {
-          const folderId = view === "all" ? null : view;
+          const folderId = view === "all" || view === "pinned" ? null : view;
           const note = await addNote(folderId);
           if (note) setOpenNoteId(note.id);
         }}
         onOpenNote={setOpenNoteId}
+        onTogglePinned={togglePinned}
       />
       {openNote && (
-        <NoteModal note={openNote} folders={folders} onClose={() => setOpenNoteId(null)} onUpdate={updateNote} onDelete={deleteNote} />
+        <NoteModal
+          note={openNote}
+          folders={folders}
+          onClose={() => setOpenNoteId(null)}
+          onUpdate={updateNote}
+          onDelete={deleteNote}
+          onTogglePinned={togglePinned}
+        />
       )}
     </div>
   );
@@ -814,6 +822,7 @@ function App() {
           onClose={() => setCreateNoteId(null)}
           onUpdate={notes.updateNote}
           onDelete={notes.deleteNote}
+          onTogglePinned={notes.togglePinned}
         />
       )}
     </div>

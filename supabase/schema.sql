@@ -554,10 +554,13 @@ create table if not exists notes (
   folder_id uuid references note_folders(id) on delete set null,
   title text not null default 'Untitled note',
   body text not null default '',
+  pinned boolean not null default false,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table notes add column if not exists pinned boolean not null default false;
 
 create index if not exists note_folders_user_id_idx on note_folders(user_id);
 create index if not exists notes_user_id_idx on notes(user_id);

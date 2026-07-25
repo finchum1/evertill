@@ -287,6 +287,7 @@ export interface Note {
   folder_id: string | null;
   title: string;
   body: string;
+  pinned: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;

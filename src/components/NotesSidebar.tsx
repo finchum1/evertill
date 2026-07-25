@@ -6,8 +6,8 @@ import { ListMenu } from "./ListMenu";
 interface NotesSidebarProps {
   folders: NoteFolder[];
   notes: Note[];
-  view: "all" | string;
-  onSetView: (view: "all" | string) => void;
+  view: "all" | "pinned" | string;
+  onSetView: (view: "all" | "pinned" | string) => void;
   onAddFolder: () => void;
   onRenameFolder: (id: string, name: string) => void;
   onSetFolderColor: (id: string, color: ListColor) => void;
@@ -38,6 +38,17 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddFolder, onR
           <span>All Notes</span>
         </span>
         {notes.length > 0 && <span style={{ fontSize: 11, color: view === "all" ? "#fff" : "var(--text-muted)" }}>{notes.length}</span>}
+      </button>
+
+      <button onClick={() => onSetView("pinned")} style={navButtonStyle(view === "pinned")}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <PinnedIcon />
+          <span>Pinned</span>
+        </span>
+        {(() => {
+          const pinnedCount = notes.filter((n) => n.pinned).length;
+          return pinnedCount > 0 && <span style={{ fontSize: 11, color: view === "pinned" ? "#fff" : "var(--text-muted)" }}>{pinnedCount}</span>;
+        })()}
       </button>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 10px 4px" }}>
@@ -73,6 +84,21 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddFolder, onR
         );
       })}
     </div>
+  );
+}
+
+function PinnedIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+      <path
+        d="M8 4H12M8.5 4L8.8 9.2L6.5 11.5H13.5L11.2 9.2L11.5 4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M10 11.5V16.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
   );
 }
 

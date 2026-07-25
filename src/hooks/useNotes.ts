@@ -103,6 +103,16 @@ export function useNotes(userId: string | undefined) {
     await refresh();
   }
 
+  // Deliberately bypasses updateNote() — pinning shouldn't stamp updated_at
+  // and reshuffle the updated_at-sorted All Notes / folder views.
+  async function togglePinned(id: string) {
+    const note = notes.find((n) => n.id === id);
+    if (!note) return;
+    const { error } = await supabase.from("notes").update({ pinned: !note.pinned }).eq("id", id);
+    if (error) throw error;
+    await refresh();
+  }
+
   return {
     folders,
     notes,
@@ -115,5 +125,6 @@ export function useNotes(userId: string | undefined) {
     updateNote,
     moveNoteToFolder,
     deleteNote,
+    togglePinned,
   };
 }

@@ -127,3 +127,97 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Notes rich-text editor (Tiptap). A deliberate exception to this app's
+   inline-style={{}}-only convention: Tiptap renders real <p>/<ul>/<li>/
+   <details> DOM nodes that React doesn't individually template, so their
+   look can only be reached via CSS selectors, not inline style props. */
+.note-editor-content .tiptap {
+  outline: none;
+  min-height: 160px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.note-editor-content .tiptap p {
+  margin: 0 0 0.6em;
+}
+
+.note-editor-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.note-editor-content .tiptap ul,
+.note-editor-content .tiptap ol {
+  padding-left: 1.4em;
+  margin: 0 0 0.6em;
+}
+
+.note-editor-content .tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.note-editor-content .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.note-editor-content .tiptap ul[data-type="taskList"] li > label {
+  margin-top: 3px;
+  user-select: none;
+}
+
+.note-editor-content .tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-editor-content .tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.note-editor-content .tiptap details.note-toggle {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 0.6em;
+}
+
+.note-editor-content .tiptap details.note-toggle > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+  list-style: none;
+}
+
+.note-editor-content .tiptap details.note-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+
+.note-editor-content .tiptap details.note-toggle > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1em;
+  color: var(--text-muted);
+}
+
+.note-editor-content .tiptap details.note-toggle[open] > summary::before {
+  content: "▾";
+}
+
+.note-editor-content .tiptap .note-toggle-content {
+  margin-top: 6px;
+  padding-left: 1.2em;
+}
+
+.note-editor-content .tiptap .note-toggle-content p:last-child {
+  margin-bottom: 0;
+}
