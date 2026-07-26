@@ -8,6 +8,7 @@ interface NotesSidebarProps {
   notes: Note[];
   view: "all" | "pinned" | string;
   onSetView: (view: "all" | "pinned" | string) => void;
+  onAddNote: () => void;
   onAddFolder: () => void;
   onRenameFolder: (id: string, name: string) => void;
   onSetFolderColor: (id: string, color: ListColor) => void;
@@ -18,7 +19,7 @@ interface NotesSidebarProps {
 // reordering (deferred, same as every other module's first pass). "All
 // Notes" is the pinned default view, analogous to Today, showing every
 // note including unfiled ones.
-export function NotesSidebar({ folders, notes, view, onSetView, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder }: NotesSidebarProps) {
+export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder }: NotesSidebarProps) {
   return (
     <div
       style={{
@@ -32,6 +33,10 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddFolder, onR
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
+      <button onClick={onAddNote} style={newNoteButtonStyle}>
+        <AddNotePlusIcon />
+        Add Note
+      </button>
       <button onClick={() => onSetView("all")} style={navButtonStyle(view === "all")}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           <AllNotesIcon />
@@ -84,6 +89,31 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddFolder, onR
         );
       })}
     </div>
+  );
+}
+
+// A boxed "+" (border + glyph both currentColor) instead of a plain
+// plus-sign character — matches Tasks' Sidebar.tsx "Add Task" button
+// exactly (same style, same icon shape), just relabeled for Notes.
+function AddNotePlusIcon() {
+  return (
+    <span style={iconSlotStyle}>
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          border: "1.4px solid currentColor",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M5 1V9M1 5H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      </span>
+    </span>
   );
 }
 
@@ -142,4 +172,31 @@ const smallIconButtonStyle: CSSProperties = {
   fontSize: 13,
   cursor: "pointer",
   padding: "2px 4px",
+};
+
+const iconSlotStyle: CSSProperties = {
+  width: 18,
+  height: 18,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+
+// Same ghost/accent-colored style as Tasks' Sidebar.tsx "Add Task" button.
+const newNoteButtonStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  gap: 8,
+  width: "100%",
+  padding: "8px 10px",
+  marginBottom: 10,
+  borderRadius: 8,
+  border: "none",
+  background: "none",
+  color: "var(--accent)",
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
 };

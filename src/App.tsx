@@ -185,6 +185,12 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
 
   const openNote = openNoteId ? allNotes.find((n) => n.id === openNoteId) : undefined;
 
+  const handleAddNote = async () => {
+    const folderId = view === "all" || view === "pinned" ? null : view;
+    const note = await addNote(folderId);
+    if (note) setOpenNoteId(note.id);
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
       <NotesSidebar
@@ -192,6 +198,7 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
         notes={allNotes}
         view={view}
         onSetView={setView}
+        onAddNote={handleAddNote}
         onAddFolder={() => {
           const name = window.prompt("Folder name:");
           if (name?.trim()) addFolder(name.trim());
@@ -207,11 +214,7 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
         view={view}
         folders={folders}
         notes={allNotes}
-        onAddNote={async () => {
-          const folderId = view === "all" || view === "pinned" ? null : view;
-          const note = await addNote(folderId);
-          if (note) setOpenNoteId(note.id);
-        }}
+        onAddNote={handleAddNote}
         onOpenNote={setOpenNoteId}
         onTogglePinned={togglePinned}
       />
