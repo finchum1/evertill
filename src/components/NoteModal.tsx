@@ -37,8 +37,8 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 520,
-          maxHeight: "85vh",
+          maxWidth: 760,
+          maxHeight: "90vh",
           overflowY: "auto",
           background: "var(--bg-panel)",
           border: "1px solid var(--border)",

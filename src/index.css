@@ -130,11 +130,11 @@ body {
 
 /* Notes rich-text editor (Tiptap). A deliberate exception to this app's
    inline-style={{}}-only convention: Tiptap renders real <p>/<ul>/<li>/
-   <details> DOM nodes that React doesn't individually template, so their
-   look can only be reached via CSS selectors, not inline style props. */
+   <h1>/<h2>/<mark> DOM nodes that React doesn't individually template, so
+   their look can only be reached via CSS selectors, not inline style props. */
 .note-editor-content .tiptap {
   outline: none;
-  min-height: 160px;
+  min-height: 360px;
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-primary);
@@ -142,6 +142,28 @@ body {
 
 .note-editor-content .tiptap p {
   margin: 0 0 0.6em;
+}
+
+.note-editor-content .tiptap h1,
+.note-editor-content .tiptap h2 {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0.4em 0 0.4em;
+}
+
+.note-editor-content .tiptap h1 {
+  font-size: 1.5em;
+}
+
+.note-editor-content .tiptap h2 {
+  font-size: 1.25em;
+}
+
+.note-editor-content .tiptap mark {
+  border-radius: 2px;
+  padding: 0 1px;
+  color: inherit;
 }
 
 .note-editor-content .tiptap p.is-editor-empty:first-child::before {
@@ -184,40 +206,3 @@ body {
   text-decoration: line-through;
 }
 
-.note-editor-content .tiptap details.note-toggle {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin: 0 0 0.6em;
-}
-
-.note-editor-content .tiptap details.note-toggle > summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--text-primary);
-  list-style: none;
-}
-
-.note-editor-content .tiptap details.note-toggle > summary::-webkit-details-marker {
-  display: none;
-}
-
-.note-editor-content .tiptap details.note-toggle > summary::before {
-  content: "▸";
-  display: inline-block;
-  width: 1em;
-  color: var(--text-muted);
-}
-
-.note-editor-content .tiptap details.note-toggle[open] > summary::before {
-  content: "▾";
-}
-
-.note-editor-content .tiptap .note-toggle-content {
-  margin-top: 6px;
-  padding-left: 1.2em;
-}
-
-.note-editor-content .tiptap .note-toggle-content p:last-child {
-  margin-bottom: 0;
-}

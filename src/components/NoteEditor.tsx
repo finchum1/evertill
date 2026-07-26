@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
 import type { CSSProperties, ReactNode } from "react";
-import { ToggleItem, ToggleSummary, ToggleContent } from "../lib/tiptapToggle";
+import { LIST_COLORS, LIST_COLOR_HEX } from "../types";
 
 interface NoteEditorProps {
   content: string;
@@ -23,9 +25,7 @@ export function NoteEditor({ content, onBlur }: NoteEditorProps) {
       StarterKit,
       TaskList,
       TaskItem.configure({ nested: true }),
-      ToggleItem,
-      ToggleSummary,
-      ToggleContent,
+      Highlight.configure({ multicolor: true }),
       Placeholder.configure({ placeholder: "Write a note…" }),
     ],
     content,
@@ -45,6 +45,21 @@ export function NoteEditor({ content, onBlur }: NoteEditorProps) {
 function Toolbar({ editor }: { editor: Editor }) {
   return (
     <div style={toolbarStyle}>
+      <TextButton
+        label="H1"
+        style={{ fontWeight: 800, fontSize: 11 }}
+        active={editor.isActive("heading", { level: 1 })}
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        title="Heading 1"
+      />
+      <TextButton
+        label="H2"
+        style={{ fontWeight: 800, fontSize: 11 }}
+        active={editor.isActive("heading", { level: 2 })}
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        title="Heading 2"
+      />
+      <Divider />
       <TextButton label="B" style={{ fontWeight: 800 }} active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold" />
       <TextButton label="I" style={{ fontStyle: "italic" }} active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic" />
       <TextButton
@@ -54,6 +69,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         title="Underline"
       />
+      <HighlightButton editor={editor} />
       <Divider />
       <IconButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet list">
         <BulletListIcon />
@@ -64,9 +80,52 @@ function Toolbar({ editor }: { editor: Editor }) {
       <IconButton active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()} title="Checklist">
         <ChecklistIcon />
       </IconButton>
-      <IconButton active={editor.isActive("toggleItem")} onClick={() => editor.chain().focus().insertToggleList().run()} title="Toggle list">
-        <ToggleListIcon />
+    </div>
+  );
+}
+
+// Reuses the same 10-color LIST_COLOR_HEX palette as list/folder colors
+// elsewhere in this app, rather than inventing a separate color set —
+// same reasoning already applied to note folders and deal statuses.
+function HighlightButton({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false);
+  const active = editor.isActive("highlight");
+
+  return (
+    <div style={{ position: "relative" }}>
+      <IconButton active={active} onClick={() => setOpen((o) => !o)} title="Highlight">
+        <HighlightIcon />
       </IconButton>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={swatchPanelStyle}>
+            <button
+              type="button"
+              title="No highlight"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().unsetHighlight().run();
+                setOpen(false);
+              }}
+              style={noHighlightSwatchStyle}
+            />
+            {LIST_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                title={color}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  editor.chain().focus().setHighlight({ color: LIST_COLOR_HEX[color] }).run();
+                  setOpen(false);
+                }}
+                style={{ ...swatchStyle, background: LIST_COLOR_HEX[color] }}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -154,12 +213,16 @@ function ChecklistIcon() {
   );
 }
 
-function ToggleListIcon() {
+function HighlightIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-      <path d="M3 4L5.5 6.5L8 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3 11H13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      <path d="M3 8H13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.4" />
+      <path
+        d="M9.5 2.5L13.5 6.5L7 13H3V9L9.5 2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M2 14.5H11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -183,4 +246,37 @@ const buttonStyle: CSSProperties = {
   fontSize: 13,
   cursor: "pointer",
   flexShrink: 0,
+};
+
+const swatchPanelStyle: CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 4px)",
+  left: 0,
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+  padding: 8,
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+  width: 132,
+  zIndex: 50,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+};
+
+const swatchStyle: CSSProperties = {
+  width: 20,
+  height: 20,
+  borderRadius: "50%",
+  border: "1px solid var(--border-strong)",
+  cursor: "pointer",
+  padding: 0,
+};
+
+const noHighlightSwatchStyle: CSSProperties = {
+  ...swatchStyle,
+  background: "none",
+  position: "relative",
+  overflow: "hidden",
+  backgroundImage: "linear-gradient(to top right, transparent calc(50% - 1px), var(--danger) calc(50%), transparent calc(50% + 1px))",
 };
