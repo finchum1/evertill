@@ -1,18 +1,20 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
+import type { Page } from "../types";
 
 export type CreateType = "task" | "lead" | "pipeline" | "deal" | "note";
 
-const ITEMS: { key: CreateType; label: string }[] = [
-  { key: "task", label: "Task" },
-  { key: "lead", label: "Lead" },
-  { key: "pipeline", label: "Pipeline" },
-  { key: "deal", label: "Deal" },
-  { key: "note", label: "Note" },
+const ITEMS: { key: CreateType; label: string; page: Page }[] = [
+  { key: "task", label: "Task", page: "tasks" },
+  { key: "lead", label: "Lead", page: "leads" },
+  { key: "pipeline", label: "Pipeline", page: "pipeline" },
+  { key: "deal", label: "Deal", page: "deals" },
+  { key: "note", label: "Note", page: "notes" },
 ];
 
-export function CreateMenu({ onSelect }: { onSelect: (type: CreateType) => void }) {
+export function CreateMenu({ onSelect, hiddenModules }: { onSelect: (type: CreateType) => void; hiddenModules: string[] }) {
   const [open, setOpen] = useState(false);
+  const visibleItems = ITEMS.filter((item) => !hiddenModules.includes(item.page));
 
   return (
     <div style={{ position: "relative" }}>
@@ -23,7 +25,7 @@ export function CreateMenu({ onSelect }: { onSelect: (type: CreateType) => void 
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={menuStyle}>
-            {ITEMS.map((item) => (
+            {visibleItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => {

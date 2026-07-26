@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
@@ -37,10 +37,15 @@ import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import type { CreateType } from "./components/CreateMenu";
-import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
+import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR, HIDEABLE_MODULES } from "./types";
 import type { Deal, Page, View } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
+
+// Stable reference (not a fresh `[]` literal per render) so the redirect
+// effect below can safely depend on `hiddenModules` without re-running on
+// every render when no hidden_modules value has loaded yet.
+const NO_HIDDEN_MODULES: string[] = [];
 
 type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
@@ -632,6 +637,16 @@ function App() {
   const notes = useNotes(session?.user.id);
   const profile = useProfile(session?.user.id);
   const theme = useTheme();
+  const hiddenModules = profile.profile?.hidden_modules ?? NO_HIDDEN_MODULES;
+
+  // If the currently-open module gets hidden (its nav tab just vanished),
+  // don't leave a dead page up with no way back — jump to the first module
+  // still visible, or Settings if every module has been hidden.
+  useEffect(() => {
+    if (page === "settings" || !hiddenModules.includes(page)) return;
+    const fallback = HIDEABLE_MODULES.find((m) => !hiddenModules.includes(m.key));
+    setPage(fallback?.key ?? "settings");
+  }, [page, hiddenModules]);
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createNoteId, setCreateNoteId] = useState<string | null>(null);
@@ -721,6 +736,7 @@ function App() {
         onLogin={() => setAuthModal("signin")}
         onSignup={() => setAuthModal("signup")}
         onCreate={handleCreate}
+        hiddenModules={hiddenModules}
       />
       {session ? (
         <PageContent

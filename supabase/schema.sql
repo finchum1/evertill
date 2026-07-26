@@ -16,6 +16,7 @@ create table if not exists profiles (
   full_name text,
   company_name text,
   avatar_data_url text,
+  hidden_modules text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 
@@ -25,6 +26,13 @@ create table if not exists profiles (
 -- in Supabase Storage — avoids needing a storage bucket + its own RLS
 -- policies for what's a small, infrequently-changed image.
 alter table profiles add column if not exists avatar_data_url text;
+
+-- Module visibility toggles (Settings > Modules): a plain array of hidden
+-- module keys ('tasks'/'leads'/'pipeline'/'deals'/'notes') rather than a
+-- jsonb map — empty by default means nothing is hidden, and a future module
+-- simply never appears in the array until explicitly hidden, no migration
+-- needed when new modules are added later.
+alter table profiles add column if not exists hidden_modules text[] not null default '{}';
 
 alter table profiles enable row level security;
 

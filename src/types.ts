@@ -76,6 +76,18 @@ export type View = "today" | "upcoming" | string;
 
 export type Page = "tasks" | "leads" | "pipeline" | "deals" | "notes" | "settings";
 
+// Single source of truth for which modules can be hidden from Settings >
+// Modules — "settings" is deliberately never in this list, since it's
+// reached via the header's avatar button, not the nav row or Create menu,
+// so it's never hideable. Add a new entry here when a future module ships.
+export const HIDEABLE_MODULES: { key: Page; label: string }[] = [
+  { key: "tasks", label: "Tasks" },
+  { key: "leads", label: "Leads" },
+  { key: "pipeline", label: "Pipeline" },
+  { key: "deals", label: "Deals" },
+  { key: "notes", label: "Notes" },
+];
+
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
 export interface LeadColumn {

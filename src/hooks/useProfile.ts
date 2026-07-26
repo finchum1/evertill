@@ -6,6 +6,7 @@ export interface Profile {
   full_name: string | null;
   company_name: string | null;
   avatar_data_url: string | null;
+  hidden_modules: string[];
   created_at: string;
 }
 
@@ -26,7 +27,7 @@ export function useProfile(userId: string | undefined) {
     refresh();
   }, [refresh]);
 
-  async function updateProfile(patch: Partial<Pick<Profile, "full_name" | "company_name" | "avatar_data_url">>) {
+  async function updateProfile(patch: Partial<Pick<Profile, "full_name" | "company_name" | "avatar_data_url" | "hidden_modules">>) {
     if (!userId) return;
     const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
     if (error) throw error;

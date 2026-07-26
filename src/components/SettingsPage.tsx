@@ -8,6 +8,7 @@ import type { useDealTemplates } from "../hooks/useDealTemplates";
 import { DealTemplatesManager } from "./DealTemplatesManager";
 import { Avatar } from "./Avatar";
 import { resizeImageToDataUrl } from "../lib/imageResize";
+import { HIDEABLE_MODULES } from "../types";
 
 interface SettingsPageProps {
   session: Session;
@@ -47,6 +48,7 @@ export function SettingsPage({ session, profileData, theme, dealTemplatesData }:
         <ProfileCard session={session} profileData={profileData} />
         <AccountCard session={session} />
         <AppearanceCard theme={theme} />
+        <ModulesCard profileData={profileData} />
         <DealTemplatesCard onManage={() => setManagingTemplates(true)} />
       </div>
     </div>
@@ -211,6 +213,72 @@ function AppearanceCard({ theme }: { theme: ReturnType<typeof useTheme> }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+// Hiding a module removes its nav tab and "+ Create" entry (see Header.tsx/
+// CreateMenu.tsx) — the underlying data isn't touched, so unhiding brings
+// it right back exactly as it was.
+function ModulesCard({ profileData }: { profileData: ReturnType<typeof useProfile> }) {
+  const { profile, updateProfile } = profileData;
+  const hidden = profile?.hidden_modules ?? [];
+
+  function toggle(key: string) {
+    const next = hidden.includes(key) ? hidden.filter((k) => k !== key) : [...hidden, key];
+    updateProfile({ hidden_modules: next });
+  }
+
+  return (
+    <Card title="Modules">
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+        Hide modules you don't use — they'll disappear from the nav bar and the "+ Create" menu.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {HIDEABLE_MODULES.map((mod) => (
+          <div key={mod.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{mod.label}</span>
+            <Toggle checked={!hidden.includes(mod.key)} onChange={() => toggle(mod.key)} />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// This app has no other toggle-switch primitive — the theme control is a
+// 3-way button group, not a fit for a simple on/off setting like this one.
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      style={{
+        width: 36,
+        height: 20,
+        borderRadius: 99,
+        border: "none",
+        background: checked ? "var(--accent)" : "var(--border-strong)",
+        position: "relative",
+        cursor: "pointer",
+        flexShrink: 0,
+        padding: 0,
+        transition: "background 0.15s",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: checked ? 18 : 2,
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          background: "#fff",
+          transition: "left 0.15s",
+        }}
+      />
+    </button>
   );
 }
 

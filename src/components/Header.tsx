@@ -14,6 +14,7 @@ interface HeaderProps {
   onLogin: () => void;
   onSignup: () => void;
   onCreate: (type: CreateType) => void;
+  hiddenModules: string[];
 }
 
 const NAV_ITEMS: { key: Page; label: string }[] = [
@@ -24,7 +25,8 @@ const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "notes", label: "Notes" },
 ];
 
-export function Header({ session, profile, page, onSetPage, onLogin, onSignup, onCreate }: HeaderProps) {
+export function Header({ session, profile, page, onSetPage, onLogin, onSignup, onCreate, hiddenModules }: HeaderProps) {
+  const visibleNavItems = NAV_ITEMS.filter((item) => !hiddenModules.includes(item.key));
   return (
     <div
       style={{
@@ -42,9 +44,9 @@ export function Header({ session, profile, page, onSetPage, onLogin, onSignup, o
         </div>
         {session && (
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <CreateMenu onSelect={onCreate} />
+            <CreateMenu onSelect={onCreate} hiddenModules={hiddenModules} />
             <nav style={{ display: "flex", gap: 4 }}>
-              {NAV_ITEMS.map((item) => (
+              {visibleNavItems.map((item) => (
                 <button
                   key={item.key}
                   onClick={() => onSetPage(item.key)}
