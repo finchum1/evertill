@@ -222,6 +222,7 @@ function AppearanceCard({ theme }: { theme: ReturnType<typeof useTheme> }) {
 function ModulesCard({ profileData }: { profileData: ReturnType<typeof useProfile> }) {
   const { profile, updateProfile } = profileData;
   const hidden = profile?.hidden_modules ?? [];
+  const visibleCount = HIDEABLE_MODULES.length - hidden.length;
 
   function toggle(key: string) {
     const next = hidden.includes(key) ? hidden.filter((k) => k !== key) : [...hidden, key];
@@ -231,15 +232,19 @@ function ModulesCard({ profileData }: { profileData: ReturnType<typeof useProfil
   return (
     <Card title="Modules">
       <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-        Hide modules you don't use — they'll disappear from the nav bar and the "+ Create" menu.
+        Hide modules you don't use — they'll disappear from the nav bar and the "+ Create" menu. At least one has to stay on.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {HIDEABLE_MODULES.map((mod) => (
-          <div key={mod.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{mod.label}</span>
-            <Toggle checked={!hidden.includes(mod.key)} onChange={() => toggle(mod.key)} />
-          </div>
-        ))}
+        {HIDEABLE_MODULES.map((mod) => {
+          const isVisible = !hidden.includes(mod.key);
+          const isLastVisible = isVisible && visibleCount === 1;
+          return (
+            <div key={mod.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{mod.label}</span>
+              <Toggle checked={isVisible} disabled={isLastVisible} onChange={() => toggle(mod.key)} />
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
@@ -247,11 +252,13 @@ function ModulesCard({ profileData }: { profileData: ReturnType<typeof useProfil
 
 // This app has no other toggle-switch primitive — the theme control is a
 // 3-way button group, not a fit for a simple on/off setting like this one.
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
+      title={disabled ? "At least one module has to stay visible" : undefined}
       onClick={onChange}
       style={{
         width: 36,
@@ -260,7 +267,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
         border: "none",
         background: checked ? "var(--accent)" : "var(--border-strong)",
         position: "relative",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
         flexShrink: 0,
         padding: 0,
         transition: "background 0.15s",
