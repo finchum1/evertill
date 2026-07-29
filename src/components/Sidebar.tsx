@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
-import type { ListColor, Todo, TodoFolder, TodoList, View } from "../types";
+import type { CompletionToast, ListColor, Todo, TodoFolder, TodoList, View } from "../types";
 import { todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME, TODO_FOLDER_DRAG_MIME, TODO_LIST_DRAG_MIME } from "../lib/dragTypes";
 import { ListMenu } from "./ListMenu";
@@ -24,6 +24,8 @@ interface SidebarProps {
   onReorderLists: (orderedIds: string[]) => void;
   onReorderFolders: (orderedIds: string[]) => void;
   onNewTask: () => void;
+  toasts: CompletionToast[];
+  onUndoComplete: (toastId: string) => void;
 }
 
 export function Sidebar({
@@ -44,6 +46,8 @@ export function Sidebar({
   onReorderLists,
   onReorderFolders,
   onNewTask,
+  toasts,
+  onUndoComplete,
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -281,9 +285,79 @@ export function Sidebar({
       ))}
 
       {unfiledLists.map(listRow)}
+      <CompletionToastStack toasts={toasts} onUndo={onUndoComplete} />
     </div>
   );
 }
+
+// Fixed to the bottom-left of the viewport (under the sidebar's own
+// horizontal padding) rather than relying on the sidebar's own box being a
+// specific height — each completion pushes its own independently-timed
+// entry, so completing several tasks quickly stacks several toasts rather
+// than one replacing another.
+function CompletionToastStack({ toasts, onUndo }: { toasts: CompletionToast[]; onUndo: (toastId: string) => void }) {
+  if (toasts.length === 0) return null;
+  return (
+    <div style={toastStackStyle}>
+      {toasts.map((toast) => (
+        <div key={toast.id} style={toastStyle}>
+          <span style={{ flexShrink: 0, color: "var(--accent)", display: "flex" }}>
+            <ToastCheckIcon />
+          </span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>
+            {toast.title || "Untitled task"}
+          </span>
+          <button onClick={() => onUndo(toast.id)} style={undoButtonStyle}>
+            Undo
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ToastCheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 8.2L7 10.2L11 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const toastStackStyle: CSSProperties = {
+  position: "fixed",
+  left: 12,
+  bottom: 16,
+  width: 216,
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  zIndex: 60,
+};
+
+const toastStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  fontSize: 12,
+};
+
+const undoButtonStyle: CSSProperties = {
+  flexShrink: 0,
+  background: "none",
+  border: "none",
+  color: "var(--accent)",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+  padding: 0,
+};
 
 const newTaskButtonStyle: CSSProperties = {
   display: "flex",

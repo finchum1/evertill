@@ -337,8 +337,8 @@ function SubtaskIcon() {
   );
 }
 
-// Shared by TaskRow's main checkbox and SubtaskRow's: fills to the theme
-// success color and draws in a checkmark on check, matching the reverse on
+// Shared by TaskRow's main checkbox and SubtaskRow's: fills to the current
+// accent color and draws in a checkmark on check, matching the reverse on
 // uncheck for free since these are CSS transitions, not one-shot keyframes.
 function AnimatedCheckbox({
   checked,
@@ -359,8 +359,8 @@ function AnimatedCheckbox({
         width: size,
         height: size,
         borderRadius: 99,
-        border: `2px solid ${checked ? "var(--success)" : "var(--border-strong)"}`,
-        background: checked ? "var(--success)" : "transparent",
+        border: `2px solid ${checked ? "var(--accent)" : "var(--border-strong)"}`,
+        background: checked ? "var(--accent)" : "transparent",
         cursor: "pointer",
         flexShrink: 0,
         padding: 0,
@@ -389,10 +389,9 @@ function AnimatedCheckbox({
   );
 }
 
-// Shared by TaskRow's title and SubtaskRow's: instead of a plain CSS
-// text-decoration flip (which can't animate smoothly across browsers), a
-// separate line overlay scales in from the left over the text, timed to
-// start just after the checkbox's own fill/checkmark animation finishes.
+// Shared by TaskRow's title and SubtaskRow's: a separate line overlay over
+// the text (rather than a plain CSS text-decoration flip) so the muted
+// color and strike line both apply as one instant, unanimated state change.
 function StrikeThroughText({
   checked,
   children,
@@ -428,7 +427,6 @@ function StrikeThroughText({
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           color: checked ? mutedColor : color,
-          transition: "color 180ms ease 200ms",
         }}
       >
         {children}
@@ -444,7 +442,6 @@ function StrikeThroughText({
           background: mutedColor,
           transform: checked ? "scaleX(1)" : "scaleX(0)",
           transformOrigin: "left",
-          transition: "transform 220ms ease 190ms",
           pointerEvents: "none",
         }}
       />

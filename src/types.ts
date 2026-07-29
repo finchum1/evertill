@@ -88,6 +88,19 @@ export const HIDEABLE_MODULES: { key: Page; label: string }[] = [
   { key: "notes", label: "Notes" },
 ];
 
+// One toast per task completion, snapshotting the exact prior completed/
+// due_date so Undo can restore it directly rather than toggling again —
+// toggleTodoComplete is asymmetric for recurring tasks (see useTasks.ts),
+// so a second toggle wouldn't undo the first, it would advance it again.
+export interface CompletionToast {
+  id: string;
+  title: string;
+  todoId: string;
+  prevCompleted: boolean;
+  prevDueDate: string | null;
+  timeoutId: number;
+}
+
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
 export interface LeadColumn {

@@ -38,7 +38,7 @@ import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR, HIDEABLE_MODULES } from "./types";
-import type { Deal, Page, View } from "./types";
+import type { CompletionToast, Deal, Page, View } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
 
@@ -83,6 +83,56 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<CompletionToast[]>([]);
+
+  // Clears any still-pending auto-dismiss timers if this dashboard unmounts
+  // (e.g. navigating off the Tasks page) while a toast is showing.
+  useEffect(() => {
+    return () => {
+      setToasts((prev) => {
+        prev.forEach((t) => window.clearTimeout(t.timeoutId));
+        return prev;
+      });
+    };
+  }, []);
+
+  function dismissToast(toastId: string) {
+    setToasts((prev) => prev.filter((t) => t.id !== toastId));
+  }
+
+  // Only one wrapper needed: TaskListView (-> TaskRow) and CalendarView
+  // (-> MiniCheckbox) are the only two places a top-level task gets marked
+  // complete, and both already just call whatever onToggleComplete they're
+  // given — so this single wrapper covers both with no changes needed in
+  // either component.
+  function handleToggleComplete(id: string) {
+    const todo = todos.find((t) => t.id === id);
+    if (todo && !todo.completed) {
+      // About to complete it (this also covers a recurring task's
+      // roll-forward, which never actually sets completed=true — it just
+      // advances due_date, so !todo.completed stays true every time).
+      const toastId = `${id}-${Date.now()}`;
+      const timeoutId = window.setTimeout(() => dismissToast(toastId), 2000);
+      setToasts((prev) => [
+        ...prev,
+        { id: toastId, title: todo.title, todoId: id, prevCompleted: todo.completed, prevDueDate: todo.due_date, timeoutId },
+      ]);
+    }
+    toggleTodoComplete(id);
+  }
+
+  // Snapshot-and-restore rather than "toggle again": toggleTodoComplete is
+  // asymmetric for recurring tasks (checking one off advances due_date and
+  // never sets completed), so calling it a second time wouldn't undo the
+  // first click — it would advance the date again. Restoring the exact
+  // prior completed/due_date directly handles both task kinds uniformly.
+  function handleUndoComplete(toastId: string) {
+    const toast = toasts.find((t) => t.id === toastId);
+    if (!toast) return;
+    window.clearTimeout(toast.timeoutId);
+    updateTodo(toast.todoId, { completed: toast.prevCompleted, due_date: toast.prevDueDate });
+    dismissToast(toastId);
+  }
 
   if (loading) {
     return (
@@ -123,6 +173,8 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
         onReorderLists={reorderLists}
         onReorderFolders={reorderFolders}
         onNewTask={onNewTask}
+        toasts={toasts}
+        onUndoComplete={handleUndoComplete}
       />
       {view === "calendar" ? (
         <CalendarView
@@ -130,7 +182,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           lists={lists}
           subtasks={subtasks}
           onOpenTodo={setOpenTodoId}
-          onToggleComplete={toggleTodoComplete}
+          onToggleComplete={handleToggleComplete}
           onAddTodo={addTodo}
           onAddSubtask={addSubtask}
           onToggleSubtask={toggleSubtask}
@@ -147,7 +199,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           todos={todos}
           subtasks={subtasks}
           onAddTodo={addTodo}
-          onToggleComplete={toggleTodoComplete}
+          onToggleComplete={handleToggleComplete}
           onAddSubtask={addSubtask}
           onToggleSubtask={toggleSubtask}
           onEditSubtask={updateSubtask}
