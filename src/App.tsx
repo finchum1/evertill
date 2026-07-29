@@ -112,7 +112,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
       // roll-forward, which never actually sets completed=true — it just
       // advances due_date, so !todo.completed stays true every time).
       const toastId = `${id}-${Date.now()}`;
-      const timeoutId = window.setTimeout(() => dismissToast(toastId), 2000);
+      const timeoutId = window.setTimeout(() => dismissToast(toastId), 4000);
       setToasts((prev) => [
         ...prev,
         { id: toastId, title: todo.title, todoId: id, prevCompleted: todo.completed, prevDueDate: todo.due_date, timeoutId },
