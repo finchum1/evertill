@@ -1,5 +1,4 @@
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabaseClient";
 import type { Page } from "../types";
 import type { Profile } from "../hooks/useProfile";
 import { CreateMenu } from "./CreateMenu";
@@ -89,9 +88,6 @@ export function Header({ session, profile, page, onSetPage, onLogin, onSignup, o
             <span style={{ fontSize: 13, fontWeight: 600, color: page === "settings" ? "var(--text-primary)" : "var(--text-secondary)" }}>
               {profile?.full_name || session.user.email}
             </span>
-          </button>
-          <button onClick={() => supabase.auth.signOut()} style={ghostButtonStyle}>
-            Log out
           </button>
         </div>
       ) : (
