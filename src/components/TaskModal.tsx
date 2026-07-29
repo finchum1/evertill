@@ -218,7 +218,6 @@ function SubtaskRow({
           flex: 1,
           fontSize: 13,
           color: subtask.checked ? "var(--text-muted)" : "var(--text-body)",
-          textDecoration: subtask.checked ? "line-through" : "none",
         }}
       >
         {subtask.title}

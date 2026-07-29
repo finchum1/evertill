@@ -87,9 +87,9 @@ export function TaskRow({
           onClick={() => onOpen(todo.id)}
           style={{ flex: 1, minWidth: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
         >
-          <StrikeThroughText checked={checked} fontSize={14} color="var(--text-primary)">
+          <TaskText checked={checked} fontSize={14} color="var(--text-primary)">
             {todo.title}
-          </StrikeThroughText>
+          </TaskText>
           <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
             <DueDateBadge
               todo={todo}
@@ -249,7 +249,7 @@ function SubtaskRow({
           }}
         />
       ) : (
-        <StrikeThroughText
+        <TaskText
           checked={checked}
           fontSize={13}
           color="var(--text-body)"
@@ -259,7 +259,7 @@ function SubtaskRow({
           flex
         >
           {subtask.title}
-        </StrikeThroughText>
+        </TaskText>
       )}
       <button
         onClick={() => onDelete(subtask.id)}
@@ -384,10 +384,9 @@ function AnimatedCheckbox({
   );
 }
 
-// Shared by TaskRow's title and SubtaskRow's: a separate line overlay over
-// the text (rather than a plain CSS text-decoration flip) so the muted
-// color and strike line both apply as one instant, unanimated state change.
-function StrikeThroughText({
+// Shared by TaskRow's title and SubtaskRow's: just a muted color when
+// checked, no strike line — checked state is already shown by the checkbox.
+function TaskText({
   checked,
   children,
   fontSize,
@@ -412,34 +411,19 @@ function StrikeThroughText({
     <span
       onClick={onClick}
       title={title}
-      style={{ position: "relative", display: "block", minWidth: 0, flex: flex ? 1 : undefined, cursor }}
+      style={{
+        display: "block",
+        minWidth: 0,
+        flex: flex ? 1 : undefined,
+        cursor,
+        fontSize,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        color: checked ? mutedColor : color,
+      }}
     >
-      <span
-        style={{
-          display: "block",
-          fontSize,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          color: checked ? mutedColor : color,
-        }}
-      >
-        {children}
-      </span>
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: "50%",
-          height: 1,
-          background: mutedColor,
-          transform: checked ? "scaleX(1)" : "scaleX(0)",
-          transformOrigin: "left",
-          pointerEvents: "none",
-        }}
-      />
+      {children}
     </span>
   );
 }
