@@ -338,8 +338,8 @@ function SubtaskIcon() {
 }
 
 // Shared by TaskRow's main checkbox and SubtaskRow's: fills to the current
-// accent color and draws in a checkmark on check, matching the reverse on
-// uncheck for free since these are CSS transitions, not one-shot keyframes.
+// accent color and shows a checkmark on check — no transitions, so the
+// whole check/uncheck state change is instant in every theme.
 function AnimatedCheckbox({
   checked,
   onToggle,
@@ -367,7 +367,6 @@ function AnimatedCheckbox({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "background-color 160ms ease, border-color 160ms ease",
       }}
     >
       <svg
@@ -377,10 +376,6 @@ function AnimatedCheckbox({
         fill="none"
         style={{
           opacity: checked ? 1 : 0,
-          transform: checked ? "scale(1)" : "scale(0.4)",
-          transition: checked
-            ? "opacity 140ms ease 90ms, transform 140ms cubic-bezier(0.34,1.56,0.64,1) 90ms"
-            : "opacity 100ms ease, transform 100ms ease",
         }}
       >
         <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
