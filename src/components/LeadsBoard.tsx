@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
 import type { LeadCard, LeadColumn, ListColor } from "../types";
+import { LEAD_CARD_DRAG_MIME } from "../lib/dragTypes";
 import { LeadCardMini } from "./LeadCardMini";
 import { ListMenu } from "./ListMenu";
 
@@ -13,6 +15,7 @@ interface LeadsBoardProps {
   onDeleteColumn: (id: string) => void;
   onAddCard: (columnId: string) => void;
   onOpenCard: (id: string) => void;
+  onMoveCard: (cardId: string, columnId: string) => void;
 }
 
 export function LeadsBoard({
@@ -24,7 +27,10 @@ export function LeadsBoard({
   onDeleteColumn,
   onAddCard,
   onOpenCard,
+  onMoveCard,
 }: LeadsBoardProps) {
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+
   return (
     <div style={{ padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -38,8 +44,36 @@ export function LeadsBoard({
         {columns.map((column) => {
           const columnCards = cards.filter((c) => c.column_id === column.id);
           const columnValue = columnCards.reduce((sum, c) => sum + Number(c.value), 0);
+          const isDragOver = dragOverColumnId === column.id;
           return (
-            <div key={column.id} style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              key={column.id}
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes(LEAD_CARD_DRAG_MIME)) e.preventDefault();
+              }}
+              onDragEnter={(e) => {
+                if (e.dataTransfer.types.includes(LEAD_CARD_DRAG_MIME)) setDragOverColumnId(column.id);
+              }}
+              onDragLeave={() => setDragOverColumnId((cur) => (cur === column.id ? null : cur))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverColumnId(null);
+                const cardId = e.dataTransfer.getData(LEAD_CARD_DRAG_MIME);
+                if (cardId) onMoveCard(cardId, column.id);
+              }}
+              style={{
+                width: 280,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                borderRadius: 10,
+                border: isDragOver ? "1px solid var(--accent)" : "1px solid transparent",
+                background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
+                padding: isDragOver ? 8 : 0,
+                margin: isDragOver ? -8 : 0,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: LIST_COLOR_HEX[column.color], flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-body)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

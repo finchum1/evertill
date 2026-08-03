@@ -1,6 +1,7 @@
 import type { PipelineCard } from "../types";
 import { formatCurrency } from "../lib/format";
 import { formatDueDate, isOverdue } from "../lib/dates";
+import { PIPELINE_CARD_DRAG_MIME } from "../lib/dragTypes";
 
 interface PipelineCardMiniProps {
   card: PipelineCard;
@@ -12,13 +13,18 @@ export function PipelineCardMini({ card, onOpen }: PipelineCardMiniProps) {
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(PIPELINE_CARD_DRAG_MIME, card.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
       onClick={() => onOpen(card.id)}
       style={{
         background: "var(--bg-panel)",
         border: "1px solid var(--border)",
         borderRadius: 10,
         padding: "12px 14px",
-        cursor: "pointer",
+        cursor: "grab",
         display: "flex",
         flexDirection: "column",
         gap: 6,

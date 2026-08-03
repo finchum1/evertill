@@ -344,6 +344,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
             if (card) setOpenCardId(card.id);
           }}
           onOpenCard={setOpenCardId}
+          onMoveCard={(cardId, columnId) => updateCard(cardId, { column_id: columnId })}
         />
       )}
       {subView === "list" && (
@@ -437,6 +438,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
             if (card) setOpenCardId(card.id);
           }}
           onOpenCard={setOpenCardId}
+          onMoveCard={(cardId, columnId) => updateCard(cardId, { column_id: columnId })}
         />
       )}
       {subView === "list" && (

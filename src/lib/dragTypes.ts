@@ -7,3 +7,7 @@ export const TODO_DRAG_MIME = "application/x-todo-id";
 // folder drag never get mistaken for each other on the same drop target.
 export const TODO_LIST_DRAG_MIME = "application/x-todo-list-id";
 export const TODO_FOLDER_DRAG_MIME = "application/x-todo-folder-id";
+
+// Leads/Pipeline board cards, dragged between columns.
+export const LEAD_CARD_DRAG_MIME = "application/x-lead-card-id";
+export const PIPELINE_CARD_DRAG_MIME = "application/x-pipeline-card-id";
