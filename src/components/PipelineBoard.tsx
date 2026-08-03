@@ -49,12 +49,20 @@ export function PipelineBoard({
             <div
               key={column.id}
               onDragOver={(e) => {
-                if (e.dataTransfer.types.includes(PIPELINE_CARD_DRAG_MIME)) e.preventDefault();
+                if (e.dataTransfer.types.includes(PIPELINE_CARD_DRAG_MIME)) {
+                  e.preventDefault();
+                  if (dragOverColumnId !== column.id) setDragOverColumnId(column.id);
+                }
               }}
-              onDragEnter={(e) => {
-                if (e.dataTransfer.types.includes(PIPELINE_CARD_DRAG_MIME)) setDragOverColumnId(column.id);
+              onDragLeave={(e) => {
+                // dragleave fires every time the pointer crosses onto a child
+                // element (a card, the add-button) before dragover re-fires on
+                // re-entry — only clear when actually leaving the column, not
+                // just moving between its children, or the highlight flickers.
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverColumnId((cur) => (cur === column.id ? null : cur));
+                }
               }}
-              onDragLeave={() => setDragOverColumnId((cur) => (cur === column.id ? null : cur))}
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverColumnId(null);
