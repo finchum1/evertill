@@ -178,7 +178,7 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
 const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
-  background: "var(--border)",
+  background: "none",
   border: "1px solid var(--border-strong)",
   borderRadius: 8,
   color: "var(--text-primary)",
