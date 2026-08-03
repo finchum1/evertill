@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import type { Recurrence } from "../types";
 import { addDays, addMonths, dateToKey, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
@@ -84,6 +84,7 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
   const [panelAlign, setPanelAlign] = useState<"left" | "right">("left");
   const [repeatOpen, setRepeatOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const today = new Date();
   const tkey = todayKey();
@@ -120,6 +121,24 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
 
   useImperativeHandle(ref, () => ({ open: openPopover }));
 
+  // A nested position:fixed overlay for outside-click detection gets clipped
+  // to (or otherwise misbehaves inside) any scrolling ancestor with its own
+  // overflow — which every modal that hosts this picker has, for its own
+  // long-content scrolling. A capture-phase listener on the document itself
+  // sidesteps that entirely: it isn't affected by any ancestor's overflow/
+  // z-index, and capture-phase means it still sees the click even if some
+  // handler further down calls stopPropagation on the bubble phase.
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown, true);
+    return () => document.removeEventListener("mousedown", handlePointerDown, true);
+  }, [open]);
+
   function pick(d: Date | null) {
     onChange(d ? dateToKey(d) : null);
     setOpen(false);
@@ -138,6 +157,7 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
 
   return (
     <div
+      ref={wrapperRef}
       onClick={(e) => e.stopPropagation()}
       style={{ position: "relative", display: "inline-block" }}
     >
@@ -169,7 +189,6 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
 
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div
             style={{
               ...panelStyle,
