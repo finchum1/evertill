@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { LeadCard, LeadColumn, LeadNote } from "../types";
-import { openDatePicker } from "../lib/datePicker";
+import { DatePickerField } from "./DatePickerField";
+import type { DatePickerFieldHandle } from "./DatePickerField";
 
 interface LeadCardModalProps {
   card: LeadCard;
@@ -23,6 +24,7 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
   const [email, setEmail] = useState(card.email ?? "");
   const [address, setAddress] = useState(card.address ?? "");
   const [newNote, setNewNote] = useState("");
+  const dueDateRef = useRef<DatePickerFieldHandle>(null);
 
   return (
     <div
@@ -97,12 +99,10 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
 
         <label style={labelStyle}>
           Next activity
-          <input
-            type="date"
-            value={card.due_date ?? ""}
-            onChange={(e) => onUpdate(card.id, { due_date: e.target.value || null })}
-            onClick={openDatePicker}
-            style={inputStyle}
+          <DatePickerField
+            ref={dueDateRef}
+            value={card.due_date}
+            onChange={(due_date) => onUpdate(card.id, { due_date })}
           />
         </label>
 
@@ -140,6 +140,7 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
               if (!newNote.trim()) return;
               onAddNote(card.id, newNote.trim());
               setNewNote("");
+              dueDateRef.current?.open();
             }}
             style={{ display: "flex", gap: 8, marginBottom: 10 }}
           >

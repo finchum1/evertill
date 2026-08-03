@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import type { Recurrence } from "../types";
 import { addDays, addMonths, dateToKey, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
@@ -13,6 +13,13 @@ interface DatePickerFieldProps {
   // — otherwise every consumer wanting the same picker experience with a
   // different-looking trigger would have to duplicate the whole panel.
   renderTrigger?: (args: { onClick: () => void; triggerRef: RefObject<HTMLButtonElement | null> }) => ReactNode;
+}
+
+// Lets a parent open the popover programmatically (e.g. Leads/Pipeline
+// prompting for a next-activity date right after a note is logged) without
+// lifting the open/closed state out of this component for every consumer.
+export interface DatePickerFieldHandle {
+  open: () => void;
 }
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -67,7 +74,10 @@ function recurrenceOption(r: Recurrence, refDate: Date): { main: string; detail?
 // ListMenu/CreateMenu) replacing the native <input type="date">, styled after
 // a Todoist-style quick date picker: smart shortcuts, a month grid, and an
 // optional Repeat row when recurrence props are supplied.
-export function DatePickerField({ value, onChange, recurrence, onRecurrenceChange, renderTrigger }: DatePickerFieldProps) {
+export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerFieldProps>(function DatePickerField(
+  { value, onChange, recurrence, onRecurrenceChange, renderTrigger },
+  ref
+) {
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
   const [panelMaxHeight, setPanelMaxHeight] = useState(420);
@@ -107,6 +117,8 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
     setRepeatOpen(false);
     setOpen(true);
   }
+
+  useImperativeHandle(ref, () => ({ open: openPopover }));
 
   function pick(d: Date | null) {
     onChange(d ? dateToKey(d) : null);
@@ -281,7 +293,7 @@ export function DatePickerField({ value, onChange, recurrence, onRecurrenceChang
       )}
     </div>
   );
-}
+});
 
 function CalendarIcon() {
   return (
