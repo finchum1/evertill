@@ -318,6 +318,10 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
   }
 
   const openCard = openCardId ? cards.find((c) => c.id === openCardId) : undefined;
+  const openCardSiblings = openCard ? cards.filter((c) => c.column_id === openCard.column_id) : [];
+  const openCardIndex = openCard ? openCardSiblings.findIndex((c) => c.id === openCard.id) : -1;
+  const prevCard = openCardIndex > 0 ? openCardSiblings[openCardIndex - 1] : undefined;
+  const nextCard = openCardIndex >= 0 && openCardIndex < openCardSiblings.length - 1 ? openCardSiblings[openCardIndex + 1] : undefined;
 
   return (
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
@@ -361,6 +365,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
       )}
       {openCard && (
         <LeadCardModal
+          key={openCard.id}
           card={openCard}
           columns={columns}
           notes={notes.filter((n) => n.card_id === openCard.id)}
@@ -369,6 +374,8 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
           onDelete={deleteCard}
           onAddNote={addNote}
           onDeleteNote={deleteNote}
+          onPrev={prevCard ? () => setOpenCardId(prevCard.id) : undefined}
+          onNext={nextCard ? () => setOpenCardId(nextCard.id) : undefined}
         />
       )}
     </div>
@@ -404,6 +411,10 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
   }
 
   const openCard = openCardId ? cards.find((c) => c.id === openCardId) : undefined;
+  const openCardSiblings = openCard ? cards.filter((c) => c.column_id === openCard.column_id) : [];
+  const openCardIndex = openCard ? openCardSiblings.findIndex((c) => c.id === openCard.id) : -1;
+  const prevCard = openCardIndex > 0 ? openCardSiblings[openCardIndex - 1] : undefined;
+  const nextCard = openCardIndex >= 0 && openCardIndex < openCardSiblings.length - 1 ? openCardSiblings[openCardIndex + 1] : undefined;
 
   return (
     <div style={{ minHeight: "calc(100vh - 61px)" }}>
@@ -447,6 +458,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
       )}
       {openCard && (
         <PipelineCardModal
+          key={openCard.id}
           card={openCard}
           columns={columns}
           notes={notes.filter((n) => n.card_id === openCard.id)}
@@ -455,6 +467,8 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
           onDelete={deleteCard}
           onAddNote={addNote}
           onDeleteNote={deleteNote}
+          onPrev={prevCard ? () => setOpenCardId(prevCard.id) : undefined}
+          onNext={nextCard ? () => setOpenCardId(nextCard.id) : undefined}
         />
       )}
     </div>

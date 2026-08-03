@@ -12,9 +12,11 @@ interface PipelineCardModalProps {
   onDelete: (id: string) => void;
   onAddNote: (cardId: string, body: string) => void;
   onDeleteNote: (id: string) => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
-export function PipelineCardModal({ card, columns, notes, onClose, onUpdate, onDelete, onAddNote, onDeleteNote }: PipelineCardModalProps) {
+export function PipelineCardModal({ card, columns, notes, onClose, onUpdate, onDelete, onAddNote, onDeleteNote, onPrev, onNext }: PipelineCardModalProps) {
   const [title, setTitle] = useState(card.title);
   const [value, setValue] = useState(String(card.value || ""));
   const [phone, setPhone] = useState(card.phone ?? "");
@@ -53,12 +55,22 @@ export function PipelineCardModal({ card, columns, notes, onClose, onUpdate, onD
           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
         }}
       >
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => title.trim() && title !== card.title && onUpdate(card.id, { title: title.trim() })}
-          style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0" }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title.trim() && title !== card.title && onUpdate(card.id, { title: title.trim() })}
+            style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0", flex: 1, minWidth: 0 }}
+          />
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <button type="button" onClick={onPrev} disabled={!onPrev} title="Previous in column" style={navButtonStyle(!!onPrev)}>
+              <ArrowIcon direction="left" />
+            </button>
+            <button type="button" onClick={onNext} disabled={!onNext} title="Next in column" style={navButtonStyle(!!onNext)}>
+              <ArrowIcon direction="right" />
+            </button>
+          </div>
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={labelStyle}>
@@ -173,6 +185,32 @@ export function PipelineCardModal({ card, columns, notes, onClose, onUpdate, onD
       </div>
     </div>
   );
+}
+
+function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+  const d = direction === "left" ? "M8 2.5L4.5 6L8 9.5" : "M4 2.5L7.5 6L4 9.5";
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d={d} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function navButtonStyle(enabled: boolean): CSSProperties {
+  return {
+    width: 28,
+    height: 28,
+    borderRadius: 99,
+    border: "1px solid var(--border-strong)",
+    background: "none",
+    color: "var(--text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+    cursor: enabled ? "pointer" : "default",
+    opacity: enabled ? 1 : 0.35,
+  };
 }
 
 const inputStyle: CSSProperties = {
