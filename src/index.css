@@ -206,3 +206,14 @@ body {
   text-decoration: line-through;
 }
 
+/* Landing page: recreated module preview panels lift slightly on hover so
+   the page doesn't feel static — plain inline styles can't express :hover,
+   so this lives here instead. */
+.landing-preview {
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.landing-preview:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
+}
+

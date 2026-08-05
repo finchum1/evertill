@@ -5,6 +5,7 @@ import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
 import { useNotes } from "./hooks/useNotes";
 import { Header } from "./components/Header";
+import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
 import { TaskListView } from "./components/TaskListView";
@@ -613,39 +614,6 @@ function DealsDashboard({
   );
 }
 
-function Landing({ onGetStarted }: { onGetStarted: () => void }) {
-  return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 61px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        color: "var(--text-primary)",
-        padding: 24,
-        textAlign: "center",
-      }}
-    >
-      <div style={{ maxWidth: 480 }}>
-        <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
-          TC Dashboard
-        </div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.03em", margin: "0 0 12px" }}>
-          Tasks, leads, and deals in one place
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 15, margin: "0 0 28px" }}>
-          Sign up for your own private workspace — folders, lists, due dates, and subtasks, synced across
-          every device.
-        </p>
-        <button onClick={onGetStarted} style={ctaButtonStyle}>
-          Get started
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function PageContent({
   page,
   session,
@@ -929,13 +897,3 @@ const newDealButtonStyle = {
   cursor: "pointer",
 };
 
-const ctaButtonStyle = {
-  background: "var(--accent)",
-  border: "none",
-  borderRadius: 10,
-  color: "#fff",
-  fontWeight: 700,
-  fontSize: 15,
-  padding: "12px 28px",
-  cursor: "pointer",
-};
