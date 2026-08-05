@@ -10,9 +10,12 @@ function systemPrefersDark() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+function effectiveTheme(pref: ThemePreference): "dark" | "light" {
+  return pref === "system" ? (systemPrefersDark() ? "dark" : "light") : pref;
+}
+
 function applyTheme(pref: ThemePreference) {
-  const effective = pref === "system" ? (systemPrefersDark() ? "dark" : "light") : pref;
-  document.documentElement.dataset.theme = effective;
+  document.documentElement.dataset.theme = effectiveTheme(pref);
 }
 
 function readStoredPreference(): ThemePreference {
@@ -40,9 +43,14 @@ function applyAccent(accent: AccentColor) {
 export function useTheme() {
   const [preference, setPreferenceState] = useState<ThemePreference>(() => readStoredPreference());
   const [accent, setAccentState] = useState<AccentColor>(() => readStoredAccent());
+  // Tracked separately from `preference` (which can be "system") so a nav-bar
+  // toggle button always knows which literal look — dark or light — is
+  // actually on screen right now, including when "system" is the source.
+  const [effective, setEffective] = useState<"dark" | "light">(() => effectiveTheme(preference));
 
   useEffect(() => {
     applyTheme(preference);
+    setEffective(effectiveTheme(preference));
   }, [preference]);
 
   useEffect(() => {
@@ -52,7 +60,10 @@ export function useTheme() {
   useEffect(() => {
     if (preference !== "system") return;
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
+    const onChange = () => {
+      applyTheme("system");
+      setEffective(effectiveTheme("system"));
+    };
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
   }, [preference]);
@@ -67,5 +78,12 @@ export function useTheme() {
     setAccentState(next);
   }
 
-  return { preference, setPreference, accent, setAccent };
+  // Nav-bar quick toggle: flips the *effective* look directly to an explicit
+  // preference, regardless of whether "system" was the source — so a user on
+  // "system" who toggles gets a real, sticky override, not a no-op.
+  function toggleEffective() {
+    setPreference(effective === "dark" ? "light" : "dark");
+  }
+
+  return { preference, setPreference, accent, setAccent, effective, toggleEffective };
 }

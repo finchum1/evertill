@@ -773,6 +773,8 @@ function App() {
         onSignup={() => setAuthModal("signup")}
         onCreate={handleCreate}
         hiddenModules={hiddenModules}
+        themeEffective={theme.effective}
+        onToggleTheme={theme.toggleEffective}
       />
       {session ? (
         <PageContent

@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+/* Smooth-scrolls anchor jumps (e.g. the landing page's hero module pills and
+   "See what's inside" link) instead of an instant snap. */
+html {
+  scroll-behavior: smooth;
+}
+
 /* Dark is the default token set (unprefixed :root) since this app has always
    been dark-first; light overrides only where [data-theme="light"] is set on
    <html> by the theme-preference hook in useTheme.ts. Category/identity
@@ -215,5 +221,15 @@ body {
 .landing-preview:hover {
   transform: translateY(-4px);
   box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
+}
+
+/* Landing page: the hero's module pills are anchor links that jump to each
+   section — a hover state makes that affordance obvious. */
+.landing-pill {
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.landing-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 

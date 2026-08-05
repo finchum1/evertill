@@ -168,9 +168,9 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
           {["Tasks", "Leads", "Pipeline", "Deals", "Notes"].map((m) => (
-            <span key={m} style={pillStyle}>
+            <a key={m} href={`#${m.toLowerCase()}`} className="landing-pill" style={pillStyle}>
               {m}
-            </span>
+            </a>
           ))}
         </div>
       </div>
@@ -713,6 +713,9 @@ const pillStyle: CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 99,
   padding: "5px 12px",
+  textDecoration: "none",
+  cursor: "pointer",
+  display: "inline-block",
 };
 
 const previewFrameStyle: CSSProperties = {
