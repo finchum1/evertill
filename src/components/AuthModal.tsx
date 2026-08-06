@@ -111,7 +111,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
         </button>
 
         <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-          TC Dashboard
+          Evertill
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
           {mode === "signin" ? "Sign in" : "Create your account"}

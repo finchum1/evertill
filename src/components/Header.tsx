@@ -52,7 +52,7 @@ export function Header({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-          TC Dashboard
+          Evertill
         </div>
         {session && (
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

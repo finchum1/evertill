@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { LIST_COLOR_HEX } from "../types";
 
 // The public, logged-out landing page. Shown below the app's own Header
-// (which already renders the "TC Dashboard" wordmark + Log in/Sign up), so
+// (which already renders the "Evertill" wordmark + Log in/Sign up), so
 // this component only owns the marketing content itself.
 //
 // Each module section below is illustrated with a small hand-built preview
@@ -148,7 +148,7 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             marginBottom: 18,
           }}
         >
-          TC Dashboard
+          Evertill
         </div>
         <h1
           style={{
@@ -160,13 +160,14 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             margin: "0 0 20px",
           }}
         >
-          Every file. Every follow-up.
+          Every task. Every follow-up.
           <br />
           One workspace.
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 17, lineHeight: 1.6, margin: "0 auto 32px", maxWidth: 560 }}>
-          Tasks, Leads, Pipeline, Deals, and Notes — built specifically for how a real estate transaction
-          coordinator actually works, in one private workspace synced across every device.
+          Tasks and Notes to stay organized, plus Leads, Pipeline, and Deals when you're tracking
+          relationships and transactions too. Turn on only what fits — a student or freelancer might
+          just want Tasks; a real estate pro gets the full toolkit.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 40 }}>
           <button onClick={onGetStarted} style={primaryButtonStyle}>
@@ -289,7 +290,11 @@ function ModuleSection({
 function Highlights() {
   const items = [
     { icon: <ThemeIcon />, title: "Dark, light, or system", body: "Plus four accent colors — pick the one that feels like yours." },
-    { icon: <ToggleIcon />, title: "Only the modules you use", body: "Hide any module you don't need — it disappears from nav and Create." },
+    {
+      icon: <ToggleIcon />,
+      title: "Only the modules you use",
+      body: "Running a real estate business? Keep all five. Just need tasks and notes? Turn the rest off — it disappears from nav and Create.",
+    },
     { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Tasks, leads, clients, and calendar days — pick it up, drop it where it goes." },
     { icon: <LockIcon />, title: "Your own private workspace", body: "Self-service signup, your data scoped to your account alone." },
   ];
@@ -327,7 +332,7 @@ function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
 function Footer() {
   return (
     <div style={{ borderTop: "1px solid var(--border)", padding: "28px 24px", textAlign: "center" }}>
-      <span style={{ fontSize: 13, color: "var(--text-muted)" }}>TC Dashboard — built for real estate transaction coordinators.</span>
+      <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Evertill — one workspace, only the modules you need.</span>
     </div>
   );
 }
@@ -365,10 +370,10 @@ function BrowserFrame({ children }: { children: ReactNode }) {
 
 function TasksPreview({ large }: { large?: boolean }) {
   const rows: { title: string; done?: boolean; date?: string; overdue?: boolean; sub?: number; color: string; list: string }[] = [
-    { title: "Order title search", date: "Wed, Jul 22", overdue: true, color: LIST_COLOR_HEX.blue, list: "Jackfork Land" },
-    { title: "Schedule final walkthrough", sub: 2, color: LIST_COLOR_HEX.indigo, list: "Maple Crossing" },
-    { title: "Send closing disclosure to buyer", done: true, color: LIST_COLOR_HEX.indigo, list: "Maple Crossing" },
-    { title: "Confirm wire instructions with lender", date: "Fri, Aug 7", color: LIST_COLOR_HEX.teal, list: "Harbor Ct" },
+    { title: "Submit Q3 invoice", date: "Wed, Jul 22", overdue: true, color: LIST_COLOR_HEX.blue, list: "Freelance" },
+    { title: "Finish reading for Chem 101", sub: 2, color: LIST_COLOR_HEX.indigo, list: "School" },
+    { title: "Send pitch deck to investors", done: true, color: LIST_COLOR_HEX.indigo, list: "Startup" },
+    { title: "Confirm venue for launch event", date: "Fri, Aug 7", color: LIST_COLOR_HEX.teal, list: "Events" },
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: large ? 10 : 8 }}>
@@ -584,19 +589,19 @@ function NotesPreview() {
     <div style={{ display: "flex", gap: 12 }}>
       <div style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 9, padding: "12px 14px", background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Escrow instructions</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Client project brief</span>
           <PinIcon />
         </div>
         <div style={{ fontSize: 12, color: "var(--text-body)", lineHeight: 1.5 }}>
-          Title company needs{" "}
-          <mark style={{ background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 3px" }}>signed disclosures by Friday</mark>{" "}
-          — confirm with buyer's agent.
+          Final deliverables{" "}
+          <mark style={{ background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 3px" }}>due by Friday</mark>{" "}
+          — confirm scope before starting.
         </div>
       </div>
       <div style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 9, padding: "12px 14px", background: "var(--bg-panel)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>New agent checklist</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>New hire checklist</div>
         <div style={{ fontSize: 12, color: "var(--text-body)", lineHeight: 1.5 }}>
-          <strong>Week one:</strong> MLS access, e-sign setup, intro call with the broker.
+          <strong>Week one:</strong> account setup, tool access, intro call with the team.
         </div>
         <span style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 600, color: "var(--text-muted)", border: "1px solid var(--border-strong)", borderRadius: 5, padding: "2px 7px" }}>
           Onboarding

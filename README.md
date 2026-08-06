@@ -1,4 +1,4 @@
-# TC Dashboard (web)
+# Evertill (web)
 
 A Vite + React + TypeScript + Supabase rebuild of TC Dashboard, with real
 self-service signup and a real database so every user gets their own private
