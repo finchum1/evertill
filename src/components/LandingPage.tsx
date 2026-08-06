@@ -16,9 +16,19 @@ interface LandingProps {
   onGetStarted: () => void;
 }
 
+// The app's own component font stack — kept separate so the module preview
+// mockups still render with the real product's actual typography, even
+// though the surrounding marketing copy uses its own distinct voice below.
+const APP_FONT_STACK = "'Inter', 'SF Pro Display', -apple-system, sans-serif";
+// Loaded via <link> in index.html, scoped to this page only (see comment
+// there) — a real webfont the rest of the app doesn't load, chosen for
+// being the top SaaS/productivity-tool match from the ui-ux-pro-max design
+// database rather than the app's previous unloaded "Inter" fallback stack.
+const MARKETING_FONT_STACK = `'Plus Jakarta Sans', ${APP_FONT_STACK}`;
+
 export function Landing({ onGetStarted }: LandingProps) {
   return (
-    <div style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif", color: "var(--text-primary)" }}>
+    <div style={{ fontFamily: MARKETING_FONT_STACK, color: "var(--text-primary)" }}>
       <Hero onGetStarted={onGetStarted} />
 
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px" }}>
@@ -225,7 +235,7 @@ function ModuleSection({
       <div style={{ fontSize: 12, fontWeight: 700, color: badgeColor, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
         {eyebrow}
       </div>
-      <h2 style={{ fontSize: 30, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px", lineHeight: 1.2 }}>
+      <h2 style={{ fontSize: 30, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px", lineHeight: 1.2 }}>
         {title}
       </h2>
       <p style={{ fontSize: 15.5, color: "var(--text-secondary)", lineHeight: 1.65, margin: "0 0 20px" }}>{description}</p>
@@ -289,7 +299,7 @@ function Highlights() {
         {items.map((item) => (
           <div key={item.title} style={{ flex: "1 1 220px", minWidth: 200 }}>
             <div style={{ color: "var(--accent)", marginBottom: 14 }}>{item.icon}</div>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{item.title}</div>
+            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{item.title}</div>
             <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.55 }}>{item.body}</div>
           </div>
         ))}
@@ -301,7 +311,7 @@ function Highlights() {
 function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <div style={{ textAlign: "center", padding: "88px 24px" }}>
-      <h2 style={{ fontSize: 30, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px" }}>
+      <h2 style={{ fontSize: 30, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px" }}>
         Stop juggling five tools for one file.
       </h2>
       <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
@@ -333,6 +343,9 @@ function BrowserFrame({ children }: { children: ReactNode }) {
         boxShadow: "0 30px 60px -20px rgba(0,0,0,0.35)",
         overflow: "hidden",
         textAlign: "left",
+        // Reset back to the app's own font — this frame previews the real
+        // product UI, which shouldn't pick up the marketing copy's font.
+        fontFamily: APP_FONT_STACK,
       }}
     >
       <div style={{ display: "flex", gap: 6, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
@@ -688,7 +701,7 @@ const primaryButtonStyle: CSSProperties = {
   border: "none",
   borderRadius: 10,
   color: "#fff",
-  fontWeight: 700,
+  fontWeight: 600,
   fontSize: 15,
   padding: "13px 26px",
   cursor: "pointer",
@@ -699,7 +712,7 @@ const secondaryButtonStyle: CSSProperties = {
   border: "1px solid var(--border-strong)",
   borderRadius: 10,
   color: "var(--text-body)",
-  fontWeight: 700,
+  fontWeight: 600,
   fontSize: 15,
   padding: "13px 26px",
   textDecoration: "none",
@@ -724,4 +737,6 @@ const previewFrameStyle: CSSProperties = {
   background: "var(--bg-panel)",
   boxShadow: "0 20px 40px -18px rgba(0,0,0,0.3)",
   padding: 20,
+  // Same reasoning as BrowserFrame above: these preview the real product UI.
+  fontFamily: APP_FONT_STACK,
 };
