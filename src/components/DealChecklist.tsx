@@ -187,7 +187,7 @@ function ChecklistItemRow({
       >
         {item.title}
       </span>
-      <button onClick={() => onDelete(item.id)} style={removeButtonStyle}>
+      <button onClick={() => onDelete(item.id)} aria-label={`Remove "${item.title}"`} style={removeButtonStyle}>
         ×
       </button>
     </div>

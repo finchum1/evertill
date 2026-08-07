@@ -164,27 +164,30 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
       {renderTrigger ? (
         renderTrigger({ onClick: () => (open ? setOpen(false) : openPopover()), triggerRef })
       ) : (
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => (open ? setOpen(false) : openPopover())}
-          style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}
-        >
-          <CalendarIcon />
-          {label()}
+        // A <span role="button"> clear control used to live nested inside
+        // this trigger <button> — interactive content nested inside a
+        // <button> is invalid HTML, and in practice makes the inner control
+        // unreachable to screen readers regardless of its own aria-label
+        // (they only ever expose the outer button). Two sibling buttons
+        // inside a shared pill instead: real markup, both independently
+        // reachable by keyboard/screen reader.
+        <span style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}>
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => (open ? setOpen(false) : openPopover())}
+            aria-label={value ? undefined : "Choose date"}
+            style={triggerInnerButtonStyle}
+          >
+            <CalendarIcon />
+            {label()}
+          </button>
           {value && (
-            <span
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                pick(null);
-              }}
-              style={clearButtonStyle}
-            >
+            <button type="button" onClick={() => pick(null)} aria-label="Clear date" style={clearButtonStyle}>
               ×
-            </span>
+            </button>
           )}
-        </button>
+        </span>
       )}
 
       {open && (
@@ -214,13 +217,13 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
 
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, -1))} style={navButtonStyle}>
+                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, -1))} aria-label="Previous month" style={navButtonStyle}>
                   ‹
                 </button>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
                   {displayMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
                 </span>
-                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, 1))} style={navButtonStyle}>
+                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, 1))} aria-label="Next month" style={navButtonStyle}>
                   ›
                 </button>
               </div>
@@ -375,18 +378,20 @@ function RepeatIcon() {
   );
 }
 
+// Split across two real sibling <button>s (see the JSX above) rather than
+// one styled element — this const is now just the shared, unpadded outer
+// frame; each button owns its own padding/cursor so both remain
+// independently focusable and clickable instead of one interactive element
+// nested inside another.
 const pillStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: 6,
   background: "none",
   border: "1px solid var(--border-strong)",
   borderRadius: 8,
   color: "var(--text-secondary)",
   fontSize: 13,
   fontWeight: 600,
-  padding: "7px 12px",
-  cursor: "pointer",
 };
 
 const pillActiveStyle: CSSProperties = {
@@ -394,12 +399,31 @@ const pillActiveStyle: CSSProperties = {
   borderColor: "var(--success)",
 };
 
+const triggerInnerButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  background: "none",
+  border: "none",
+  color: "inherit",
+  font: "inherit",
+  padding: "7px 12px",
+  cursor: "pointer",
+};
+
 const clearButtonStyle: CSSProperties = {
-  marginLeft: 2,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 24,
+  minHeight: 24,
+  background: "none",
+  border: "none",
   color: "var(--text-muted)",
   cursor: "pointer",
-  fontSize: 13,
+  fontSize: 15,
   lineHeight: 1,
+  padding: "0 10px 0 0",
 };
 
 const panelStyle: CSSProperties = {
@@ -447,6 +471,8 @@ const navButtonStyle: CSSProperties = {
   cursor: "pointer",
   padding: "0 8px",
   lineHeight: 1.4,
+  minWidth: 24,
+  minHeight: 24,
 };
 
 const dayButtonStyle: CSSProperties = {

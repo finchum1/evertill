@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Note, NoteFolder } from "../types";
-import { NoteEditor } from "./NoteEditor";
+import { useDialogs } from "./DialogHost";
+
+// Tiptap (NoteEditor's dependency) was ~280KB of the app's single ~1MB
+// production bundle despite only ever being needed once a note is actually
+// opened — lazy-loaded so that weight only downloads then, not on first
+// paint for every visitor regardless of whether they ever touch Notes.
+const NoteEditor = lazy(() => import("./NoteEditor").then((m) => ({ default: m.NoteEditor })));
 
 interface NoteModalProps {
   note: Note;
@@ -18,6 +24,7 @@ interface NoteModalProps {
 // saving on blur.
 export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onTogglePinned }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
+  const dialogs = useDialogs();
 
   return (
     <div
@@ -60,6 +67,7 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
           <button
             type="button"
             title={note.pinned ? "Unpin" : "Pin"}
+            aria-label={note.pinned ? "Unpin note" : "Pin note"}
             onClick={() => onTogglePinned(note.id)}
             style={{ background: "none", border: "none", padding: 4, cursor: "pointer", color: note.pinned ? "var(--accent)" : "var(--text-muted)", flexShrink: 0 }}
           >
@@ -67,7 +75,9 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
           </button>
         </div>
 
-        <NoteEditor content={note.body} onBlur={(html) => html !== note.body && onUpdate(note.id, { body: html })} />
+        <Suspense fallback={<div style={{ minHeight: 360, color: "var(--text-muted)", fontSize: 13, padding: "10px 2px" }}>Loading editor…</div>}>
+          <NoteEditor content={note.body} onBlur={(html) => html !== note.body && onUpdate(note.id, { body: html })} />
+        </Suspense>
 
         <div style={dividerStyle} />
 
@@ -97,8 +107,9 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
               Close
             </button>
             <button
-              onClick={() => {
-                if (window.confirm(`Delete "${note.title}"? This can't be undone.`)) {
+              onClick={async () => {
+                const ok = await dialogs.confirm({ message: `Delete "${note.title}"? This can't be undone.`, danger: true, confirmLabel: "Delete" });
+                if (ok) {
                   onDelete(note.id);
                   onClose();
                 }

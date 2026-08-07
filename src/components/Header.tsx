@@ -45,19 +45,21 @@ export function Header({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 12,
         padding: "16px 24px",
         borderBottom: "1px solid var(--border)",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", rowGap: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
           Evertill
         </div>
         {session && (
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <CreateMenu onSelect={onCreate} hiddenModules={hiddenModules} />
-            <nav style={{ display: "flex", gap: 4 }}>
+            <nav style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {visibleNavItems.map((item) => (
                 <button
                   key={item.key}

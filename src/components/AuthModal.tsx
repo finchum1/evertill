@@ -113,9 +113,11 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
         <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
           Evertill
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+        {/* h2, not h1 — this always opens over the logged-out Landing page,
+            which already owns the page's one <h1> (the hero headline). */}
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
           {mode === "signin" ? "Sign in" : "Create your account"}
-        </h1>
+        </h2>
 
         {mode === "signup" && (
           <>

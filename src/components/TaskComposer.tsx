@@ -104,7 +104,7 @@ export function TaskComposer({
             <div key={i} style={subtaskRowStyle}>
               <SubtaskCheckIcon />
               <span style={{ flex: 1 }}>{t}</span>
-              <button type="button" onClick={() => onRemoveSubtaskTitle(i)} style={subtaskRemoveButtonStyle}>
+              <button type="button" onClick={() => onRemoveSubtaskTitle(i)} aria-label={`Remove subtask "${t}"`} style={subtaskRemoveButtonStyle}>
                 ×
               </button>
             </div>

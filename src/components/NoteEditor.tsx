@@ -103,6 +103,7 @@ function HighlightButton({ editor }: { editor: Editor }) {
             <button
               type="button"
               title="No highlight"
+              aria-label="No highlight"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 editor.chain().focus().unsetHighlight().run();
@@ -115,6 +116,7 @@ function HighlightButton({ editor }: { editor: Editor }) {
                 key={color}
                 type="button"
                 title={color}
+                aria-label={`Highlight ${color}`}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   editor.chain().focus().setHighlight({ color: LIST_COLOR_HEX[color] }).run();
@@ -147,6 +149,8 @@ function TextButton({
     <button
       type="button"
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       style={{ ...buttonStyle, ...style, color: active ? "var(--accent)" : "var(--text-body)", background: active ? "var(--accent-subtle-bg)" : "none" }}
@@ -161,6 +165,8 @@ function IconButton({ children, active, onClick, title }: { children: ReactNode;
     <button
       type="button"
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       style={{ ...buttonStyle, color: active ? "var(--accent)" : "var(--text-body)", background: active ? "var(--accent-subtle-bg)" : "none" }}

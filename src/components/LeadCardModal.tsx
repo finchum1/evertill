@@ -4,6 +4,7 @@ import type { LeadCard, LeadColumn, LeadNote, ListColor, Tag } from "../types";
 import { DatePickerField } from "./DatePickerField";
 import type { DatePickerFieldHandle } from "./DatePickerField";
 import { TagPicker } from "./TagPicker";
+import { useDialogs } from "./DialogHost";
 
 interface LeadCardModalProps {
   card: LeadCard;
@@ -45,6 +46,7 @@ export function LeadCardModal({
   const [address, setAddress] = useState(card.address ?? "");
   const [newNote, setNewNote] = useState("");
   const dueDateRef = useRef<DatePickerFieldHandle>(null);
+  const dialogs = useDialogs();
 
   return (
     <div
@@ -85,10 +87,10 @@ export function LeadCardModal({
             style={{ ...inputStyle, fontSize: 18, fontWeight: 700, border: "none", padding: "4px 0", flex: 1, minWidth: 0 }}
           />
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button type="button" onClick={onPrev} disabled={!onPrev} title="Previous in column" style={navButtonStyle(!!onPrev)}>
+            <button type="button" onClick={onPrev} disabled={!onPrev} title="Previous in column" aria-label="Previous card in column" style={navButtonStyle(!!onPrev)}>
               <ArrowIcon direction="left" />
             </button>
-            <button type="button" onClick={onNext} disabled={!onNext} title="Next in column" style={navButtonStyle(!!onNext)}>
+            <button type="button" onClick={onNext} disabled={!onNext} title="Next in column" aria-label="Next card in column" style={navButtonStyle(!!onNext)}>
               <ArrowIcon direction="right" />
             </button>
           </div>
@@ -186,8 +188,9 @@ export function LeadCardModal({
             Close
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Delete "${card.title}"? This can't be undone.`)) {
+            onClick={async () => {
+              const ok = await dialogs.confirm({ message: `Delete "${card.title}"? This can't be undone.`, danger: true, confirmLabel: "Delete" });
+              if (ok) {
                 onDelete(card.id);
                 onClose();
               }

@@ -49,7 +49,9 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
         }}
       >
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Deal</h1>
+        {/* h2, not h1 — this is a modal dialog title, and the Deals page
+            behind it already owns the page's one <h1>. */}
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Deal</h2>
 
         <label style={labelStyle}>
           Property address

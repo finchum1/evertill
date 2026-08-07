@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
@@ -38,6 +39,8 @@ import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
 import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
+import { DialogsProvider, useDialogs } from "./components/DialogHost";
+import { useIsMobile } from "./hooks/useMediaQuery";
 import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR, HIDEABLE_MODULES } from "./types";
 import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
@@ -52,6 +55,97 @@ const NO_HIDDEN_MODULES: string[] = [];
 // Stable reference for a card with no tags — same reasoning as
 // NO_HIDDEN_MODULES above, avoids a fresh `[]` literal on every render.
 const EMPTY_TAG_IDS: string[] = [];
+
+// The app has no responsive layout at all below desktop widths — Sidebar/
+// NotesSidebar are a fixed 240px sitting in a flex row with the content,
+// which just gets crushed on a narrow viewport. Below the breakpoint, this
+// swaps that always-visible column for a hamburger toggle + an off-canvas
+// drawer instead — the sidebar itself (Sidebar.tsx/NotesSidebar.tsx) is
+// completely unchanged, just relocated into an overlay when isMobile is
+// true. Shared by both TasksDashboard and NotesDashboard below.
+function SidebarDrawer({ isMobile, label, children }: { isMobile: boolean; label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+
+  if (!isMobile) return <>{children}</>;
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={`Open ${label}`}
+        style={{
+          // sticky (not fixed) so it renders in normal flow right after
+          // Header — no guessing Header's rendered height, which varies
+          // since Header wraps to 2-3 rows on narrow viewports (see
+          // Header.tsx's flexWrap). It then sticks 12px from the viewport
+          // top once the page scrolls past its natural position, keeping
+          // it reachable without a hardcoded top offset that could overlap
+          // whatever Header happens to render above it.
+          position: "sticky",
+          top: 12,
+          alignSelf: "flex-start",
+          margin: "12px 0 0 12px",
+          zIndex: 20,
+          width: 36,
+          height: 36,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border-strong)",
+          borderRadius: 10,
+          color: "var(--text-body)",
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+        }}
+      >
+        <MenuIcon />
+      </button>
+      {open && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
+          <div
+            onClick={() => setOpen(false)}
+            aria-hidden
+            style={{ position: "absolute", inset: 0, background: "rgba(2, 8, 23, 0.6)" }}
+          />
+          <div style={{ position: "relative", height: "100%", display: "flex", boxShadow: "0 0 40px rgba(0,0,0,0.5)" }}>
+            {children}
+            <button
+              onClick={() => setOpen(false)}
+              aria-label={`Close ${label}`}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: -44,
+                width: 36,
+                height: 36,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--bg-panel)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 10,
+                color: "var(--text-body)",
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2 4H14M2 8H14M2 12H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
@@ -87,6 +181,8 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
     deleteSubtask,
   } = tasks;
 
+  const dialogs = useDialogs();
+  const isMobile = useIsMobile();
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<CompletionToast[]>([]);
@@ -152,36 +248,38 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
-      <Sidebar
-        folders={folders}
-        lists={lists}
-        todos={todos}
-        view={view}
-        onSetView={setView}
-        onAddFolder={() => {
-          const name = window.prompt("Folder name:");
-          if (name?.trim()) addFolder(name.trim());
-        }}
-        onAddList={(folderId) => {
-          const name = window.prompt("List name:");
-          if (name?.trim()) addList(name.trim(), folderId);
-        }}
-        onRenameList={renameList}
-        onSetListColor={setListColor}
-        onDeleteList={(id) => {
-          if (view === id) setView("today");
-          deleteList(id);
-        }}
-        onRenameFolder={renameFolder}
-        onDeleteFolder={deleteFolder}
-        onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
-        onMoveListToFolder={moveListToFolder}
-        onReorderLists={reorderLists}
-        onReorderFolders={reorderFolders}
-        onNewTask={onNewTask}
-        toasts={toasts}
-        onUndoComplete={handleUndoComplete}
-      />
+      <SidebarDrawer isMobile={isMobile} label="Tasks sidebar">
+        <Sidebar
+          folders={folders}
+          lists={lists}
+          todos={todos}
+          view={view}
+          onSetView={setView}
+          onAddFolder={async () => {
+            const name = await dialogs.prompt({ message: "Folder name:" });
+            if (name) addFolder(name);
+          }}
+          onAddList={async (folderId) => {
+            const name = await dialogs.prompt({ message: "List name:" });
+            if (name) addList(name, folderId);
+          }}
+          onRenameList={renameList}
+          onSetListColor={setListColor}
+          onDeleteList={(id) => {
+            if (view === id) setView("today");
+            deleteList(id);
+          }}
+          onRenameFolder={renameFolder}
+          onDeleteFolder={deleteFolder}
+          onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
+          onMoveListToFolder={moveListToFolder}
+          onReorderLists={reorderLists}
+          onReorderFolders={reorderFolders}
+          onNewTask={onNewTask}
+          toasts={toasts}
+          onUndoComplete={handleUndoComplete}
+        />
+      </SidebarDrawer>
       {view === "calendar" ? (
         <CalendarView
           todos={todos}
@@ -235,6 +333,8 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 function NotesDashboard({ notes }: { notes: NotesData }) {
   const { folders, notes: allNotes, loading, addFolder, renameFolder, setFolderColor, deleteFolder, addNote, updateNote, deleteNote, togglePinned } = notes;
 
+  const dialogs = useDialogs();
+  const isMobile = useIsMobile();
   const [view, setView] = useState<"all" | "pinned" | string>("all");
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
 
@@ -256,23 +356,25 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
 
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
-      <NotesSidebar
-        folders={folders}
-        notes={allNotes}
-        view={view}
-        onSetView={setView}
-        onAddNote={handleAddNote}
-        onAddFolder={() => {
-          const name = window.prompt("Folder name:");
-          if (name?.trim()) addFolder(name.trim());
-        }}
-        onRenameFolder={renameFolder}
-        onSetFolderColor={setFolderColor}
-        onDeleteFolder={(id) => {
-          if (view === id) setView("all");
-          deleteFolder(id);
-        }}
-      />
+      <SidebarDrawer isMobile={isMobile} label="Notes sidebar">
+        <NotesSidebar
+          folders={folders}
+          notes={allNotes}
+          view={view}
+          onSetView={setView}
+          onAddNote={handleAddNote}
+          onAddFolder={async () => {
+            const name = await dialogs.prompt({ message: "Folder name:" });
+            if (name) addFolder(name);
+          }}
+          onRenameFolder={renameFolder}
+          onSetFolderColor={setFolderColor}
+          onDeleteFolder={(id) => {
+            if (view === id) setView("all");
+            deleteFolder(id);
+          }}
+        />
+      </SidebarDrawer>
       <NotesListView
         view={view}
         folders={folders}
@@ -322,6 +424,7 @@ function LeadsDashboard({
     deleteNote,
   } = leads;
 
+  const dialogs = useDialogs();
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
 
@@ -350,9 +453,9 @@ function LeadsDashboard({
           cards={cards}
           tags={tags}
           cardTagIds={cardTagIds}
-          onAddColumn={() => {
-            const label = window.prompt("Column name:");
-            if (label?.trim()) addColumn(label.trim());
+          onAddColumn={async () => {
+            const label = await dialogs.prompt({ message: "Column name:" });
+            if (label) addColumn(label);
           }}
           onRenameColumn={renameColumn}
           onSetColumnColor={setColumnColor}
@@ -432,6 +535,8 @@ function PipelineDashboard({
     deleteNote,
   } = pipeline;
 
+  const dialogs = useDialogs();
+
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
 
@@ -460,9 +565,9 @@ function PipelineDashboard({
           cards={cards}
           tags={tags}
           cardTagIds={cardTagIds}
-          onAddColumn={() => {
-            const label = window.prompt("Column name:");
-            if (label?.trim()) addColumn(label.trim());
+          onAddColumn={async () => {
+            const label = await dialogs.prompt({ message: "Column name:" });
+            if (label) addColumn(label);
           }}
           onRenameColumn={renameColumn}
           onSetColumnColor={setColumnColor}
@@ -808,6 +913,7 @@ function App() {
   const createNote = createNoteId ? notes.notes.find((n) => n.id === createNoteId) : undefined;
 
   return (
+    <DialogsProvider>
     <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
       <Header
         session={session}
@@ -822,21 +928,27 @@ function App() {
         onToggleTheme={theme.toggleEffective}
       />
       {session ? (
-        <PageContent
-          page={page}
-          session={session}
-          tasksData={tasks}
-          leadsData={leads}
-          pipelineData={pipeline}
-          dealsData={deals}
-          dealTemplatesData={dealTemplates}
-          tagsData={tags}
-          notesData={notes}
-          profileData={profile}
-          theme={theme}
-          onNewTask={() => setQuickAddOpen(true)}
-          onMoveDealToPipeline={handleMoveDealToPipeline}
-        />
+        // <Landing> already renders its own <main> for the logged-out case
+        // (see LandingPage.tsx) — only wrap the logged-in branch here, or a
+        // signed-in visitor would get this <main> while a logged-out one
+        // gets Landing's, never both/neither nested inside each other.
+        <main>
+          <PageContent
+            page={page}
+            session={session}
+            tasksData={tasks}
+            leadsData={leads}
+            pipelineData={pipeline}
+            dealsData={deals}
+            dealTemplatesData={dealTemplates}
+            tagsData={tags}
+            notesData={notes}
+            profileData={profile}
+            theme={theme}
+            onNewTask={() => setQuickAddOpen(true)}
+            onMoveDealToPipeline={handleMoveDealToPipeline}
+          />
+        </main>
       ) : (
         <Landing onGetStarted={() => setAuthModal("signup")} />
       )}
@@ -937,6 +1049,7 @@ function App() {
         />
       )}
     </div>
+    </DialogsProvider>
   );
 }
 

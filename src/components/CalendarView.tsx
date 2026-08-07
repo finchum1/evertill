@@ -562,16 +562,20 @@ function MiniCheckbox({
       }}
       aria-label="Mark complete"
       style={{
-        width: 12,
-        height: 12,
-        borderRadius: 99,
-        border: `2px solid ${color}`,
+        width: 20,
+        height: 20,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         background: "none",
+        border: "none",
         cursor: "pointer",
         padding: 0,
         flexShrink: 0,
       }}
-    />
+    >
+      <span aria-hidden style={{ width: 12, height: 12, borderRadius: 99, border: `2px solid ${color}` }} />
+    </button>
   );
 }
 

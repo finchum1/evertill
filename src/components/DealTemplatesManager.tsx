@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
 import type { DealChecklistKind, DealTemplateItem, DealType } from "../types";
 import { parseChecklistPaste } from "../lib/checklistImport";
+import { useDialogs } from "./DialogHost";
 
 interface DealTemplatesManagerProps {
   dealTemplatesData: ReturnType<typeof useDealTemplates>;
@@ -16,6 +17,7 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
   const [activeType, setActiveType] = useState<DealType>("Buyer");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newTemplateName, setNewTemplateName] = useState("");
+  const dialogs = useDialogs();
 
   const typeTemplates = templates.filter((t) => t.deal_type === activeType);
   const active = typeTemplates.find((t) => t.id === activeId) ?? typeTemplates[0];
@@ -102,8 +104,9 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
             template={active}
             items={items.filter((i) => i.template_id === active.id)}
             onRename={(name) => renameTemplate(active.id, name)}
-            onDelete={() => {
-              if (!window.confirm(`Delete template "${active.name}"?`)) return;
+            onDelete={async () => {
+              const ok = await dialogs.confirm({ message: `Delete template "${active.name}"?`, danger: true, confirmLabel: "Delete" });
+              if (!ok) return;
               deleteTemplate(active.id);
               setActiveId(null);
             }}
@@ -234,7 +237,7 @@ function ItemColumn({
             {g.items.map((item) => (
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ flex: 1, fontSize: 13, color: "var(--text-body)" }}>{item.title}</span>
-                <button onClick={() => onDelete(item.id)} style={removeButtonStyle}>
+                <button onClick={() => onDelete(item.id)} aria-label={`Remove "${item.title}"`} style={removeButtonStyle}>
                   ×
                 </button>
               </div>

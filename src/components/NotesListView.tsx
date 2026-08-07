@@ -102,6 +102,7 @@ function NoteRow({
       <button
         type="button"
         title={note.pinned ? "Unpin" : "Pin"}
+        aria-label={note.pinned ? "Unpin note" : "Pin note"}
         onClick={(e) => {
           e.stopPropagation();
           onTogglePinned(note.id);

@@ -2,6 +2,21 @@
   box-sizing: border-box;
 }
 
+/* Visible keyboard focus, app-wide. Every text input/textarea/select in this
+   app sets outline: "none" inline (a deliberate reset meant to be replaced
+   with something better, not an accidental omission) — this is that
+   replacement, added globally rather than per-component so it never needs
+   updating when a new input is added. :focus-visible (not :focus) so a
+   mouse/touch click never shows a ring, only real keyboard navigation does —
+   matching how native controls already behave. Previously there was no
+   compensating rule at all, so keyboard-only users got zero visual feedback
+   for which field or control was focused anywhere in the app. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Smooth-scrolls anchor jumps (e.g. the landing page's hero module pills and
    "See what's inside" link) instead of an instant snap. */
 html {
@@ -37,9 +52,15 @@ html {
   --border-strong: #334155;
   --text-primary: #f1f5f9;
   --text-body: #cbd5e1;
-  --text-secondary: #64748b;
+  /* text-secondary/text-muted were #64748b / #475569 — measured against
+     --bg-panel that's 3.75:1 and 2.36:1, both below the 4.5:1 WCAG AA floor
+     for normal text despite being used for real, non-decorative copy
+     (descriptions, timestamps, hints) throughout the app. Lightened just
+     enough to clear 4.5:1 (5.21:1 / 4.68:1) while keeping the same relative
+     step between body → secondary → muted. */
+  --text-secondary: #7c8ca2;
   --text-tertiary: #94a3b8;
-  --text-muted: #475569;
+  --text-muted: #7583a0;
   --text-menu: #e2e8f0;
   --accent: #6366f1;
   --accent-strong: #4f46e5;
@@ -67,7 +88,12 @@ html {
   --text-body: #334155;
   --text-secondary: #64748b;
   --text-tertiary: #64748b;
-  --text-muted: #94a3b8;
+  /* Was #94a3b8 — 2.56:1 against white, below the 4.5:1 floor. On a light
+     background there's very little headroom left below --text-secondary's
+     own already-thin 4.76:1 margin, so this sits a step darker instead of
+     lighter than secondary (6.3:1) rather than chase an unreadable "lighter
+     still" tier that can't pass AA at all on white. */
+  --text-muted: #556170;
   --text-menu: #1e293b;
   --accent: #6366f1;
   --accent-strong: #4f46e5;

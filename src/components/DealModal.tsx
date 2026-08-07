@@ -6,6 +6,7 @@ import { openDatePicker } from "../lib/datePicker";
 import { DealChecklist } from "./DealChecklist";
 import { DealContactsTab } from "./DealContactsTab";
 import { checklistProgress } from "../lib/dealChecklistProgress";
+import { useDialogs } from "./DialogHost";
 
 interface DealModalProps {
   deal: Deal;
@@ -54,6 +55,7 @@ export function DealModal({
   const [tab, setTab] = useState<DealTab>("Overview");
   const [address, setAddress] = useState(deal.address);
   const { percent } = checklistProgress(checklistItems);
+  const dialogs = useDialogs();
 
   return (
     <div
@@ -160,8 +162,11 @@ export function DealModal({
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button
-            onClick={() => {
-              if (window.confirm(`Move "${deal.address}" back to Pipeline? This removes it from Deals — use this when a deal busts.`)) {
+            onClick={async () => {
+              const ok = await dialogs.confirm({
+                message: `Move "${deal.address}" back to Pipeline? This removes it from Deals — use this when a deal busts.`,
+              });
+              if (ok) {
                 onMoveToPipeline(deal);
                 onClose();
               }
@@ -171,8 +176,9 @@ export function DealModal({
             Move to Pipeline
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Delete "${deal.address}"? This can't be undone.`)) {
+            onClick={async () => {
+              const ok = await dialogs.confirm({ message: `Delete "${deal.address}"? This can't be undone.`, danger: true, confirmLabel: "Delete" });
+              if (ok) {
                 onDelete(deal.id);
                 onClose();
               }

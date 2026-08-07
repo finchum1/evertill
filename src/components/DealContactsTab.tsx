@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { DealContactField } from "../types";
+import { useDialogs } from "./DialogHost";
 
 interface DealContactsTabProps {
   dealId: string;
@@ -39,10 +40,11 @@ export function DealContactsTab({ dealId, contactFields, onEnsure, onAdd, onUpda
   }, [dealId]);
 
   const groups = groupFields(contactFields);
+  const dialogs = useDialogs();
 
-  function handleAddCustom() {
-    const label = window.prompt("Field label:");
-    if (label?.trim()) onAdd(dealId, label.trim());
+  async function handleAddCustom() {
+    const label = await dialogs.prompt({ message: "Field label:", placeholder: "e.g. Inspector" });
+    if (label) onAdd(dealId, label);
   }
 
   return (

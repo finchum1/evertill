@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type { useTags } from "../hooks/useTags";
 import { LIST_COLORS, LIST_COLOR_HEX } from "../types";
 import type { ListColor } from "../types";
+import { useDialogs } from "./DialogHost";
 
 interface TagsManagerProps {
   tagsData: ReturnType<typeof useTags>;
@@ -18,6 +19,7 @@ interface TagsManagerProps {
 export function TagsManager({ tagsData, onBack }: TagsManagerProps) {
   const { tags, addTag, renameTag, setTagColor, deleteTag } = tagsData;
   const [newLabel, setNewLabel] = useState("");
+  const dialogs = useDialogs();
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -49,8 +51,13 @@ export function TagsManager({ tagsData, onBack }: TagsManagerProps) {
             color={t.color}
             onRename={(label) => renameTag(t.id, label)}
             onSetColor={(color) => setTagColor(t.id, color)}
-            onDelete={() => {
-              if (window.confirm(`Delete "${t.label}"? It will be removed from every card that has it.`)) deleteTag(t.id);
+            onDelete={async () => {
+              const ok = await dialogs.confirm({
+                message: `Delete "${t.label}"? It will be removed from every card that has it.`,
+                danger: true,
+                confirmLabel: "Delete",
+              });
+              if (ok) deleteTag(t.id);
             }}
           />
         ))}

@@ -153,7 +153,8 @@ export function Sidebar({
   }
 
   return (
-    <div
+    <nav
+      aria-label="Tasks sidebar"
       style={{
         width: 240,
         flexShrink: 0,
@@ -259,26 +260,15 @@ export function Sidebar({
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-tertiary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {folder.name.toUpperCase()}
             </span>
-            <button title="Add list to this folder" onClick={() => onAddList(folder.id)} style={smallIconButtonStyle}>
+            <button title="Add list to this folder" aria-label="Add list to this folder" onClick={() => onAddList(folder.id)} style={smallIconButtonStyle}>
               +
             </button>
-            <button
-              title="Rename or delete folder"
-              onClick={() => {
-                const action = window.prompt(`"${folder.name}" — type "delete" to delete (lists move to Unfiled), or type a new name to rename:`, folder.name);
-                if (action === null) return;
-                if (action.trim().toLowerCase() === "delete") {
-                  if (window.confirm(`Delete folder "${folder.name}"? Its lists will become unfiled, not deleted.`)) {
-                    onDeleteFolder(folder.id);
-                  }
-                } else if (action.trim()) {
-                  onRenameFolder(folder.id, action.trim());
-                }
-              }}
-              style={menuButtonStyle}
-            >
-              ⋯
-            </button>
+            <ListMenu
+              name={folder.name}
+              onRename={(name) => onRenameFolder(folder.id, name)}
+              onDelete={() => onDeleteFolder(folder.id)}
+              deleteMessage={`Delete folder "${folder.name}"? Its lists will become unfiled, not deleted.`}
+            />
           </div>
           {lists.filter((l) => l.folder_id === folder.id).map(listRow)}
         </div>
@@ -286,7 +276,7 @@ export function Sidebar({
 
       {unfiledLists.map(listRow)}
       <CompletionToastStack toasts={toasts} onUndo={onUndoComplete} />
-    </div>
+    </nav>
   );
 }
 
@@ -420,23 +410,15 @@ function navButtonStyle(active: boolean) {
   };
 }
 
-const menuButtonStyle = {
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  fontSize: 14,
-  cursor: "pointer",
-  padding: "4px 6px",
-  flexShrink: 0,
-};
-
 const smallIconButtonStyle = {
   background: "none",
   border: "none",
   color: "var(--text-muted)",
   fontSize: 13,
   cursor: "pointer",
-  padding: "2px 4px",
+  padding: "4px 6px",
+  minWidth: 24,
+  minHeight: 24,
 };
 
 // A fixed 18x18 slot every nav icon sits inside (Upcoming/Calendar/Inbox's

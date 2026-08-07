@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { DatePickerField } from "./DatePickerField";
+import { useDialogs } from "./DialogHost";
 
 interface TaskModalProps {
   todo: Todo;
@@ -28,6 +29,7 @@ export function TaskModal({
 }: TaskModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description ?? "");
+  const dialogs = useDialogs();
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
@@ -89,6 +91,7 @@ export function TaskModal({
               type="button"
               onClick={() => setDescriptionExpanded((v) => !v)}
               title={descriptionExpanded ? "Collapse" : "Expand"}
+              aria-label={descriptionExpanded ? "Collapse description" : "Expand description"}
               style={expandButtonStyle}
             >
               <ExpandIcon expanded={descriptionExpanded} />
@@ -172,8 +175,9 @@ export function TaskModal({
               Close
             </button>
             <button
-              onClick={() => {
-                if (window.confirm(`Delete "${todo.title}"? This can't be undone.`)) {
+              onClick={async () => {
+                const ok = await dialogs.confirm({ message: `Delete "${todo.title}"? This can't be undone.`, danger: true, confirmLabel: "Delete" });
+                if (ok) {
                   onDelete(todo.id);
                   onClose();
                 }
@@ -202,17 +206,33 @@ function SubtaskRow({
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <button
         onClick={() => onToggle(subtask.id)}
+        role="checkbox"
+        aria-checked={subtask.checked}
+        aria-label={subtask.title}
         style={{
-          width: 15,
-          height: 15,
-          borderRadius: 99,
-          border: `2px solid ${subtask.checked ? "var(--accent)" : "var(--border-strong)"}`,
-          background: subtask.checked ? "var(--accent)" : "transparent",
+          width: 24,
+          height: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "none",
+          border: "none",
           cursor: "pointer",
           padding: 0,
           flexShrink: 0,
         }}
-      />
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 15,
+            height: 15,
+            borderRadius: 99,
+            border: `2px solid ${subtask.checked ? "var(--accent)" : "var(--border-strong)"}`,
+            background: subtask.checked ? "var(--accent)" : "transparent",
+          }}
+        />
+      </button>
       <span
         style={{
           flex: 1,
@@ -222,7 +242,11 @@ function SubtaskRow({
       >
         {subtask.title}
       </span>
-      <button onClick={() => onDelete(subtask.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>
+      <button
+        onClick={() => onDelete(subtask.id)}
+        aria-label={`Delete subtask "${subtask.title}"`}
+        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}
+      >
         ×
       </button>
     </div>

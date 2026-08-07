@@ -21,7 +21,8 @@ interface NotesSidebarProps {
 // note including unfiled ones.
 export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder }: NotesSidebarProps) {
   return (
-    <div
+    <nav
+      aria-label="Notes sidebar"
       style={{
         width: 240,
         flexShrink: 0,
@@ -60,7 +61,7 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAdd
         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Folders
         </span>
-        <button title="New folder" onClick={onAddFolder} style={smallIconButtonStyle}>
+        <button title="New folder" aria-label="New folder" onClick={onAddFolder} style={smallIconButtonStyle}>
           +
         </button>
       </div>
@@ -88,7 +89,7 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAdd
           </div>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -171,7 +172,9 @@ const smallIconButtonStyle: CSSProperties = {
   color: "var(--text-muted)",
   fontSize: 13,
   cursor: "pointer",
-  padding: "2px 4px",
+  padding: "4px 6px",
+  minWidth: 24,
+  minHeight: 24,
 };
 
 const iconSlotStyle: CSSProperties = {
