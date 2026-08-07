@@ -1,13 +1,18 @@
 import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { LeadCard, LeadColumn, LeadNote } from "../types";
+import type { LeadCard, LeadColumn, LeadNote, ListColor, Tag } from "../types";
 import { DatePickerField } from "./DatePickerField";
 import type { DatePickerFieldHandle } from "./DatePickerField";
+import { TagPicker } from "./TagPicker";
 
 interface LeadCardModalProps {
   card: LeadCard;
   columns: LeadColumn[];
   notes: LeadNote[];
+  tags: Tag[];
+  cardTagIds: string[];
+  onSetCardTags: (id: string, tagIds: string[]) => void;
+  onCreateTag: (label: string, color: ListColor) => Promise<Tag | undefined>;
   onClose: () => void;
   onUpdate: (id: string, patch: Partial<LeadCard>) => void;
   onDelete: (id: string) => void;
@@ -17,7 +22,22 @@ interface LeadCardModalProps {
   onNext?: () => void;
 }
 
-export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelete, onAddNote, onDeleteNote, onPrev, onNext }: LeadCardModalProps) {
+export function LeadCardModal({
+  card,
+  columns,
+  notes,
+  tags,
+  cardTagIds,
+  onSetCardTags,
+  onCreateTag,
+  onClose,
+  onUpdate,
+  onDelete,
+  onAddNote,
+  onDeleteNote,
+  onPrev,
+  onNext,
+}: LeadCardModalProps) {
   const [title, setTitle] = useState(card.title);
   const [value, setValue] = useState(String(card.value || ""));
   const [phone, setPhone] = useState(card.phone ?? "");
@@ -106,16 +126,10 @@ export function LeadCardModal({ card, columns, notes, onClose, onUpdate, onDelet
           />
         </label>
 
-        <div style={{ display: "flex", gap: 16 }}>
-          <label style={{ ...labelStyle, flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <input type="checkbox" checked={card.tag_buyer} onChange={(e) => onUpdate(card.id, { tag_buyer: e.target.checked })} />
-            Buyer
-          </label>
-          <label style={{ ...labelStyle, flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <input type="checkbox" checked={card.tag_listing} onChange={(e) => onUpdate(card.id, { tag_listing: e.target.checked })} />
-            Listing
-          </label>
-        </div>
+        <label style={labelStyle}>
+          Tags
+          <TagPicker tags={tags} selectedIds={cardTagIds} onChange={(ids) => onSetCardTags(card.id, ids)} onCreateTag={onCreateTag} />
+        </label>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={labelStyle}>

@@ -1,14 +1,18 @@
-import type { LeadCard } from "../types";
+import type { LeadCard, Tag } from "../types";
+import { LIST_COLOR_HEX } from "../types";
 import { formatCurrency } from "../lib/format";
 import { formatDueDate, isOverdue } from "../lib/dates";
 import { LEAD_CARD_DRAG_MIME } from "../lib/dragTypes";
 
 interface LeadCardMiniProps {
   card: LeadCard;
+  tags: Tag[];
+  tagIds: string[];
   onOpen: (id: string) => void;
 }
 
-export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
+export function LeadCardMini({ card, tags, tagIds, onOpen }: LeadCardMiniProps) {
+  const cardTags = tags.filter((t) => tagIds.includes(t.id));
   const overdue = !!card.due_date && isOverdue(card.due_date);
 
   return (
@@ -50,10 +54,13 @@ export function LeadCardMini({ card, onOpen }: LeadCardMiniProps) {
         )}
       </div>
 
-      {(card.tag_buyer || card.tag_listing) && (
-        <div style={{ display: "flex", gap: 6 }}>
-          {card.tag_buyer && <span style={tagStyle("#3b82f6")}>Buyer</span>}
-          {card.tag_listing && <span style={tagStyle("#a855f7")}>Listing</span>}
+      {cardTags.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {cardTags.map((t) => (
+            <span key={t.id} style={tagStyle(LIST_COLOR_HEX[t.color])}>
+              {t.label}
+            </span>
+          ))}
         </div>
       )}
 

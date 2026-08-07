@@ -5,7 +5,9 @@ import { supabase } from "../lib/supabaseClient";
 import type { useProfile } from "../hooks/useProfile";
 import type { useTheme, ThemePreference, AccentColor } from "../hooks/useTheme";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
+import type { useTags } from "../hooks/useTags";
 import { DealTemplatesManager } from "./DealTemplatesManager";
+import { TagsManager } from "./TagsManager";
 import { Avatar } from "./Avatar";
 import { resizeImageToDataUrl } from "../lib/imageResize";
 import { HIDEABLE_MODULES } from "../types";
@@ -15,6 +17,7 @@ interface SettingsPageProps {
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
   dealTemplatesData: ReturnType<typeof useDealTemplates>;
+  tagsData: ReturnType<typeof useTags>;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
@@ -34,11 +37,15 @@ const ACCENT_OPTIONS: { key: AccentColor; label: string; swatch: string }[] = [
   { key: "charcoal", label: "Charcoal", swatch: "#3f3f46" },
 ];
 
-export function SettingsPage({ session, profileData, theme, dealTemplatesData }: SettingsPageProps) {
+export function SettingsPage({ session, profileData, theme, dealTemplatesData, tagsData }: SettingsPageProps) {
   const [managingTemplates, setManagingTemplates] = useState(false);
+  const [managingTags, setManagingTags] = useState(false);
 
   if (managingTemplates) {
     return <DealTemplatesManager dealTemplatesData={dealTemplatesData} onBack={() => setManagingTemplates(false)} />;
+  }
+  if (managingTags) {
+    return <TagsManager tagsData={tagsData} onBack={() => setManagingTags(false)} />;
   }
 
   return (
@@ -49,6 +56,7 @@ export function SettingsPage({ session, profileData, theme, dealTemplatesData }:
         <AccountCard session={session} />
         <AppearanceCard theme={theme} />
         <ModulesCard profileData={profileData} />
+        <TagsCard onManage={() => setManagingTags(true)} />
         <DealTemplatesCard onManage={() => setManagingTemplates(true)} />
       </div>
     </div>
@@ -287,6 +295,19 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
         }}
       />
     </button>
+  );
+}
+
+function TagsCard({ onManage }: { onManage: () => void }) {
+  return (
+    <Card title="Tags">
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+        The shared tag list used on Leads and Pipeline cards — create your own, rename them, and pick their colors.
+      </p>
+      <button onClick={onManage} style={{ ...primaryButtonStyle, alignSelf: "flex-start" }}>
+        Manage →
+      </button>
+    </Card>
   );
 }
 

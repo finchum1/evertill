@@ -92,13 +92,19 @@ publicly — it only allows what the row-level security policies in
 - **`lead_columns`** / **`pipeline_columns`** — custom user-defined stages
   (`label`, `color`, `sort_order`) — unlike Tasks lists, these aren't fixed.
 - **`lead_cards`** / **`pipeline_cards`** — `title`, `value`, `due_date`
-  ("Next Activity"), `phone`/`email`/`address`, `tag_buyer`/`tag_listing`,
-  denormalized `last_activity_at`/`last_activity_text`. `pipeline_cards` also
-  has `source_lead_id` (nullable, `SET NULL` on delete) — a pointer reserved
+  ("Next Activity"), `phone`/`email`/`address`, denormalized
+  `last_activity_at`/`last_activity_text`. `pipeline_cards` also has
+  `source_lead_id` (nullable, `SET NULL` on delete) — a pointer reserved
   for a future Lead→Pipeline conversion action, not used by anything yet.
 - **`lead_notes`** / **`pipeline_notes`** — an append-only activity log per
   card. Inserting a note fires a trigger that stamps `last_activity_at`/
   `last_activity_text` onto the parent card.
+- **`tags`** — one shared, user-editable tag list (managed from Settings >
+  Tags) applied to both Leads and Pipeline cards via the `lead_card_tags`/
+  `pipeline_card_tags` junction tables (many-to-many — a card can carry any
+  number of tags). Replaces the old fixed `tag_buyer`/`tag_listing` booleans,
+  which are still present on `lead_cards`/`pipeline_cards` for backward
+  compatibility but no longer read or written by the app.
 
 **Deals** (the one module with a different shape)
 - **`deals`** — `status` is a **fixed** 4-value stage (`Active`/`Under

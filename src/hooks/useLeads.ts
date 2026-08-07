@@ -1,27 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { LeadCard, LeadColumn, LeadNote, ListColor } from "../types";
+import type { LeadCard, LeadCardTagRow, LeadColumn, LeadNote, ListColor } from "../types";
 
 export function useLeads(userId: string | undefined) {
   const [columns, setColumns] = useState<LeadColumn[]>([]);
   const [cards, setCards] = useState<LeadCard[]>([]);
   const [notes, setNotes] = useState<LeadNote[]>([]);
+  const [cardTagRows, setCardTagRows] = useState<LeadCardTagRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
-    const [columnsRes, cardsRes, notesRes] = await Promise.all([
+    const [columnsRes, cardsRes, notesRes, cardTagsRes] = await Promise.all([
       supabase.from("lead_columns").select("*").order("sort_order", { ascending: true }),
       supabase.from("lead_cards").select("*").order("sort_order", { ascending: true }),
       supabase.from("lead_notes").select("*").order("created_at", { ascending: false }),
+      supabase.from("lead_card_tags").select("*"),
     ]);
     if (columnsRes.error) throw columnsRes.error;
     if (cardsRes.error) throw cardsRes.error;
     if (notesRes.error) throw notesRes.error;
+    if (cardTagsRes.error) throw cardTagsRes.error;
 
     setColumns((columnsRes.data ?? []) as LeadColumn[]);
     setCards((cardsRes.data ?? []) as LeadCard[]);
     setNotes((notesRes.data ?? []) as LeadNote[]);
+    setCardTagRows((cardTagsRes.data ?? []) as LeadCardTagRow[]);
     setLoading(false);
   }, [userId]);
 
@@ -38,6 +42,7 @@ export function useLeads(userId: string | undefined) {
       .on("postgres_changes", { event: "*", schema: "public", table: "lead_columns" }, () => refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "lead_cards" }, () => refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "lead_notes" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "lead_card_tags" }, () => refresh())
       .subscribe();
 
     return () => {
@@ -105,6 +110,29 @@ export function useLeads(userId: string | undefined) {
     await refresh();
   }
 
+  // -- Tags -------------------------------------------------------------------
+  // Diffs the card's current tag links against the desired set rather than
+  // clearing and re-inserting everything, so an unrelated tag on the same
+  // card assigned from another open tab isn't clobbered mid-edit.
+  async function setCardTags(cardId: string, tagIds: string[]) {
+    if (!userId) return;
+    const current = cardTagRows.filter((r) => r.card_id === cardId).map((r) => r.tag_id);
+    const toAdd = tagIds.filter((id) => !current.includes(id));
+    const toRemove = current.filter((id) => !tagIds.includes(id));
+
+    if (toAdd.length) {
+      const { error } = await supabase
+        .from("lead_card_tags")
+        .insert(toAdd.map((tag_id) => ({ user_id: userId, card_id: cardId, tag_id })));
+      if (error) throw error;
+    }
+    if (toRemove.length) {
+      const { error } = await supabase.from("lead_card_tags").delete().eq("card_id", cardId).in("tag_id", toRemove);
+      if (error) throw error;
+    }
+    if (toAdd.length || toRemove.length) await refresh();
+  }
+
   // -- Notes ------------------------------------------------------------------
   async function addNote(cardId: string, body: string) {
     if (!userId) return;
@@ -119,10 +147,16 @@ export function useLeads(userId: string | undefined) {
     await refresh();
   }
 
+  const cardTagIds: Record<string, string[]> = {};
+  for (const row of cardTagRows) {
+    (cardTagIds[row.card_id] ??= []).push(row.tag_id);
+  }
+
   return {
     columns,
     cards,
     notes,
+    cardTagIds,
     loading,
     addColumn,
     renameColumn,
@@ -132,6 +166,7 @@ export function useLeads(userId: string | undefined) {
     updateCard,
     moveCardToColumn,
     deleteCard,
+    setCardTags,
     addNote,
     deleteNote,
   };

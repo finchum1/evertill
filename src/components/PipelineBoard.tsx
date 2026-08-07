@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
-import type { PipelineCard, PipelineColumn, ListColor } from "../types";
+import type { PipelineCard, PipelineColumn, ListColor, Tag } from "../types";
 import { PIPELINE_CARD_DRAG_MIME } from "../lib/dragTypes";
 import { PipelineCardMini } from "./PipelineCardMini";
 import { ListMenu } from "./ListMenu";
@@ -9,6 +9,8 @@ import { ListMenu } from "./ListMenu";
 interface PipelineBoardProps {
   columns: PipelineColumn[];
   cards: PipelineCard[];
+  tags: Tag[];
+  cardTagIds: Record<string, string[]>;
   onAddColumn: () => void;
   onRenameColumn: (id: string, label: string) => void;
   onSetColumnColor: (id: string, color: ListColor) => void;
@@ -18,9 +20,13 @@ interface PipelineBoardProps {
   onMoveCard: (cardId: string, columnId: string) => void;
 }
 
+const NO_TAG_IDS: string[] = [];
+
 export function PipelineBoard({
   columns,
   cards,
+  tags,
+  cardTagIds,
   onAddColumn,
   onRenameColumn,
   onSetColumnColor,
@@ -105,7 +111,7 @@ export function PipelineBoard({
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {columnCards.map((card) => (
-                  <PipelineCardMini key={card.id} card={card} onOpen={onOpenCard} />
+                  <PipelineCardMini key={card.id} card={card} tags={tags} tagIds={cardTagIds[card.id] ?? NO_TAG_IDS} onOpen={onOpenCard} />
                 ))}
               </div>
 

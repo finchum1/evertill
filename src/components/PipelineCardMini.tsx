@@ -1,14 +1,18 @@
-import type { PipelineCard } from "../types";
+import type { PipelineCard, Tag } from "../types";
+import { LIST_COLOR_HEX } from "../types";
 import { formatCurrency } from "../lib/format";
 import { formatDueDate, isOverdue } from "../lib/dates";
 import { PIPELINE_CARD_DRAG_MIME } from "../lib/dragTypes";
 
 interface PipelineCardMiniProps {
   card: PipelineCard;
+  tags: Tag[];
+  tagIds: string[];
   onOpen: (id: string) => void;
 }
 
-export function PipelineCardMini({ card, onOpen }: PipelineCardMiniProps) {
+export function PipelineCardMini({ card, tags, tagIds, onOpen }: PipelineCardMiniProps) {
+  const cardTags = tags.filter((t) => tagIds.includes(t.id));
   const overdue = !!card.due_date && isOverdue(card.due_date);
 
   return (
@@ -50,10 +54,13 @@ export function PipelineCardMini({ card, onOpen }: PipelineCardMiniProps) {
         )}
       </div>
 
-      {(card.tag_buyer || card.tag_listing) && (
-        <div style={{ display: "flex", gap: 6 }}>
-          {card.tag_buyer && <span style={tagStyle("#3b82f6")}>Buyer</span>}
-          {card.tag_listing && <span style={tagStyle("#a855f7")}>Listing</span>}
+      {cardTags.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {cardTags.map((t) => (
+            <span key={t.id} style={tagStyle(LIST_COLOR_HEX[t.color])}>
+              {t.label}
+            </span>
+          ))}
         </div>
       )}
 

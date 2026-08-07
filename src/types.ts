@@ -101,6 +101,35 @@ export interface CompletionToast {
   timeoutId: number;
 }
 
+// A shared, user-editable tag (Settings > Tags) — reuses the same
+// ListColor palette as lists/columns. Applied to Lead and Pipeline cards
+// via the two junction rows below (a card can carry any number of tags),
+// replacing the old fixed tag_buyer/tag_listing booleans.
+export interface Tag {
+  id: string;
+  user_id: string;
+  label: string;
+  color: ListColor;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface LeadCardTagRow {
+  id: string;
+  user_id: string;
+  card_id: string;
+  tag_id: string;
+  created_at: string;
+}
+
+export interface PipelineCardTagRow {
+  id: string;
+  user_id: string;
+  card_id: string;
+  tag_id: string;
+  created_at: string;
+}
+
 // Lead columns reuse the same color palette as list colors (LIST_COLORS
 // above) — one shared set of named colors across the app, not a separate one.
 export interface LeadColumn {
@@ -122,8 +151,6 @@ export interface LeadCard {
   phone: string | null;
   email: string | null;
   address: string | null;
-  tag_buyer: boolean;
-  tag_listing: boolean;
   sort_order: number;
   last_activity_at: string | null;
   last_activity_text: string | null;
@@ -161,8 +188,6 @@ export interface PipelineCard {
   phone: string | null;
   email: string | null;
   address: string | null;
-  tag_buyer: boolean;
-  tag_listing: boolean;
   sort_order: number;
   last_activity_at: string | null;
   last_activity_text: string | null;

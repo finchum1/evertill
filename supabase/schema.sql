@@ -75,6 +75,14 @@ begin
     (new.id, '1-3 Months', 'pink', 3),
     (new.id, 'Active', 'blue', 4);
 
+  -- Starter tags for the shared Leads/Pipeline tag picker (see the `tags`
+  -- table further down this file) — same "seed defaults, fully editable
+  -- afterward" treatment as the columns above, replacing what used to be
+  -- the hardcoded tag_buyer/tag_listing checkboxes.
+  insert into public.tags (user_id, label, color, sort_order) values
+    (new.id, 'Buyer', 'blue', 0),
+    (new.id, 'Listing', 'purple', 1);
+
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
@@ -206,13 +214,21 @@ create table if not exists lead_cards (
   phone text,
   email text,
   address text,
-  tag_buyer boolean not null default false,
-  tag_listing boolean not null default false,
   sort_order integer not null default 0,
   last_activity_at timestamptz,
   last_activity_text text,
   created_at timestamptz not null default now()
 );
+
+-- Migration for an already-existing lead_cards table (this project's live
+-- database included): the fixed tag_buyer/tag_listing booleans are replaced
+-- by the shared, user-editable `tags` table + lead_card_tags junction table
+-- further down this file. Left in place rather than dropped — the backfill
+-- below reads them to carry existing tag data forward, and leaving two
+-- unused boolean columns costs nothing, while dropping them is irreversible
+-- if anything about the backfill needs to be re-run or double-checked.
+alter table lead_cards add column if not exists tag_buyer boolean not null default false;
+alter table lead_cards add column if not exists tag_listing boolean not null default false;
 
 create table if not exists lead_notes (
   id uuid primary key default gen_random_uuid(),
@@ -292,13 +308,15 @@ create table if not exists pipeline_cards (
   phone text,
   email text,
   address text,
-  tag_buyer boolean not null default false,
-  tag_listing boolean not null default false,
   sort_order integer not null default 0,
   last_activity_at timestamptz,
   last_activity_text text,
   created_at timestamptz not null default now()
 );
+
+-- Same deprecate-in-place treatment as lead_cards above.
+alter table pipeline_cards add column if not exists tag_buyer boolean not null default false;
+alter table pipeline_cards add column if not exists tag_listing boolean not null default false;
 
 create table if not exists pipeline_notes (
   id uuid primary key default gen_random_uuid(),
@@ -537,6 +555,111 @@ create policy "deal_contact_fields_owner_all" on deal_contact_fields
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 alter publication supabase_realtime add table deal_contact_fields;
+
+-- ---------------------------------------------------------------------
+-- Tags: one shared, user-editable tag list (Settings > Tags manages it)
+-- used by both Leads and Pipeline cards, replacing the old fixed
+-- tag_buyer/tag_listing checkboxes. A card can carry any number of tags,
+-- via the two junction tables below — each follows the same denormalized-
+-- user_id RLS pattern as every other table in this file (a direct
+-- auth.uid() = user_id check) rather than relying on a join back to the
+-- parent card to establish ownership.
+-- ---------------------------------------------------------------------
+create table if not exists tags (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  label text not null default 'New Tag',
+  color text not null default 'blue',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists lead_card_tags (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  card_id uuid not null references lead_cards(id) on delete cascade,
+  tag_id uuid not null references tags(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (card_id, tag_id)
+);
+
+create table if not exists pipeline_card_tags (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  card_id uuid not null references pipeline_cards(id) on delete cascade,
+  tag_id uuid not null references tags(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (card_id, tag_id)
+);
+
+create index if not exists tags_user_id_idx on tags(user_id);
+create index if not exists lead_card_tags_card_id_idx on lead_card_tags(card_id);
+create index if not exists lead_card_tags_tag_id_idx on lead_card_tags(tag_id);
+create index if not exists pipeline_card_tags_card_id_idx on pipeline_card_tags(card_id);
+create index if not exists pipeline_card_tags_tag_id_idx on pipeline_card_tags(tag_id);
+
+alter table tags enable row level security;
+alter table lead_card_tags enable row level security;
+alter table pipeline_card_tags enable row level security;
+
+drop policy if exists "tags_owner_all" on tags;
+create policy "tags_owner_all" on tags
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "lead_card_tags_owner_all" on lead_card_tags;
+create policy "lead_card_tags_owner_all" on lead_card_tags
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "pipeline_card_tags_owner_all" on pipeline_card_tags;
+create policy "pipeline_card_tags_owner_all" on pipeline_card_tags
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table tags;
+alter publication supabase_realtime add table lead_card_tags;
+alter publication supabase_realtime add table pipeline_card_tags;
+
+-- One-time backfill for accounts that existed before this migration:
+-- 1) every user gets the same "Buyer"/"Listing" starter tags a brand-new
+--    signup now gets from handle_new_user() above (skipped if a user
+--    already has a tag with that exact label, so this is safe to re-run
+--    and won't create duplicates if it's ever run twice), and
+-- 2) any card that had tag_buyer/tag_listing = true gets linked to the
+--    matching tag via the new junction tables, so no existing data is
+--    lost when the app stops reading those boolean columns. Nothing here
+--    deletes or overwrites — the old columns are left untouched (see the
+--    "deprecate in place" comments above lead_cards/pipeline_cards).
+do $$
+declare
+  r record;
+  buyer_tag_id uuid;
+  listing_tag_id uuid;
+begin
+  for r in select id as user_id from profiles loop
+    select id into buyer_tag_id from tags where user_id = r.user_id and label = 'Buyer' limit 1;
+    if buyer_tag_id is null then
+      insert into tags (user_id, label, color, sort_order) values (r.user_id, 'Buyer', 'blue', 0) returning id into buyer_tag_id;
+    end if;
+
+    select id into listing_tag_id from tags where user_id = r.user_id and label = 'Listing' limit 1;
+    if listing_tag_id is null then
+      insert into tags (user_id, label, color, sort_order) values (r.user_id, 'Listing', 'purple', 1) returning id into listing_tag_id;
+    end if;
+
+    insert into lead_card_tags (user_id, card_id, tag_id)
+      select user_id, id, buyer_tag_id from lead_cards where user_id = r.user_id and tag_buyer
+      on conflict (card_id, tag_id) do nothing;
+    insert into lead_card_tags (user_id, card_id, tag_id)
+      select user_id, id, listing_tag_id from lead_cards where user_id = r.user_id and tag_listing
+      on conflict (card_id, tag_id) do nothing;
+
+    insert into pipeline_card_tags (user_id, card_id, tag_id)
+      select user_id, id, buyer_tag_id from pipeline_cards where user_id = r.user_id and tag_buyer
+      on conflict (card_id, tag_id) do nothing;
+    insert into pipeline_card_tags (user_id, card_id, tag_id)
+      select user_id, id, listing_tag_id from pipeline_cards where user_id = r.user_id and tag_listing
+      on conflict (card_id, tag_id) do nothing;
+  end loop;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- Notes module: note_folders -> notes (two levels only, unlike Tasks'

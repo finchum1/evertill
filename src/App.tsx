@@ -27,6 +27,7 @@ import { BoardValueView } from "./components/BoardValueView";
 import { BoardCalendarView } from "./components/BoardCalendarView";
 import { useDeals } from "./hooks/useDeals";
 import { useDealTemplates } from "./hooks/useDealTemplates";
+import { useTags } from "./hooks/useTags";
 import { useTheme } from "./hooks/useTheme";
 import { useProfile } from "./hooks/useProfile";
 import type { Session } from "@supabase/supabase-js";
@@ -39,7 +40,7 @@ import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR, HIDEABLE_MODULES } from "./types";
-import type { CompletionToast, Deal, Page, View } from "./types";
+import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
 
@@ -47,6 +48,10 @@ const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
 // effect below can safely depend on `hiddenModules` without re-running on
 // every render when no hidden_modules value has loaded yet.
 const NO_HIDDEN_MODULES: string[] = [];
+
+// Stable reference for a card with no tags — same reasoning as
+// NO_HIDDEN_MODULES above, avoids a fresh `[]` literal on every render.
+const EMPTY_TAG_IDS: string[] = [];
 
 type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
@@ -290,11 +295,20 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
   );
 }
 
-function LeadsDashboard({ leads }: { leads: LeadsData }) {
+function LeadsDashboard({
+  leads,
+  tags,
+  onCreateTag,
+}: {
+  leads: LeadsData;
+  tags: Tag[];
+  onCreateTag: (label: string, color: ListColor) => Promise<Tag | undefined>;
+}) {
   const {
     columns,
     cards,
     notes,
+    cardTagIds,
     loading,
     addColumn,
     renameColumn,
@@ -303,6 +317,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
     addCard,
     updateCard,
     deleteCard,
+    setCardTags,
     addNote,
     deleteNote,
   } = leads;
@@ -333,6 +348,8 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
         <LeadsBoard
           columns={columns}
           cards={cards}
+          tags={tags}
+          cardTagIds={cardTagIds}
           onAddColumn={() => {
             const label = window.prompt("Column name:");
             if (label?.trim()) addColumn(label.trim());
@@ -351,7 +368,7 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
       {subView === "list" && (
         <div style={{ padding: "0 24px 20px" }}>
           <BoardListView columns={columns} cards={cards} itemNoun="lead" renderCard={(card) => (
-            <LeadCardMini key={card.id} card={card} onOpen={setOpenCardId} />
+            <LeadCardMini key={card.id} card={card} tags={tags} tagIds={cardTagIds[card.id] ?? EMPTY_TAG_IDS} onOpen={setOpenCardId} />
           )} />
         </div>
       )}
@@ -371,6 +388,10 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
           card={openCard}
           columns={columns}
           notes={notes.filter((n) => n.card_id === openCard.id)}
+          tags={tags}
+          cardTagIds={cardTagIds[openCard.id] ?? EMPTY_TAG_IDS}
+          onSetCardTags={setCardTags}
+          onCreateTag={onCreateTag}
           onClose={() => setOpenCardId(null)}
           onUpdate={updateCard}
           onDelete={deleteCard}
@@ -384,11 +405,20 @@ function LeadsDashboard({ leads }: { leads: LeadsData }) {
   );
 }
 
-function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
+function PipelineDashboard({
+  pipeline,
+  tags,
+  onCreateTag,
+}: {
+  pipeline: PipelineData;
+  tags: Tag[];
+  onCreateTag: (label: string, color: ListColor) => Promise<Tag | undefined>;
+}) {
   const {
     columns,
     cards,
     notes,
+    cardTagIds,
     loading,
     addColumn,
     renameColumn,
@@ -397,6 +427,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
     addCard,
     updateCard,
     deleteCard,
+    setCardTags,
     addNote,
     deleteNote,
   } = pipeline;
@@ -427,6 +458,8 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
         <PipelineBoard
           columns={columns}
           cards={cards}
+          tags={tags}
+          cardTagIds={cardTagIds}
           onAddColumn={() => {
             const label = window.prompt("Column name:");
             if (label?.trim()) addColumn(label.trim());
@@ -445,7 +478,7 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
       {subView === "list" && (
         <div style={{ padding: "0 24px 20px" }}>
           <BoardListView columns={columns} cards={cards} itemNoun="client" renderCard={(card) => (
-            <PipelineCardMini key={card.id} card={card} onOpen={setOpenCardId} />
+            <PipelineCardMini key={card.id} card={card} tags={tags} tagIds={cardTagIds[card.id] ?? EMPTY_TAG_IDS} onOpen={setOpenCardId} />
           )} />
         </div>
       )}
@@ -465,6 +498,10 @@ function PipelineDashboard({ pipeline }: { pipeline: PipelineData }) {
           card={openCard}
           columns={columns}
           notes={notes.filter((n) => n.card_id === openCard.id)}
+          tags={tags}
+          cardTagIds={cardTagIds[openCard.id] ?? EMPTY_TAG_IDS}
+          onSetCardTags={setCardTags}
+          onCreateTag={onCreateTag}
           onClose={() => setOpenCardId(null)}
           onUpdate={updateCard}
           onDelete={deleteCard}
@@ -622,6 +659,7 @@ function PageContent({
   pipelineData,
   dealsData,
   dealTemplatesData,
+  tagsData,
   notesData,
   profileData,
   theme,
@@ -635,6 +673,7 @@ function PageContent({
   pipelineData: PipelineData;
   dealsData: DealsData;
   dealTemplatesData: DealTemplatesData;
+  tagsData: ReturnType<typeof useTags>;
   notesData: NotesData;
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
@@ -645,15 +684,15 @@ function PageContent({
     case "tasks":
       return <TasksDashboard tasks={tasksData} onNewTask={onNewTask} />;
     case "leads":
-      return <LeadsDashboard leads={leadsData} />;
+      return <LeadsDashboard leads={leadsData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
     case "pipeline":
-      return <PipelineDashboard pipeline={pipelineData} />;
+      return <PipelineDashboard pipeline={pipelineData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
     case "deals":
       return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} onMoveDealToPipeline={onMoveDealToPipeline} />;
     case "notes":
       return <NotesDashboard notes={notesData} />;
     case "settings":
-      return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} />;
+      return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} tagsData={tagsData} />;
   }
 }
 
@@ -670,6 +709,7 @@ function App() {
   const pipeline = usePipeline(session?.user.id);
   const deals = useDeals(session?.user.id);
   const dealTemplates = useDealTemplates(session?.user.id);
+  const tags = useTags(session?.user.id);
   const notes = useNotes(session?.user.id);
   const profile = useProfile(session?.user.id);
   const theme = useTheme();
@@ -692,9 +732,14 @@ function App() {
   const [createDealId, setCreateDealId] = useState<string | null>(null);
 
   // "Bust" a deal: convert it into a Pipeline card (first column) carrying
-  // over address/value/type-as-tags plus its note history, then remove it
+  // over address/value/type-as-tag plus its note history, then remove it
   // from Deals — same conversion invariant as the other module-to-module
   // moves (a card lives in exactly one of the four modules at a time).
+  // Tags are attached in a second step (setCardTags needs a real card_id),
+  // matched by label against the shared tag list rather than assuming a
+  // "Buyer"/"Listing" tag still exists — the user can freely rename or
+  // delete those starter tags, so if neither is found the card is simply
+  // created untagged rather than silently recreating one.
   async function handleMoveDealToPipeline(deal: Deal) {
     const column = pipeline.columns[0];
     if (!column) {
@@ -705,11 +750,11 @@ function App() {
       title: deal.address,
       address: deal.address,
       value: deal.value,
-      tagBuyer: deal.type === "Buyer",
-      tagListing: deal.type === "Listing",
       lastActivityText: "Moved back from Deals (deal busted)",
     });
     if (newCard) {
+      const matchingTag = tags.tags.find((t) => t.label.toLowerCase() === deal.type.toLowerCase());
+      if (matchingTag) await pipeline.setCardTags(newCard.id, [matchingTag.id]);
       const dealNotes = deals.notes.filter((n) => n.deal_id === deal.id);
       for (const note of dealNotes) {
         await pipeline.addNote(newCard.id, note.body);
@@ -785,6 +830,7 @@ function App() {
           pipelineData={pipeline}
           dealsData={deals}
           dealTemplatesData={dealTemplates}
+          tagsData={tags}
           notesData={notes}
           profileData={profile}
           theme={theme}
@@ -815,6 +861,10 @@ function App() {
           card={createLeadCard}
           columns={leads.columns}
           notes={leads.notes.filter((n) => n.card_id === createLeadCard.id)}
+          tags={tags.tags}
+          cardTagIds={leads.cardTagIds[createLeadCard.id] ?? EMPTY_TAG_IDS}
+          onSetCardTags={leads.setCardTags}
+          onCreateTag={tags.addTag}
           onClose={() => setCreateLeadCardId(null)}
           onUpdate={leads.updateCard}
           onDelete={leads.deleteCard}
@@ -828,6 +878,10 @@ function App() {
           card={createPipelineCard}
           columns={pipeline.columns}
           notes={pipeline.notes.filter((n) => n.card_id === createPipelineCard.id)}
+          tags={tags.tags}
+          cardTagIds={pipeline.cardTagIds[createPipelineCard.id] ?? EMPTY_TAG_IDS}
+          onSetCardTags={pipeline.setCardTags}
+          onCreateTag={tags.addTag}
           onClose={() => setCreatePipelineCardId(null)}
           onUpdate={pipeline.updateCard}
           onDelete={pipeline.deleteCard}
