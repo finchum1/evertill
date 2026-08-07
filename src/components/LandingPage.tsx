@@ -96,11 +96,11 @@ export function Landing({ onGetStarted }: LandingProps) {
           badgeColor={MODULE_COLOR.tasks}
           icon={<TasksIcon />}
           title="Every to-do, in the right place at the right time"
-          description="Folders and lists for how you actually organize a file, plus Today, Upcoming, and a full Month/Week/Day calendar — with drag-and-drop between any of them."
+          description="Folders, lists, Today, Upcoming, and a full Month/Week/Day calendar — with drag-and-drop between all of them."
           bullets={[
-            "Recurring tasks roll forward automatically when you check them off",
-            "Type “next Friday” or “tomorrow” right in the title — it's parsed into a real due date",
-            "Subtasks, descriptions, and a quick-add that works from anywhere in the app",
+            "Recurring tasks roll forward automatically when checked off",
+            "Type “next Friday” or “tomorrow” in the title — it's parsed into a real due date",
+            "Subtasks, descriptions, and quick-add from anywhere in the app",
           ]}
           preview={<TasksPreview />}
           reverse={false}
@@ -110,11 +110,11 @@ export function Landing({ onGetStarted }: LandingProps) {
           badgeColor={MODULE_COLOR.leads}
           icon={<LeadsIcon />}
           title="A board built for working new business"
-          description="Custom pipeline stages, Buyer/Listing tags, and a running notes log on every card — with a next-activity date picker that pops up the moment you log a touch."
+          description="Custom stages, tags, and a notes log on every card — with a next-activity picker that pops up the moment you log a touch."
           bullets={[
-            "Drag cards straight between stages on the board",
-            "Board, List, Calendar, and Value views of the exact same pipeline",
-            "Never lose track of who you're supposed to call next",
+            "Drag cards between stages on the board",
+            "Board, List, Calendar, and Value views of the same pipeline",
+            "Never lose track of who to call next",
           ]}
           preview={<LeadsPreview />}
           reverse
@@ -124,11 +124,11 @@ export function Landing({ onGetStarted }: LandingProps) {
           badgeColor={MODULE_COLOR.pipeline}
           icon={<PipelineIcon />}
           title="Long-term nurture, without the spreadsheet"
-          description="For the clients who aren't ready yet — 1+ Year down to Active — with the same board, notes, and next-activity workflow as Leads, purpose-built for the long game."
+          description="For clients who aren't ready yet — 1+ Year down to Active — with the same board, notes, and next-activity workflow as Leads."
           bullets={[
-            "Custom stages that match how you actually think about timing",
+            "Custom stages that match how you think about timing",
             "Move a client to Active the moment they're ready",
-            "One click converts a busted Deal straight into Pipeline",
+            "One click converts a busted Deal into Pipeline",
           ]}
           preview={<PipelinePreview />}
           reverse={false}
@@ -138,11 +138,11 @@ export function Landing({ onGetStarted }: LandingProps) {
           badgeColor={MODULE_COLOR.deals}
           icon={<DealsIcon />}
           title="Every file, from acceptance to closing"
-          description="A real transaction lifecycle — Active, In Escrow, Inspections, Pre-Closing, Closed — with a milestone timeline and a Tasks/Documents checklist seeded from your own reusable templates."
+          description="A real transaction lifecycle — Active, In Escrow, Inspections, Pre-Closing, Closed — with a milestone timeline and a Tasks/Documents checklist from your own templates."
           bullets={[
-            "Separate Buyer-side and Listing-side checklist templates",
+            "Separate Buyer-side and Listing-side checklists",
             "A live stat dashboard across every open file",
-            "Contact fields and a full notes history per deal",
+            "Contact fields and notes history per deal",
           ]}
           preview={<DealsPreview />}
           reverse
@@ -152,11 +152,11 @@ export function Landing({ onGetStarted }: LandingProps) {
           badgeColor={MODULE_COLOR.notes}
           icon={<NotesIcon />}
           title="Real formatting, not just plain text"
-          description="Headings, bold and underline, and multicolor highlighting — organized into folders with pinned notes surfaced right at the top."
+          description="Headings, bold, underline, and multicolor highlighting — organized into folders, with pinned notes at the top."
           bullets={[
             "A proper rich-text editor, not a bare textarea",
             "Pin the notes you reference constantly",
-            "Folders keep unrelated notes from piling into one long list",
+            "Folders keep unrelated notes from piling up",
           ]}
           preview={<NotesPreview />}
           reverse={false}
@@ -234,9 +234,8 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             textWrap: "pretty",
           }}
         >
-          Tasks and Notes to stay organized, plus Leads, Pipeline, and Deals when you're tracking
-          relationships and transactions too. Turn on only what fits — a student or freelancer might
-          just want Tasks; a real estate pro gets the full toolkit.
+          Tasks and Notes for everyone, plus Leads, Pipeline, and Deals if you're tracking
+          relationships and transactions too. Turn on only what fits.
         </p>
         <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 40 }}>
           <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
@@ -392,13 +391,13 @@ function ModuleSection({
 
 function Highlights() {
   const items = [
-    { icon: <ThemeIcon />, title: "Dark, light, or system", body: "Plus four accent colors — pick the one that feels like yours." },
+    { icon: <ThemeIcon />, title: "Dark, light, or system", body: "Plus four accent colors to match your style." },
     {
       icon: <ToggleIcon />,
       title: "Only the modules you use",
-      body: "Running a real estate business? Keep all five. Just need tasks and notes? Turn the rest off — it disappears from nav and Create.",
+      body: "Keep all five for real estate, or turn off what you don't need — it disappears from nav and Create.",
     },
-    { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Tasks, leads, clients, and calendar days — pick it up, drop it where it goes." },
+    { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Tasks, leads, clients, calendar days — drag them wherever they go." },
     { icon: <LockIcon />, title: "Your own private workspace", body: "Self-service signup, your data scoped to your account alone." },
   ];
   return (
@@ -435,7 +434,7 @@ function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
           Stop juggling five tools for one file.
         </h2>
         <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
-          Create your workspace and see it end to end in under a minute.
+          See it end to end in under a minute.
         </p>
         <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
           Create your workspace
