@@ -26,6 +26,12 @@ interface SidebarProps {
   onNewTask: () => void;
   toasts: CompletionToast[];
   onUndoComplete: (toastId: string) => void;
+  // When true, renders a narrow icon-only rail instead of the full nav —
+  // driven by CollapsibleSidebar in App.tsx. Folders/rename/delete/drag
+  // aren't available in this mode (no room for them); lists are flattened
+  // into plain color-dot buttons since folder grouping needs a text
+  // header this width can't show.
+  collapsed?: boolean;
 }
 
 export function Sidebar({
@@ -48,6 +54,7 @@ export function Sidebar({
   onNewTask,
   toasts,
   onUndoComplete,
+  collapsed,
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -149,6 +156,56 @@ export function Sidebar({
           />
         )}
       </div>
+    );
+  }
+
+  if (collapsed) {
+    const unfiledIcon = lists.filter((l) => !l.is_inbox);
+    return (
+      <nav
+        aria-label="Tasks sidebar"
+        style={{
+          width: 52,
+          flexShrink: 0,
+          borderRight: "1px solid var(--border)",
+          padding: "12px 8px 20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+        }}
+      >
+        <button onClick={onNewTask} title="Add Task" aria-label="Add Task" style={iconRailButtonStyle(false)}>
+          <AddTaskPlusIcon />
+        </button>
+        {inbox && (
+          <button onClick={() => onSetView(inbox.id)} title="Inbox" aria-label="Inbox" style={iconRailButtonStyle(view === inbox.id)}>
+            <InboxNavIcon />
+          </button>
+        )}
+        <button onClick={() => onSetView("today")} title="Today" aria-label="Today" style={iconRailButtonStyle(view === "today")}>
+          <TodayNavIcon />
+        </button>
+        <button onClick={() => onSetView("upcoming")} title="Upcoming" aria-label="Upcoming" style={iconRailButtonStyle(view === "upcoming")}>
+          <UpcomingNavIcon />
+        </button>
+        <button onClick={() => onSetView("calendar")} title="Calendar" aria-label="Calendar" style={iconRailButtonStyle(view === "calendar")}>
+          <CalendarNavIcon />
+        </button>
+        {inbox && (
+          <button onClick={() => onSetView("completed")} title="Completed" aria-label="Completed" style={iconRailButtonStyle(view === "completed")}>
+            <CompletedNavIcon />
+          </button>
+        )}
+        {unfiledIcon.length > 0 && <div style={railDividerStyle} />}
+        {unfiledIcon.map((list) => (
+          <button key={list.id} onClick={() => onSetView(list.id)} title={list.name} aria-label={list.name} style={iconRailButtonStyle(view === list.id)}>
+            <span style={{ width: 10, height: 10, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
+          </button>
+        ))}
+        <CompletionToastStack toasts={toasts} onUndo={onUndoComplete} />
+      </nav>
     );
   }
 
@@ -409,6 +466,29 @@ function navButtonStyle(active: boolean) {
     textAlign: "left" as const,
   };
 }
+
+function iconRailButtonStyle(active: boolean): CSSProperties {
+  return {
+    width: 36,
+    height: 36,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    border: "none",
+    background: active ? "var(--accent-strong)" : "transparent",
+    color: active ? "#fff" : "var(--text-body)",
+    cursor: "pointer",
+  };
+}
+
+const railDividerStyle: CSSProperties = {
+  width: 24,
+  height: 1,
+  background: "var(--border)",
+  margin: "8px 0",
+};
 
 const smallIconButtonStyle = {
   background: "none",

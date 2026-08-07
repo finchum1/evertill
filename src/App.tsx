@@ -147,33 +147,26 @@ function MenuIcon() {
   );
 }
 
-// Desktop-only collapse for the Tasks sidebar — mobile already collapses by
-// default behind SidebarDrawer's hamburger/overlay, a different pattern
-// that doesn't need this too. Collapsing removes the whole 240px column
-// and leaves a slim always-visible rail with just the reopen control
-// (rather than hiding the toggle itself), matching how the mobile drawer's
-// own toggle is likewise always reachable. Sidebar.tsx itself is untouched,
-// same "wrap, don't modify" approach as SidebarDrawer.
+// Desktop-only collapse for the Tasks/Notes sidebars — mobile already
+// collapses by default behind SidebarDrawer's hamburger/overlay, a
+// different pattern that doesn't need this too. `children` is expected to
+// already be the icon-rail rendering when collapsed (Sidebar.tsx and
+// NotesSidebar.tsx each take their own `collapsed` prop and switch their
+// own layout, since a bare blank rail loses the nav icons entirely) — this
+// wrapper's only job is floating the same reopen/collapse toggle button on
+// the sidebar's right edge in both states, so the control itself never
+// moves or disappears.
 function CollapsibleSidebar({ collapsed, onToggle, label, children }: { collapsed: boolean; onToggle: () => void; label: string; children: ReactNode }) {
-  if (collapsed) {
-    return (
-      <div style={{ width: 32, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", justifyContent: "center", paddingTop: 12 }}>
-        <button onClick={onToggle} aria-label={`Expand ${label}`} title={`Expand ${label}`} style={collapseToggleButtonStyle}>
-          <ChevronIcon direction="right" />
-        </button>
-      </div>
-    );
-  }
   return (
     <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
       {children}
       <button
         onClick={onToggle}
-        aria-label={`Collapse ${label}`}
-        title={`Collapse ${label}`}
+        aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+        title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
         style={{ ...collapseToggleButtonStyle, position: "absolute", top: 12, right: -12 }}
       >
-        <ChevronIcon direction="left" />
+        <ChevronIcon direction={collapsed ? "right" : "left"} />
       </button>
     </div>
   );
@@ -350,6 +343,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
       onNewTask={onNewTask}
       toasts={toasts}
       onUndoComplete={handleUndoComplete}
+      collapsed={!isMobile && sidebarCollapsed}
     />
   );
 
@@ -421,6 +415,19 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
   const isMobile = useIsMobile();
   const [view, setView] = useState<"all" | "pinned" | string>("all");
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  // Same per-browser persisted collapse preference as Tasks' sidebar, kept
+  // under its own storage key so the two modules' sidebars can be
+  // collapsed independently.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem("notes-sidebar-collapsed") === "1"
+  );
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("notes-sidebar-collapsed", next ? "1" : "0");
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -438,27 +445,38 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
     if (note) setOpenNoteId(note.id);
   };
 
+  const sidebarElement = (
+    <NotesSidebar
+      folders={folders}
+      notes={allNotes}
+      view={view}
+      onSetView={setView}
+      onAddNote={handleAddNote}
+      onAddFolder={async () => {
+        const name = await dialogs.prompt({ message: "Folder name:" });
+        if (name) addFolder(name);
+      }}
+      onRenameFolder={renameFolder}
+      onSetFolderColor={setFolderColor}
+      onDeleteFolder={(id) => {
+        if (view === id) setView("all");
+        deleteFolder(id);
+      }}
+      collapsed={!isMobile && sidebarCollapsed}
+    />
+  );
+
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
-      <SidebarDrawer isMobile={isMobile} label="Notes sidebar">
-        <NotesSidebar
-          folders={folders}
-          notes={allNotes}
-          view={view}
-          onSetView={setView}
-          onAddNote={handleAddNote}
-          onAddFolder={async () => {
-            const name = await dialogs.prompt({ message: "Folder name:" });
-            if (name) addFolder(name);
-          }}
-          onRenameFolder={renameFolder}
-          onSetFolderColor={setFolderColor}
-          onDeleteFolder={(id) => {
-            if (view === id) setView("all");
-            deleteFolder(id);
-          }}
-        />
-      </SidebarDrawer>
+      {isMobile ? (
+        <SidebarDrawer isMobile={isMobile} label="Notes sidebar">
+          {sidebarElement}
+        </SidebarDrawer>
+      ) : (
+        <CollapsibleSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebarCollapsed} label="Notes sidebar">
+          {sidebarElement}
+        </CollapsibleSidebar>
+      )}
       <NotesListView
         view={view}
         folders={folders}

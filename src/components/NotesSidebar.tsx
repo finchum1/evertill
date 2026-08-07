@@ -13,13 +13,51 @@ interface NotesSidebarProps {
   onRenameFolder: (id: string, name: string) => void;
   onSetFolderColor: (id: string, color: ListColor) => void;
   onDeleteFolder: (id: string) => void;
+  // When true, renders a narrow icon-only rail instead of the full nav —
+  // driven by CollapsibleSidebar in App.tsx, same pattern as Sidebar.tsx.
+  collapsed?: boolean;
 }
 
 // Far simpler than Tasks' Sidebar.tsx — no lists tier, no drag-and-drop
 // reordering (deferred, same as every other module's first pass). "All
 // Notes" is the pinned default view, analogous to Today, showing every
 // note including unfiled ones.
-export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder }: NotesSidebarProps) {
+export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder, collapsed }: NotesSidebarProps) {
+  if (collapsed) {
+    return (
+      <nav
+        aria-label="Notes sidebar"
+        style={{
+          width: 52,
+          flexShrink: 0,
+          borderRight: "1px solid var(--border)",
+          padding: "12px 8px 20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+        }}
+      >
+        <button onClick={onAddNote} title="Add Note" aria-label="Add Note" style={iconRailButtonStyle(false)}>
+          <AddNotePlusIcon />
+        </button>
+        <button onClick={() => onSetView("all")} title="All Notes" aria-label="All Notes" style={iconRailButtonStyle(view === "all")}>
+          <AllNotesIcon />
+        </button>
+        <button onClick={() => onSetView("pinned")} title="Pinned" aria-label="Pinned" style={iconRailButtonStyle(view === "pinned")}>
+          <PinnedIcon />
+        </button>
+        {folders.length > 0 && <div style={railDividerStyle} />}
+        {folders.map((folder) => (
+          <button key={folder.id} onClick={() => onSetView(folder.id)} title={folder.name} aria-label={folder.name} style={iconRailButtonStyle(view === folder.id)}>
+            <span style={{ width: 10, height: 10, borderRadius: 99, background: LIST_COLOR_HEX[folder.color], flexShrink: 0 }} />
+          </button>
+        ))}
+      </nav>
+    );
+  }
+
   return (
     <nav
       aria-label="Notes sidebar"
@@ -165,6 +203,29 @@ function navButtonStyle(active: boolean): CSSProperties {
     textAlign: "left",
   };
 }
+
+function iconRailButtonStyle(active: boolean): CSSProperties {
+  return {
+    width: 36,
+    height: 36,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    border: "none",
+    background: active ? "var(--accent-strong)" : "transparent",
+    color: active ? "#fff" : "var(--text-body)",
+    cursor: "pointer",
+  };
+}
+
+const railDividerStyle: CSSProperties = {
+  width: 24,
+  height: 1,
+  background: "var(--border)",
+  margin: "8px 0",
+};
 
 const smallIconButtonStyle: CSSProperties = {
   background: "none",
