@@ -147,6 +147,68 @@ function MenuIcon() {
   );
 }
 
+// Desktop-only collapse for the Tasks sidebar — mobile already collapses by
+// default behind SidebarDrawer's hamburger/overlay, a different pattern
+// that doesn't need this too. Collapsing removes the whole 240px column
+// and leaves a slim always-visible rail with just the reopen control
+// (rather than hiding the toggle itself), matching how the mobile drawer's
+// own toggle is likewise always reachable. Sidebar.tsx itself is untouched,
+// same "wrap, don't modify" approach as SidebarDrawer.
+function CollapsibleSidebar({ collapsed, onToggle, label, children }: { collapsed: boolean; onToggle: () => void; label: string; children: ReactNode }) {
+  if (collapsed) {
+    return (
+      <div style={{ width: 32, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", justifyContent: "center", paddingTop: 12 }}>
+        <button onClick={onToggle} aria-label={`Expand ${label}`} title={`Expand ${label}`} style={collapseToggleButtonStyle}>
+          <ChevronIcon direction="right" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
+      {children}
+      <button
+        onClick={onToggle}
+        aria-label={`Collapse ${label}`}
+        title={`Collapse ${label}`}
+        style={{ ...collapseToggleButtonStyle, position: "absolute", top: 12, right: -12 }}
+      >
+        <ChevronIcon direction="left" />
+      </button>
+    </div>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path
+        d={direction === "left" ? "M7.5 2.5L3.5 6L7.5 9.5" : "M4.5 2.5L8.5 6L4.5 9.5"}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const collapseToggleButtonStyle = {
+  width: 24,
+  height: 24,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border-strong)",
+  borderRadius: 99,
+  color: "var(--text-body)",
+  cursor: "pointer",
+  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+  zIndex: 5,
+} as const;
+
 type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
 type PipelineData = ReturnType<typeof usePipeline>;
@@ -186,6 +248,18 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<CompletionToast[]>([]);
+  // Per-browser layout preference, not synced data — same lightweight
+  // localStorage pattern as theme/accent in useTheme.ts.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem("tasks-sidebar-collapsed") === "1"
+  );
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("tasks-sidebar-collapsed", next ? "1" : "0");
+      return next;
+    });
+  }
 
   // Clears any still-pending auto-dismiss timers if this dashboard unmounts
   // (e.g. navigating off the Tasks page) while a toast is showing.
@@ -246,40 +320,50 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
 
   const openTodo = openTodoId ? todos.find((t) => t.id === openTodoId) : undefined;
 
+  const sidebarElement = (
+    <Sidebar
+      folders={folders}
+      lists={lists}
+      todos={todos}
+      view={view}
+      onSetView={setView}
+      onAddFolder={async () => {
+        const name = await dialogs.prompt({ message: "Folder name:" });
+        if (name) addFolder(name);
+      }}
+      onAddList={async (folderId) => {
+        const name = await dialogs.prompt({ message: "List name:" });
+        if (name) addList(name, folderId);
+      }}
+      onRenameList={renameList}
+      onSetListColor={setListColor}
+      onDeleteList={(id) => {
+        if (view === id) setView("today");
+        deleteList(id);
+      }}
+      onRenameFolder={renameFolder}
+      onDeleteFolder={deleteFolder}
+      onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
+      onMoveListToFolder={moveListToFolder}
+      onReorderLists={reorderLists}
+      onReorderFolders={reorderFolders}
+      onNewTask={onNewTask}
+      toasts={toasts}
+      onUndoComplete={handleUndoComplete}
+    />
+  );
+
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
-      <SidebarDrawer isMobile={isMobile} label="Tasks sidebar">
-        <Sidebar
-          folders={folders}
-          lists={lists}
-          todos={todos}
-          view={view}
-          onSetView={setView}
-          onAddFolder={async () => {
-            const name = await dialogs.prompt({ message: "Folder name:" });
-            if (name) addFolder(name);
-          }}
-          onAddList={async (folderId) => {
-            const name = await dialogs.prompt({ message: "List name:" });
-            if (name) addList(name, folderId);
-          }}
-          onRenameList={renameList}
-          onSetListColor={setListColor}
-          onDeleteList={(id) => {
-            if (view === id) setView("today");
-            deleteList(id);
-          }}
-          onRenameFolder={renameFolder}
-          onDeleteFolder={deleteFolder}
-          onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
-          onMoveListToFolder={moveListToFolder}
-          onReorderLists={reorderLists}
-          onReorderFolders={reorderFolders}
-          onNewTask={onNewTask}
-          toasts={toasts}
-          onUndoComplete={handleUndoComplete}
-        />
-      </SidebarDrawer>
+      {isMobile ? (
+        <SidebarDrawer isMobile={isMobile} label="Tasks sidebar">
+          {sidebarElement}
+        </SidebarDrawer>
+      ) : (
+        <CollapsibleSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebarCollapsed} label="Tasks sidebar">
+          {sidebarElement}
+        </CollapsibleSidebar>
+      )}
       {view === "calendar" ? (
         <CalendarView
           todos={todos}
