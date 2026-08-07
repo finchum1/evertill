@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { LIST_COLOR_HEX } from "../types";
 
@@ -26,15 +27,73 @@ const APP_FONT_STACK = "'Inter', 'SF Pro Display', -apple-system, sans-serif";
 // database rather than the app's previous unloaded "Inter" fallback stack.
 const MARKETING_FONT_STACK = `'Plus Jakarta Sans', ${APP_FONT_STACK}`;
 
+// One shared, harmonized accent per module instead of five unrelated
+// saturated hues (the original indigo/sky/purple/amber/pink set read as an
+// arbitrary rainbow). Tasks deliberately points at the app's own live accent
+// token rather than a fixed hex — it's the one module every visitor has in
+// common (see the hero copy), so tying it to whatever accent color a
+// returning visitor already has selected reads as more "this is the real
+// product" than a hardcoded indigo that might not match their theme at all.
+// The other four stay fixed, deeper-toned hexes (Tailwind 600/700-ish, kept
+// under ~80% saturation) so they still read as distinct categories without
+// screaming.
+const MODULE_COLOR = {
+  tasks: "var(--accent-strong)",
+  leads: "#0284c7",
+  pipeline: "#7c3aed",
+  deals: "#b45309",
+  notes: "#be185d",
+} as const;
+
+// One-shot scroll-in reveal: fades/slides content up the first time it
+// enters the viewport, then stops observing — re-triggering on every scroll
+// up/down would feel gimmicky rather than premium. Skips the animation
+// outright under prefers-reduced-motion by starting (and staying) in the
+// resting visible state, rather than relying on the CSS transition duration
+// alone — a reduced-motion visitor never even briefly sees the offset state.
+function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  return (
+    <div
+      ref={ref}
+      className={`landing-reveal${visible ? " landing-reveal-visible" : ""}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Landing({ onGetStarted }: LandingProps) {
   return (
-    <div style={{ fontFamily: MARKETING_FONT_STACK, color: "var(--text-primary)" }}>
+    <main style={{ fontFamily: MARKETING_FONT_STACK, color: "var(--text-primary)" }}>
       <Hero onGetStarted={onGetStarted} />
 
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px" }}>
         <ModuleSection
           eyebrow="Tasks"
-          badgeColor="#6366f1"
+          badgeColor={MODULE_COLOR.tasks}
           icon={<TasksIcon />}
           title="Every to-do, in the right place at the right time"
           description="Folders and lists for how you actually organize a file, plus Today, Upcoming, and a full Month/Week/Day calendar — with drag-and-drop between any of them."
@@ -48,7 +107,7 @@ export function Landing({ onGetStarted }: LandingProps) {
         />
         <ModuleSection
           eyebrow="Leads"
-          badgeColor="#0ea5e9"
+          badgeColor={MODULE_COLOR.leads}
           icon={<LeadsIcon />}
           title="A board built for working new business"
           description="Custom pipeline stages, Buyer/Listing tags, and a running notes log on every card — with a next-activity date picker that pops up the moment you log a touch."
@@ -62,7 +121,7 @@ export function Landing({ onGetStarted }: LandingProps) {
         />
         <ModuleSection
           eyebrow="Pipeline"
-          badgeColor="#a855f7"
+          badgeColor={MODULE_COLOR.pipeline}
           icon={<PipelineIcon />}
           title="Long-term nurture, without the spreadsheet"
           description="For the clients who aren't ready yet — 1+ Year down to Active — with the same board, notes, and next-activity workflow as Leads, purpose-built for the long game."
@@ -76,7 +135,7 @@ export function Landing({ onGetStarted }: LandingProps) {
         />
         <ModuleSection
           eyebrow="Deals"
-          badgeColor="#f59e0b"
+          badgeColor={MODULE_COLOR.deals}
           icon={<DealsIcon />}
           title="Every file, from acceptance to closing"
           description="A real transaction lifecycle — Active, In Escrow, Inspections, Pre-Closing, Closed — with a milestone timeline and a Tasks/Documents checklist seeded from your own reusable templates."
@@ -90,7 +149,7 @@ export function Landing({ onGetStarted }: LandingProps) {
         />
         <ModuleSection
           eyebrow="Notes"
-          badgeColor="#ec4899"
+          badgeColor={MODULE_COLOR.notes}
           icon={<NotesIcon />}
           title="Real formatting, not just plain text"
           description="Headings, bold and underline, and multicolor highlighting — organized into folders with pinned notes surfaced right at the top."
@@ -108,13 +167,13 @@ export function Landing({ onGetStarted }: LandingProps) {
       <Highlights />
       <FinalCta onGetStarted={onGetStarted} />
       <Footer />
-    </div>
+    </main>
   );
 }
 
 function Hero({ onGetStarted }: { onGetStarted: () => void }) {
   return (
-    <div
+    <section
       style={{
         position: "relative",
         overflow: "hidden",
@@ -152,29 +211,42 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
         <h1
           style={{
-            fontSize: 52,
+            fontSize: 56,
             fontWeight: 800,
             color: "var(--text-primary)",
             letterSpacing: "-0.03em",
-            lineHeight: 1.08,
+            lineHeight: 1.06,
             margin: "0 0 20px",
+            textWrap: "balance",
           }}
         >
           Every task. Every follow-up.
           <br />
           One workspace.
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: 17, lineHeight: 1.6, margin: "0 auto 32px", maxWidth: 560 }}>
+        <p
+          style={{
+            color: "var(--text-secondary)",
+            fontSize: 17,
+            lineHeight: 1.6,
+            margin: "0 auto 32px",
+            maxWidth: 560,
+            textWrap: "pretty",
+          }}
+        >
           Tasks and Notes to stay organized, plus Leads, Pipeline, and Deals when you're tracking
           relationships and transactions too. Turn on only what fits — a student or freelancer might
           just want Tasks; a real estate pro gets the full toolkit.
         </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 40 }}>
-          <button onClick={onGetStarted} style={primaryButtonStyle}>
+        <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 40 }}>
+          <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
             Create your workspace
           </button>
-          <a href="#tasks" style={secondaryButtonStyle}>
+          <a href="#tasks" className="landing-link-cta" style={linkCtaStyle}>
             See what's inside
+            <span className="landing-link-arrow" aria-hidden>
+              <ArrowRightIcon />
+            </span>
           </a>
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
@@ -187,11 +259,26 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
       </div>
 
       <div style={{ position: "relative", maxWidth: 880, margin: "56px auto 0" }}>
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 32,
+            left: -40,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "var(--accent)",
+            opacity: 0.14,
+            filter: "blur(60px)",
+            pointerEvents: "none",
+          }}
+        />
         <BrowserFrame>
           <TasksPreview large />
         </BrowserFrame>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -226,7 +313,11 @@ function ModuleSection({
           width: 40,
           height: 40,
           borderRadius: 11,
-          background: `${badgeColor}1a`,
+          // color-mix (not a hex+alpha-suffix string) so this works whether
+          // badgeColor is a plain hex value or a CSS var() reference (the
+          // Tasks module points its badge at var(--accent-strong) so it
+          // always matches whatever accent the visitor already has active).
+          background: `color-mix(in srgb, ${badgeColor} 14%, transparent)`,
           color: badgeColor,
           marginBottom: 18,
         }}
@@ -236,7 +327,17 @@ function ModuleSection({
       <div style={{ fontSize: 12, fontWeight: 700, color: badgeColor, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
         {eyebrow}
       </div>
-      <h2 style={{ fontSize: 30, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px", lineHeight: 1.2 }}>
+      <h2
+        style={{
+          fontSize: 30,
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          letterSpacing: "-0.02em",
+          margin: "0 0 14px",
+          lineHeight: 1.2,
+          textWrap: "balance",
+        }}
+      >
         {title}
       </h2>
       <p style={{ fontSize: 15.5, color: "var(--text-secondary)", lineHeight: 1.65, margin: "0 0 20px" }}>{description}</p>
@@ -260,30 +361,32 @@ function ModuleSection({
   );
 
   return (
-    <div
-      id={eyebrow.toLowerCase()}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 56,
-        flexWrap: "wrap",
-        padding: "64px 0",
-        borderBottom: last ? "none" : "1px solid var(--border)",
-        scrollMarginTop: 80,
-      }}
-    >
-      {reverse ? (
-        <>
-          {previewCol}
-          {text}
-        </>
-      ) : (
-        <>
-          {text}
-          {previewCol}
-        </>
-      )}
-    </div>
+    <Reveal>
+      <section
+        id={eyebrow.toLowerCase()}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 56,
+          flexWrap: "wrap",
+          padding: "64px 0",
+          borderBottom: last ? "none" : "1px solid var(--border)",
+          scrollMarginTop: 80,
+        }}
+      >
+        {reverse ? (
+          <>
+            {previewCol}
+            {text}
+          </>
+        ) : (
+          <>
+            {text}
+            {previewCol}
+          </>
+        )}
+      </section>
+    </Reveal>
   );
 }
 
@@ -299,53 +402,89 @@ function Highlights() {
     { icon: <LockIcon />, title: "Your own private workspace", body: "Self-service signup, your data scoped to your account alone." },
   ];
   return (
-    <div style={{ background: "var(--bg-panel)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+    <section style={{ background: "var(--bg-panel)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 24px", display: "flex", gap: 32, flexWrap: "wrap" }}>
-        {items.map((item) => (
-          <div key={item.title} style={{ flex: "1 1 220px", minWidth: 200 }}>
-            <div style={{ color: "var(--accent)", marginBottom: 14 }}>{item.icon}</div>
-            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{item.title}</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.55 }}>{item.body}</div>
-          </div>
+        {items.map((item, i) => (
+          <Reveal key={item.title} delay={i * 80}>
+            <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+              <div style={{ color: "var(--accent)", marginBottom: 14 }}>{item.icon}</div>
+              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{item.title}</div>
+              <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.55 }}>{item.body}</div>
+            </div>
+          </Reveal>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
 function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
   return (
-    <div style={{ textAlign: "center", padding: "88px 24px" }}>
-      <h2 style={{ fontSize: 30, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 14px" }}>
-        Stop juggling five tools for one file.
-      </h2>
-      <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
-        Create your workspace and see it end to end in under a minute.
-      </p>
-      <button onClick={onGetStarted} style={primaryButtonStyle}>
-        Create your workspace
-      </button>
-    </div>
+    <Reveal>
+      <section style={{ textAlign: "center", padding: "88px 24px" }}>
+        <h2
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            letterSpacing: "-0.02em",
+            margin: "0 0 14px",
+            textWrap: "balance",
+          }}
+        >
+          Stop juggling five tools for one file.
+        </h2>
+        <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
+          Create your workspace and see it end to end in under a minute.
+        </p>
+        <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
+          Create your workspace
+        </button>
+      </section>
+    </Reveal>
   );
 }
 
 function Footer() {
+  const links = ["Tasks", "Leads", "Pipeline", "Deals", "Notes"];
   return (
-    <div style={{ borderTop: "1px solid var(--border)", padding: "28px 24px", textAlign: "center" }}>
-      <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Evertill — one workspace, only the modules you need.</span>
-    </div>
+    <footer style={{ borderTop: "1px solid var(--border)", padding: "28px 24px" }}>
+      <div
+        style={{
+          maxWidth: 1120,
+          margin: "0 auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Evertill</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>One workspace, only the modules you need.</span>
+        </div>
+        <nav style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+          {links.map((l) => (
+            <a key={l} href={`#${l.toLowerCase()}`} className="landing-link-cta" style={footerLinkStyle}>
+              {l}
+            </a>
+          ))}
+        </nav>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>© {new Date().getFullYear()} Evertill</span>
+      </div>
+    </footer>
   );
 }
 
 function BrowserFrame({ children }: { children: ReactNode }) {
   return (
     <div
-      className="landing-preview"
+      className="landing-preview-hero"
       style={{
         borderRadius: 16,
         border: "1px solid var(--border)",
         background: "var(--bg-panel)",
-        boxShadow: "0 30px 60px -20px rgba(0,0,0,0.35)",
         overflow: "hidden",
         textAlign: "left",
         // Reset back to the app's own font — this frame previews the real
@@ -698,37 +837,51 @@ function LockIcon() {
     </svg>
   );
 }
+function ArrowRightIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // ---------- Shared styles ----------
+// background/color/border are deliberately left OUT of primaryButtonStyle/
+// pillStyle below wherever a .landing-* class in index.css changes that same
+// property on :hover — a non-!important stylesheet rule can never override
+// an inline style on the same property, pseudo-class or not, so the resting
+// value for anything a hover state touches has to live in the CSS class
+// itself instead (see the comments in index.css for the fuller explanation).
 
 const primaryButtonStyle: CSSProperties = {
-  background: "var(--accent)",
   border: "none",
   borderRadius: 10,
-  color: "#fff",
   fontWeight: 600,
   fontSize: 15,
   padding: "13px 26px",
   cursor: "pointer",
 };
 
-const secondaryButtonStyle: CSSProperties = {
-  background: "none",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 10,
-  color: "var(--text-body)",
+const linkCtaStyle: CSSProperties = {
   fontWeight: 600,
   fontSize: 15,
-  padding: "13px 26px",
   textDecoration: "none",
-  display: "inline-block",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  cursor: "pointer",
+};
+
+const footerLinkStyle: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  textDecoration: "none",
+  cursor: "pointer",
 };
 
 const pillStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
-  color: "var(--text-secondary)",
-  border: "1px solid var(--border)",
   borderRadius: 99,
   padding: "5px 12px",
   textDecoration: "none",
@@ -740,7 +893,6 @@ const previewFrameStyle: CSSProperties = {
   borderRadius: 16,
   border: "1px solid var(--border)",
   background: "var(--bg-panel)",
-  boxShadow: "0 20px 40px -18px rgba(0,0,0,0.3)",
   padding: 20,
   // Same reasoning as BrowserFrame above: these preview the real product UI.
   fontFamily: APP_FONT_STACK,

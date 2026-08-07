@@ -50,6 +50,11 @@ html {
   --accent-light: #a5b4fc;
   --danger: #ef4444;
   --success: #22c55e;
+  /* R, G, B triplet (no rgba() wrapper) so callers can do
+     rgba(var(--shadow-color), <alpha>) — used by the landing page to tint
+     its shadows toward the app's own background hue instead of flat black,
+     which reads as more considered / less like a generic template. */
+  --shadow-color: 2, 8, 23;
 }
 
 :root[data-theme="light"] {
@@ -73,6 +78,9 @@ html {
   --accent-light: #4338ca;
   --danger: #dc2626;
   --success: #16a34a;
+  /* Slate-ish, not navy — a light background needs a mid-gray shadow tint,
+     not the dark theme's near-black navy. */
+  --shadow-color: 100, 116, 139;
 }
 
 /* Accent color themes: an independent axis from dark/light (data-theme) —
@@ -228,22 +236,114 @@ body {
 
 /* Landing page: recreated module preview panels lift slightly on hover so
    the page doesn't feel static — plain inline styles can't express :hover,
-   so this lives here instead. */
+   so this lives here instead. box-shadow's resting value has to live here
+   too, not as an inline style prop on the element: a non-!important
+   stylesheet :hover rule can never override a same-property inline style
+   (inline always wins the cascade regardless of pseudo-class), so the old
+   version of this rule — box-shadow set inline AND in this :hover block —
+   silently never actually changed the shadow on hover, only the transform
+   (which wasn't duplicated inline) took effect. Two variants: the hero's
+   larger BrowserFrame shadow (.landing-preview-hero) and the smaller module
+   preview shadow (.landing-preview) — same reasoning, just different scale.
+   Shadows are tinted via --shadow-color (see :root above) instead of flat
+   black, so they read as considered rather than a generic drop-shadow. */
 .landing-preview {
+  box-shadow: 0 20px 40px -18px rgba(var(--shadow-color), 0.3);
   transition: transform 220ms ease, box-shadow 220ms ease;
 }
 .landing-preview:hover {
   transform: translateY(-4px);
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 48px -12px rgba(var(--shadow-color), 0.35);
+}
+
+.landing-preview-hero {
+  box-shadow: 0 30px 60px -20px rgba(var(--shadow-color), 0.35);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.landing-preview-hero:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 38px 72px -16px rgba(var(--shadow-color), 0.4);
 }
 
 /* Landing page: the hero's module pills are anchor links that jump to each
-   section — a hover state makes that affordance obvious. */
+   section — a hover state makes that affordance obvious. Same inline-vs-
+   stylesheet precedence issue as above: color/border-color have to live
+   here as the resting state too, not in the inline pillStyle object, or
+   the :hover overrides below would never actually apply. */
 .landing-pill {
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   transition: border-color 160ms ease, color 160ms ease;
 }
 .landing-pill:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Landing page CTAs had no hover/press feedback at all before this — the
+   most important interactive elements on the page were dead on interaction.
+   background/color are the resting state here (not inline) for the same
+   inline-beats-:hover reason documented above. translateY + shadow-lift on
+   hover, a quick scale-down on press. */
+.landing-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.landing-btn-primary:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 10px 24px -8px rgba(var(--shadow-color), 0.5);
+  transform: translateY(-1px);
+}
+.landing-btn-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* The lighter "See what's inside" link (replaces a second bordered button —
+   two same-weight boxes side by side reads generic; a single strong CTA plus
+   a quieter text link reads more considered). The arrow icon's translateX
+   lives on a child span with no competing inline transform, so it's safe to
+   drive purely from :hover without the inline-precedence issue above. */
+.landing-link-cta {
+  color: var(--text-body);
+  transition: color 160ms ease;
+}
+.landing-link-cta:hover {
+  color: var(--accent);
+}
+.landing-link-cta:hover .landing-link-arrow {
+  transform: translateX(3px);
+}
+.landing-link-arrow {
+  display: inline-flex;
+  transition: transform 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-btn-primary,
+  .landing-link-cta,
+  .landing-link-arrow {
+    transition: none;
+  }
+  .landing-btn-primary:hover,
+  .landing-btn-primary:active {
+    transform: none;
+  }
+}
+
+/* One-shot scroll-in reveal (see the Reveal component in LandingPage.tsx) —
+   starts offset + transparent, animates to its resting state the first time
+   it enters the viewport. The component itself skips straight to the
+   resting state when prefers-reduced-motion is set, so this transition only
+   ever fires for users who haven't asked for reduced motion. */
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+.landing-reveal.landing-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
