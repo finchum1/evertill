@@ -9,6 +9,7 @@ import { TaskComposer } from "./TaskComposer";
 import { QuickAddTaskModal } from "./QuickAddTaskModal";
 import { parseSmartDueDate } from "../lib/smartDate";
 import type { useGoogleCalendar } from "../hooks/useGoogleCalendar";
+import { formatEventTime, groupEventsByDay, isEventPast } from "../lib/googleEvents";
 
 type SubView = "month" | "week" | "day";
 
@@ -36,31 +37,6 @@ interface CalendarViewProps {
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// All-day events carry a plain 'YYYY-MM-DD' string with no timezone info —
-// keying off it directly (rather than `new Date(event.start)`) avoids the
-// classic off-by-one: `new Date('2026-08-12')` parses as UTC midnight,
-// which rolls back a day in any timezone west of UTC. Timed events do
-// carry a real offset in their ISO string, so `new Date(...)` + the
-// existing local-date `dateToKey` helper is safe for those.
-function googleEventDateKey(event: GoogleEvent): string {
-  return event.allDay ? event.start.slice(0, 10) : dateToKey(new Date(event.start));
-}
-
-function formatEventTime(event: GoogleEvent): string {
-  if (event.allDay) return "All day";
-  return new Date(event.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
-
-// Dims an event once it's over, everywhere an event renders (Today/Day's
-// EventsHeader, Month's chips, Week's all-day chips and timed blocks).
-// `event.end` is exclusive already for both timed events (a real instant)
-// and all-day events (Google's own 'day after the last day' convention),
-// so a plain instant comparison against now is correct for both without
-// any special-casing.
-function isEventPast(event: GoogleEvent): boolean {
-  return new Date(event.end).getTime() < Date.now();
-}
-
 // Shared by CalendarView's own effect (Month/Week/Day sub-tabs) and
 // TaskListView's Today header — both just need "events grouped by the
 // local day they fall on" for whatever range they ask for.
@@ -76,16 +52,7 @@ function useEventsByDay(googleCalendarData: ReturnType<typeof useGoogleCalendar>
       .getEvents(new Date(startKey).toISOString(), new Date(endKey).toISOString())
       .then(({ events, errors }) => {
         if (cancelled) return;
-        const map = new Map<string, GoogleEvent[]>();
-        for (const e of events) {
-          const key = googleEventDateKey(e);
-          if (!map.has(key)) map.set(key, []);
-          map.get(key)!.push(e);
-        }
-        for (const list of map.values()) {
-          list.sort((a, b) => (a.allDay === b.allDay ? a.start.localeCompare(b.start) : a.allDay ? -1 : 1));
-        }
-        setEventsByDay(map);
+        setEventsByDay(groupEventsByDay(events));
         setEventErrors(errors);
       })
       .catch(() => {
@@ -470,6 +437,14 @@ function WeekGrid({
                   gap: 6,
                   padding: "0 4px",
                   borderLeft: dayIndex > 0 ? "1px solid var(--border)" : "none",
+                  // Without this, a grid item defaults to min-width:auto —
+                  // sized to fit its longest unbroken content (an event
+                  // chip's title) rather than shrinking to its 1fr share,
+                  // which is exactly what let a long all-day event title
+                  // force this whole column (and thus the header row)
+                  // wider than the timed grid below it once the window
+                  // narrowed past that title's natural width.
+                  minWidth: 0,
                 }}
               >
                 <div
@@ -513,6 +488,7 @@ function WeekGrid({
                     borderRadius: 8,
                     padding: 6,
                     cursor: "pointer",
+                    minWidth: 0,
                   }}
                 >
                   {dayTodos.map((t) => (
@@ -880,6 +856,7 @@ const miniChipStyle: CSSProperties = {
   padding: "2px 7px",
   cursor: "pointer",
   overflow: "hidden",
+  minWidth: 0,
 };
 
 const miniChipLabelStyle: CSSProperties = {
@@ -902,6 +879,7 @@ function eventChipStyle(color: string | null, past = false): CSSProperties {
     cursor: "default",
     overflow: "hidden",
     opacity: past ? 0.55 : 1,
+    minWidth: 0,
   };
 }
 

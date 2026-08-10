@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
-import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
+import type { GoogleEvent, Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
+import { EventsHeader } from "./CalendarView";
 import { addDays, dateToKey, parseDateKey, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
+import type { useGoogleCalendar } from "../hooks/useGoogleCalendar";
+import { groupEventsByDay } from "../lib/googleEvents";
 
 interface UpcomingViewProps {
   lists: TodoList[];
   todos: Todo[];
   subtasks: TodoSubtask[];
+  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
   onAddTodo: (
     listId: string,
     title: string,
@@ -35,6 +39,7 @@ export function UpcomingView({
   lists,
   todos,
   subtasks,
+  googleCalendarData,
   onAddTodo,
   onToggleComplete,
   onAddSubtask,
@@ -80,6 +85,33 @@ export function UpcomingView({
     if (!groups.some((g) => g.key === key)) groups.push({ key, todos: [] });
   }
   groups.sort((a, b) => a.key.localeCompare(b.key));
+
+  // Google events for every day this agenda actually shows — from today
+  // through whichever day the last group lands on (the padded-to-10-days
+  // minimum, or further out if a real task pushed a group beyond that).
+  // Refetches when the visible range shifts (a task added past the
+  // current last day) or when `calendars` changes; a plain re-render from
+  // an unrelated state change reuses what's already fetched.
+  const [eventsByDay, setEventsByDay] = useState<Map<string, GoogleEvent[]>>(new Map());
+  const lastGroupKey = groups[groups.length - 1]?.key ?? tkey;
+  useEffect(() => {
+    if (!googleCalendarData.calendars.some((c) => c.visible)) {
+      setEventsByDay(new Map());
+      return;
+    }
+    let cancelled = false;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = addDays(parseDateKey(lastGroupKey), 1);
+    googleCalendarData.getEvents(start.toISOString(), end.toISOString()).then(({ events }) => {
+      if (cancelled) return;
+      setEventsByDay(groupEventsByDay(events));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastGroupKey, googleCalendarData.calendars]);
 
   function dayLabel(key: string): string {
     const d = parseDateKey(key);
@@ -192,6 +224,11 @@ export function UpcomingView({
           >
             <div style={{ ...dateHeaderStyle, ...(g.key === tkey ? dateHeaderTodayStyle : {}) }}>{dayLabel(g.key)}</div>
             <div style={dateHeaderRuleStyle} />
+            {(eventsByDay.get(g.key)?.length ?? 0) > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <EventsHeader events={eventsByDay.get(g.key)!} />
+              </div>
+            )}
             {g.todos.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>{g.todos.map((t) => renderRow(t))}</div>
             )}

@@ -58,6 +58,7 @@ export function TaskListView({
         lists={lists}
         todos={todos}
         subtasks={subtasks}
+        googleCalendarData={googleCalendarData}
         onAddTodo={onAddTodo}
         onToggleComplete={onToggleComplete}
         onAddSubtask={onAddSubtask}
