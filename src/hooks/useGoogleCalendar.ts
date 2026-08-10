@@ -14,6 +14,28 @@ function redirectUri(): string {
   return `${window.location.origin}/`;
 }
 
+// supabase-js's functions.invoke() surfaces a non-2xx response as a
+// FunctionsHttpError whose own .message is just the generic "Edge
+// Function returned a non-2xx status code" — the actual reason (both
+// Edge Functions here always return { ok: false, error: "..." } on
+// failure) lives on error.context, the raw Response object, and has to
+// be read separately. Also handles the plain `new Error(data.error)`
+// thrown when the function responds 2xx but with ok: false in its body —
+// that case has no .context, so it just falls through to err.message.
+async function extractFunctionErrorMessage(err: unknown): Promise<string> {
+  const context = (err as { context?: Response })?.context;
+  if (context && typeof context.json === "function") {
+    try {
+      const body = await context.json();
+      if (body?.error) return body.error as string;
+    } catch {
+      // context wasn't JSON (e.g. a network-level failure) — fall through
+      // to the generic message below.
+    }
+  }
+  return err instanceof Error ? err.message : "Failed to connect Google account.";
+}
+
 export function useGoogleCalendar(userId: string | undefined) {
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [calendars, setCalendars] = useState<GoogleCalendarEntry[]>([]);
@@ -111,7 +133,7 @@ export function useGoogleCalendar(userId: string | undefined) {
       if (data && data.ok === false) throw new Error(data.error);
       await refresh();
     } catch (err) {
-      setConnectError(err instanceof Error ? err.message : "Failed to connect Google account.");
+      setConnectError(await extractFunctionErrorMessage(err));
     } finally {
       setConnecting(false);
     }
