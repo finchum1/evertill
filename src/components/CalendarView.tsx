@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { GoogleEvent, Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
@@ -417,9 +417,30 @@ function WeekGrid({
   const hours = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR + 1 }, (_, i) => GRID_START_HOUR + i);
   const gridHeight = hours.length * HOUR_HEIGHT;
 
+  // The hour-grid below always has a vertical scrollbar (18 hours don't
+  // fit in the 480px cap), which narrows ITS 7-day grid by the
+  // scrollbar's own width — but the header/all-day row above never
+  // scrolls, so with nothing correcting for it, its 7-day grid stayed a
+  // few pixels wider than the one below, drifting the columns out of
+  // alignment. Rather than guess a scrollbar width (it varies by OS/
+  // browser/zoom, and is 0 on overlay-scrollbar platforms), measure the
+  // real one — offsetWidth includes the scrollbar track, clientWidth
+  // doesn't — and pad the header row by exactly that much.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => setScrollbarWidth(el.offsetWidth - el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div>
-      <div style={{ display: "flex", marginBottom: 12 }}>
+      <div style={{ display: "flex", marginBottom: 12, paddingRight: scrollbarWidth }}>
         <div style={{ width: WEEK_GUTTER_WIDTH, flexShrink: 0 }} />
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {days.map((d, dayIndex) => {
@@ -538,7 +559,7 @@ function WeekGrid({
             desync them — two independent overflow:auto regions here
             would let the labels and grid drift apart the moment either
             one was scrolled. */}
-        <div style={{ display: "flex", flex: 1, maxHeight: 480, overflowY: "auto" }}>
+        <div ref={scrollRef} style={{ display: "flex", flex: 1, maxHeight: 480, overflowY: "auto" }}>
           <div style={{ width: WEEK_GUTTER_WIDTH, flexShrink: 0, borderRight: "1px solid var(--border)" }}>
             <div style={{ position: "relative", height: gridHeight }}>
               {hours.map((h, i) => (
