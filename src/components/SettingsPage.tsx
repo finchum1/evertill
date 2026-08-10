@@ -6,9 +6,12 @@ import type { useProfile } from "../hooks/useProfile";
 import type { useTheme, ThemePreference, AccentColor } from "../hooks/useTheme";
 import type { useDealTemplates } from "../hooks/useDealTemplates";
 import type { useTags } from "../hooks/useTags";
+import type { useGoogleCalendar } from "../hooks/useGoogleCalendar";
+import type { GoogleAccount } from "../types";
 import { DealTemplatesManager } from "./DealTemplatesManager";
 import { TagsManager } from "./TagsManager";
 import { Avatar } from "./Avatar";
+import { useDialogs } from "./DialogHost";
 import { resizeImageToDataUrl } from "../lib/imageResize";
 import { HIDEABLE_MODULES } from "../types";
 
@@ -18,6 +21,7 @@ interface SettingsPageProps {
   theme: ReturnType<typeof useTheme>;
   dealTemplatesData: ReturnType<typeof useDealTemplates>;
   tagsData: ReturnType<typeof useTags>;
+  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
@@ -37,7 +41,7 @@ const ACCENT_OPTIONS: { key: AccentColor; label: string; swatch: string }[] = [
   { key: "charcoal", label: "Charcoal", swatch: "#3f3f46" },
 ];
 
-export function SettingsPage({ session, profileData, theme, dealTemplatesData, tagsData }: SettingsPageProps) {
+export function SettingsPage({ session, profileData, theme, dealTemplatesData, tagsData, googleCalendarData }: SettingsPageProps) {
   const [managingTemplates, setManagingTemplates] = useState(false);
   const [managingTags, setManagingTags] = useState(false);
 
@@ -56,6 +60,7 @@ export function SettingsPage({ session, profileData, theme, dealTemplatesData, t
         <AccountCard session={session} />
         <AppearanceCard theme={theme} />
         <ModulesCard profileData={profileData} />
+        <GoogleCalendarsCard googleCalendarData={googleCalendarData} />
         <TagsCard onManage={() => setManagingTags(true)} />
         <DealTemplatesCard onManage={() => setManagingTemplates(true)} />
       </div>
@@ -298,6 +303,97 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
   );
 }
 
+// Read-only by design (calendar.readonly OAuth scope) — Evertill can never
+// create/edit/delete anything on a linked Google account's calendar,
+// stated here since that's not otherwise visible from the UI itself.
+function GoogleCalendarsCard({ googleCalendarData }: { googleCalendarData: ReturnType<typeof useGoogleCalendar> }) {
+  const dialogs = useDialogs();
+  const { accounts, calendars, loading, connecting, connectError, clearConnectError, connect, disconnectAccount, setCalendarVisible } = googleCalendarData;
+
+  async function handleDisconnect(account: GoogleAccount) {
+    const ok = await dialogs.confirm({
+      message: `Disconnect ${account.email}? Its calendars will stop showing in Tasks. You can reconnect it anytime.`,
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (ok) disconnectAccount(account.id);
+  }
+
+  return (
+    <Card title="Calendars">
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+        Link Google accounts to see their events alongside your tasks in Today, Week, and Month. Read-only — Evertill never edits your Google Calendar.
+      </p>
+      {connectError && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 8,
+            fontSize: 12,
+            color: "var(--danger)",
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            borderRadius: 8,
+            padding: "8px 10px",
+          }}
+        >
+          <span>{connectError}</span>
+          <button
+            onClick={clearConnectError}
+            aria-label="Dismiss"
+            style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {!loading && accounts.length === 0 && <div style={{ fontSize: 13, color: "var(--text-muted)" }}>No Google accounts connected yet.</div>}
+      {accounts.map((account) => {
+        const accountCalendars = calendars.filter((c) => c.google_account_id === account.id);
+        return (
+          <div
+            key={account.id}
+            style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {account.email}
+              </span>
+              <button onClick={() => handleDisconnect(account)} style={dangerLinkButtonStyle}>
+                Disconnect
+              </button>
+            </div>
+            {accountCalendars.length === 0 ? (
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>No calendars found on this account.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {accountCalendars.map((cal) => (
+                  <div key={cal.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-body)", minWidth: 0 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 99, background: cal.color || "var(--text-muted)", flexShrink: 0 }} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cal.summary}</span>
+                    </span>
+                    <Toggle checked={cal.visible} onChange={() => setCalendarVisible(cal.id, !cal.visible)} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button
+        onClick={connect}
+        disabled={connecting}
+        style={{ ...primaryButtonStyle, alignSelf: "flex-start", opacity: connecting ? 0.6 : 1, cursor: connecting ? "wait" : "pointer" }}
+      >
+        {connecting ? "Connecting…" : "+ Connect Google Account"}
+      </button>
+    </Card>
+  );
+}
+
 function TagsCard({ onManage }: { onManage: () => void }) {
   return (
     <Card title="Tags">
@@ -393,6 +489,12 @@ const linkButtonStyle: CSSProperties = {
   fontWeight: 600,
   padding: 0,
   cursor: "pointer",
+};
+
+const dangerLinkButtonStyle: CSSProperties = {
+  ...linkButtonStyle,
+  color: "var(--danger)",
+  flexShrink: 0,
 };
 
 const segmentButtonStyle: CSSProperties = {

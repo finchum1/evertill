@@ -710,3 +710,60 @@ create policy "notes_owner_all" on notes
 
 alter publication supabase_realtime add table note_folders;
 alter publication supabase_realtime add table notes;
+
+-- ---------------------------------------------------------------------
+-- Google Calendar integration: multiple linked Google accounts per user,
+-- each with its own set of calendars that can be individually shown/hidden
+-- in the Tasks module's Today/Week/Month views. access_token/refresh_token
+-- are only ever written by the google-oauth-exchange and
+-- google-calendar-events Edge Functions (via the service-role key, which
+-- bypasses RLS) — the "for all" policies below exist so the owning user's
+-- own authenticated client can SELECT its rows (Settings' account list),
+-- UPDATE google_calendars.visible (the on/off toggle), and DELETE a
+-- google_accounts row (disconnect, cascades its calendars). A user's own
+-- client could technically also INSERT/UPDATE a row directly, but that's
+-- harmless the same way it is on every other table here — RLS still
+-- scopes it to their own user_id, and they can't forge a real Google
+-- token for an account they don't control.
+-- ---------------------------------------------------------------------
+create table if not exists google_accounts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  google_user_id text not null,
+  email text not null,
+  access_token text not null,
+  refresh_token text not null,
+  token_expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, google_user_id)
+);
+
+create table if not exists google_calendars (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  google_account_id uuid not null references google_accounts(id) on delete cascade,
+  calendar_id text not null,
+  summary text not null,
+  color text,
+  visible boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (google_account_id, calendar_id)
+);
+
+create index if not exists google_accounts_user_id_idx on google_accounts(user_id);
+create index if not exists google_calendars_user_id_idx on google_calendars(user_id);
+create index if not exists google_calendars_account_id_idx on google_calendars(google_account_id);
+
+alter table google_accounts enable row level security;
+alter table google_calendars enable row level security;
+
+drop policy if exists "google_accounts_owner_all" on google_accounts;
+create policy "google_accounts_owner_all" on google_accounts
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "google_calendars_owner_all" on google_calendars;
+create policy "google_calendars_owner_all" on google_calendars
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table google_accounts;
+alter publication supabase_realtime add table google_calendars;

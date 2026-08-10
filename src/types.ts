@@ -342,3 +342,41 @@ export interface Note {
   created_at: string;
   updated_at: string;
 }
+
+// A linked Google account. Never carries access_token/refresh_token to the
+// frontend — those columns exist in the DB but this type only covers what
+// useGoogleCalendar actually selects (id/email/created_at), which is all
+// Settings' "connected accounts" list needs.
+export interface GoogleAccount {
+  id: string;
+  user_id: string;
+  email: string;
+  created_at: string;
+}
+
+export interface GoogleCalendarEntry {
+  id: string;
+  user_id: string;
+  google_account_id: string;
+  calendar_id: string;
+  summary: string;
+  color: string | null;
+  visible: boolean;
+  created_at: string;
+}
+
+// Shape returned by the google-calendar-events Edge Function — not a DB
+// row, so no id/user_id-style fields beyond what's needed to render and
+// dedupe an event.
+export interface GoogleEvent {
+  id: string;
+  calendarId: string;
+  calendarSummary: string;
+  accountEmail: string;
+  title: string;
+  start: string; // ISO datetime for timed events, 'YYYY-MM-DD' for all-day
+  end: string;
+  allDay: boolean;
+  color: string | null;
+  htmlLink: string | null;
+}

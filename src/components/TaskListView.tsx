@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
-import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
+import type { GoogleEvent, Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
 import { UpcomingView } from "./UpcomingView";
+import { EventsHeader } from "./CalendarView";
 import { addDays, dateToKey, formatDueDate, isOverdue, todayKey } from "../lib/dates";
 import { parseSmartDueDate } from "../lib/smartDate";
+import type { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 
 interface TaskListViewProps {
   view: View;
   lists: TodoList[];
   todos: Todo[];
   subtasks: TodoSubtask[];
+  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
   onAddTodo: (
     listId: string,
     title: string,
@@ -34,6 +37,7 @@ export function TaskListView({
   lists,
   todos,
   subtasks,
+  googleCalendarData,
   onAddTodo,
   onToggleComplete,
   onAddSubtask,
@@ -72,6 +76,7 @@ export function TaskListView({
     lists={lists}
     todos={todos}
     subtasks={subtasks}
+    googleCalendarData={googleCalendarData}
     onAddTodo={onAddTodo}
     onToggleComplete={onToggleComplete}
     onAddSubtask={onAddSubtask}
@@ -84,11 +89,43 @@ export function TaskListView({
   />;
 }
 
+// Today's own events, sorted all-day-first-then-by-time — fetches just
+// today's range (local midnight to next local midnight) rather than
+// reusing whatever range Calendar's Month/Week/Day sub-tabs last asked
+// for, since this view can be open with Calendar never having been
+// visited at all in the session.
+function TodayEvents({ googleCalendarData }: { googleCalendarData: ReturnType<typeof useGoogleCalendar> }) {
+  const [events, setEvents] = useState<GoogleEvent[]>([]);
+
+  useEffect(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    let cancelled = false;
+    googleCalendarData.getEvents(start.toISOString(), end.toISOString()).then(({ events: fetched }) => {
+      if (!cancelled) setEvents(fetched);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleCalendarData.calendars]);
+
+  if (events.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <EventsHeader events={events} />
+    </div>
+  );
+}
+
 function TaskListViewInner({
   view,
   lists,
   todos,
   subtasks,
+  googleCalendarData,
   onAddTodo,
   onToggleComplete,
   onAddSubtask,
@@ -225,6 +262,8 @@ function TaskListViewInner({
     <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
     <div style={{ maxWidth: "min(1100px, 92%)", margin: "0 auto" }}>
       <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 16px" }}>{heading}</h1>
+
+      {view === "today" && <TodayEvents googleCalendarData={googleCalendarData} />}
 
       {view !== "completed" && (
         <div style={{ marginBottom: 16 }}>

@@ -31,6 +31,7 @@ import { useDealTemplates } from "./hooks/useDealTemplates";
 import { useTags } from "./hooks/useTags";
 import { useTheme } from "./hooks/useTheme";
 import { useProfile } from "./hooks/useProfile";
+import { useGoogleCalendar } from "./hooks/useGoogleCalendar";
 import type { Session } from "@supabase/supabase-js";
 import { DealsBoard } from "./components/DealsBoard";
 import { DealsListView } from "./components/DealsListView";
@@ -209,7 +210,15 @@ type DealsData = ReturnType<typeof useDeals>;
 type DealTemplatesData = ReturnType<typeof useDealTemplates>;
 type NotesData = ReturnType<typeof useNotes>;
 
-function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () => void }) {
+function TasksDashboard({
+  tasks,
+  googleCalendarData,
+  onNewTask,
+}: {
+  tasks: TasksData;
+  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
+  onNewTask: () => void;
+}) {
   const {
     folders,
     lists,
@@ -363,6 +372,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           todos={todos}
           lists={lists}
           subtasks={subtasks}
+          googleCalendarData={googleCalendarData}
           onOpenTodo={setOpenTodoId}
           onToggleComplete={handleToggleComplete}
           onAddTodo={addTodo}
@@ -380,6 +390,7 @@ function TasksDashboard({ tasks, onNewTask }: { tasks: TasksData; onNewTask: () 
           lists={lists}
           todos={todos}
           subtasks={subtasks}
+          googleCalendarData={googleCalendarData}
           onAddTodo={addTodo}
           onToggleComplete={handleToggleComplete}
           onAddSubtask={addSubtask}
@@ -870,6 +881,7 @@ function PageContent({
   notesData,
   profileData,
   theme,
+  googleCalendarData,
   onNewTask,
   onMoveDealToPipeline,
 }: {
@@ -884,12 +896,13 @@ function PageContent({
   notesData: NotesData;
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
+  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
   onNewTask: () => void;
   onMoveDealToPipeline: (deal: Deal) => void;
 }) {
   switch (page) {
     case "tasks":
-      return <TasksDashboard tasks={tasksData} onNewTask={onNewTask} />;
+      return <TasksDashboard tasks={tasksData} googleCalendarData={googleCalendarData} onNewTask={onNewTask} />;
     case "leads":
       return <LeadsDashboard leads={leadsData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
     case "pipeline":
@@ -899,7 +912,16 @@ function PageContent({
     case "notes":
       return <NotesDashboard notes={notesData} />;
     case "settings":
-      return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} tagsData={tagsData} />;
+      return (
+        <SettingsPage
+          session={session}
+          profileData={profileData}
+          theme={theme}
+          dealTemplatesData={dealTemplatesData}
+          tagsData={tagsData}
+          googleCalendarData={googleCalendarData}
+        />
+      );
   }
 }
 
@@ -920,7 +942,18 @@ function App() {
   const notes = useNotes(session?.user.id);
   const profile = useProfile(session?.user.id);
   const theme = useTheme();
+  const googleCalendar = useGoogleCalendar(session?.user.id);
   const hiddenModules = profile.profile?.hidden_modules ?? NO_HIDDEN_MODULES;
+
+  // Runs once a real session exists so supabase.functions.invoke already
+  // has a valid Authorization header to send — Google's redirect back
+  // (?code=...&state=...) can land here before useAuth finishes resolving
+  // the session on a cold load, and the exchange would otherwise fire
+  // unauthenticated and fail.
+  useEffect(() => {
+    if (session) googleCalendar.handleOAuthCallback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   // If the currently-open module gets hidden (its nav tab just vanished),
   // don't leave a dead page up with no way back — jump to the first module
@@ -1047,6 +1080,7 @@ function App() {
             notesData={notes}
             profileData={profile}
             theme={theme}
+            googleCalendarData={googleCalendar}
             onNewTask={() => setQuickAddOpen(true)}
             onMoveDealToPipeline={handleMoveDealToPipeline}
           />
