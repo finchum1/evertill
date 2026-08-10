@@ -171,6 +171,47 @@ export function useGoogleCalendar(userId: string | undefined) {
     return { events: (data?.events ?? []) as GoogleEvent[], errors: data?.errors ?? [] };
   }
 
+  // Today's events specifically get cached here, at this hook's level,
+  // rather than being fetched by whatever component happens to render the
+  // Today view — that component (TaskListView's TodayEvents) unmounts
+  // every time the user navigates away from Today and remounts on return,
+  // which was refetching from scratch on every single visit. This hook
+  // instance itself lives for the whole session (created once in App()),
+  // so keying the fetch on `calendars` instead of on mount means it only
+  // re-runs when a connect/disconnect/visibility-toggle actually changes
+  // what should be fetched — a plain view switch is then instant, reading
+  // whatever's already cached here.
+  const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
+  const [todayEventsLoading, setTodayEventsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!calendars.some((c) => c.visible)) {
+      setTodayEvents([]);
+      setTodayEventsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setTodayEventsLoading(true);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    getEvents(start.toISOString(), end.toISOString())
+      .then(({ events }) => {
+        if (!cancelled) {
+          setTodayEvents(events.slice().sort((a, b) => (a.allDay === b.allDay ? a.start.localeCompare(b.start) : a.allDay ? -1 : 1)));
+          setTodayEventsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTodayEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendars]);
+
   return {
     accounts,
     calendars,
@@ -183,5 +224,7 @@ export function useGoogleCalendar(userId: string | undefined) {
     disconnectAccount,
     setCalendarVisible,
     getEvents,
+    todayEvents,
+    todayEventsLoading,
   };
 }

@@ -51,6 +51,16 @@ function formatEventTime(event: GoogleEvent): string {
   return new Date(event.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+// Dims an event once it's over, everywhere an event renders (Today/Day's
+// EventsHeader, Month's chips, Week's all-day chips and timed blocks).
+// `event.end` is exclusive already for both timed events (a real instant)
+// and all-day events (Google's own 'day after the last day' convention),
+// so a plain instant comparison against now is correct for both without
+// any special-casing.
+function isEventPast(event: GoogleEvent): boolean {
+  return new Date(event.end).getTime() < Date.now();
+}
+
 // Shared by CalendarView's own effect (Month/Week/Day sub-tabs) and
 // TaskListView's Today header — both just need "events grouped by the
 // local day they fall on" for whatever range they ask for.
@@ -378,7 +388,12 @@ function MonthGrid({
                 </span>
               ))}
               {shownEvents.map((ev) => (
-                <span key={ev.id} title={`${ev.title} — ${formatEventTime(ev)}`} onClick={(e) => e.stopPropagation()} style={eventChipStyle(ev.color)}>
+                <span
+                  key={ev.id}
+                  title={`${ev.title} — ${formatEventTime(ev)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  style={eventChipStyle(ev.color, isEventPast(ev))}
+                >
                   {!ev.allDay && <span style={eventChipTimeStyle}>{formatEventTime(ev)}</span>}
                   <span style={miniChipLabelStyle}>{ev.title}</span>
                 </span>
@@ -399,6 +414,13 @@ function MonthGrid({
 const GRID_START_HOUR = 6;
 const GRID_END_HOUR = 23;
 const HOUR_HEIGHT = 48;
+// Shared by the day-header/all-day row and the timed grid below it — both
+// need this exact same leading gutter width and column layout (a flex row
+// with a fixed-width spacer, then a 7-column grid with no gap, columns
+// separated by borderLeft rather than gap) or their day columns drift out
+// of alignment with each other, since a `gap` and a `border` consume the
+// grid's available width differently even with identical gridTemplateColumns.
+const WEEK_GUTTER_WIDTH = 52;
 
 function WeekGrid({
   anchor,
@@ -430,86 +452,103 @@ function WeekGrid({
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 12 }}>
-        {days.map((d) => {
-          const key = dateToKey(d);
-          const dayTodos = todosByDay.get(key) ?? [];
-          const dayEvents = eventsByDay.get(key) ?? [];
-          const allDayEvents = dayEvents.filter((e) => e.allDay);
-          const isDragOver = dragOverKey === key;
-          return (
-            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", marginBottom: 12 }}>
+        <div style={{ width: WEEK_GUTTER_WIDTH, flexShrink: 0 }} />
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+          {days.map((d, dayIndex) => {
+            const key = dateToKey(d);
+            const dayTodos = todosByDay.get(key) ?? [];
+            const dayEvents = eventsByDay.get(key) ?? [];
+            const allDayEvents = dayEvents.filter((e) => e.allDay);
+            const isDragOver = dragOverKey === key;
+            return (
               <div
-                onClick={() => onOpenDay(d)}
-                style={{
-                  cursor: "pointer",
-                  textAlign: "center",
-                  padding: "6px 0",
-                  borderRadius: 8,
-                  background: key === tkey ? "var(--accent-today-bg)" : "transparent",
-                }}
-              >
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "var(--accent-light)" : "var(--text-primary)" }}>{d.getDate()}</div>
-              </div>
-              <div
-                onClick={() => onQuickAddDate(key)}
-                title="Add a task for this day"
-                onDragOver={(e) => {
-                  if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
-                }}
-                onDragEnter={(e) => {
-                  if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverKey(key);
-                }}
-                onDragLeave={() => setDragOverKey((cur) => (cur === key ? null : cur))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOverKey(null);
-                  const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
-                  if (todoId) onDropTodoOnDate(todoId, key);
-                }}
+                key={key}
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   gap: 6,
-                  minHeight: 60,
-                  maxHeight: 120,
-                  overflowY: "auto",
-                  border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
-                  background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
-                  borderRadius: 8,
-                  padding: 6,
-                  cursor: "pointer",
+                  padding: "0 4px",
+                  borderLeft: dayIndex > 0 ? "1px solid var(--border)" : "none",
                 }}
               >
-                {dayTodos.map((t) => (
-                  <span
-                    key={t.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      e.dataTransfer.setData(TODO_DRAG_MIME, t.id);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenTodo(t.id);
-                    }}
-                    style={{ ...miniChipStyle, flexShrink: 0, cursor: "grab" }}
-                  >
-                    <MiniCheckbox todo={t} list={lists.find((l) => l.id === t.list_id)} onToggleComplete={onToggleComplete} />
-                    <span style={miniChipLabelStyle}>{t.title}</span>
-                  </span>
-                ))}
-                {allDayEvents.map((ev) => (
-                  <span key={ev.id} title={ev.title} onClick={(e) => e.stopPropagation()} style={eventChipStyle(ev.color)}>
-                    <span style={miniChipLabelStyle}>{ev.title}</span>
-                  </span>
-                ))}
+                <div
+                  onClick={() => onOpenDay(d)}
+                  style={{
+                    cursor: "pointer",
+                    textAlign: "center",
+                    padding: "6px 0",
+                    borderRadius: 8,
+                    background: key === tkey ? "var(--accent-today-bg)" : "transparent",
+                  }}
+                >
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: key === tkey ? "var(--accent-light)" : "var(--text-primary)" }}>{d.getDate()}</div>
+                </div>
+                <div
+                  onClick={() => onQuickAddDate(key)}
+                  title="Add a task for this day"
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) e.preventDefault();
+                  }}
+                  onDragEnter={(e) => {
+                    if (e.dataTransfer.types.includes(TODO_DRAG_MIME)) setDragOverKey(key);
+                  }}
+                  onDragLeave={() => setDragOverKey((cur) => (cur === key ? null : cur))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverKey(null);
+                    const todoId = e.dataTransfer.getData(TODO_DRAG_MIME);
+                    if (todoId) onDropTodoOnDate(todoId, key);
+                  }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    minHeight: 60,
+                    maxHeight: 120,
+                    overflowY: "auto",
+                    border: isDragOver ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: isDragOver ? "var(--accent-subtle-bg)" : "transparent",
+                    borderRadius: 8,
+                    padding: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  {dayTodos.map((t) => (
+                    <span
+                      key={t.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.setData(TODO_DRAG_MIME, t.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTodo(t.id);
+                      }}
+                      style={{ ...miniChipStyle, flexShrink: 0, cursor: "grab" }}
+                    >
+                      <MiniCheckbox todo={t} list={lists.find((l) => l.id === t.list_id)} onToggleComplete={onToggleComplete} />
+                      <span style={miniChipLabelStyle}>{t.title}</span>
+                    </span>
+                  ))}
+                  {allDayEvents.map((ev) => (
+                    <span
+                      key={ev.id}
+                      title={ev.title}
+                      onClick={(e) => e.stopPropagation()}
+                      style={eventChipStyle(ev.color, isEventPast(ev))}
+                    >
+                      <span style={miniChipLabelStyle}>{ev.title}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Timed grid: hour labels down the left, events positioned by time
@@ -518,63 +557,71 @@ function WeekGrid({
           in this app's schema, so they stay in the all-day-style lane
           above rather than being force-fit into an hour slot). */}
       <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ width: 52, flexShrink: 0, borderRight: "1px solid var(--border)" }}>
-          <div style={{ position: "relative", height: gridHeight }}>
-            {hours.map((h, i) => (
-              <div key={h} style={{ position: "absolute", top: i * HOUR_HEIGHT - 6, right: 8, fontSize: 10, color: "var(--text-muted)" }}>
-                {formatHourLabel(h)}
-              </div>
-            ))}
+        {/* Hour labels and day columns share this single scroll container
+            (rather than each having their own) so scrolling can never
+            desync them — two independent overflow:auto regions here
+            would let the labels and grid drift apart the moment either
+            one was scrolled. */}
+        <div style={{ display: "flex", flex: 1, maxHeight: 480, overflowY: "auto" }}>
+          <div style={{ width: WEEK_GUTTER_WIDTH, flexShrink: 0, borderRight: "1px solid var(--border)" }}>
+            <div style={{ position: "relative", height: gridHeight }}>
+              {hours.map((h, i) => (
+                <div key={h} style={{ position: "absolute", top: i * HOUR_HEIGHT - 6, right: 8, fontSize: 10, color: "var(--text-muted)" }}>
+                  {formatHourLabel(h)}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)", maxHeight: 480, overflowY: "auto" }}>
-          {days.map((d, dayIndex) => {
-            const key = dateToKey(d);
-            const timedEvents = (eventsByDay.get(key) ?? []).filter((e) => !e.allDay);
-            return (
-              <div
-                key={key}
-                style={{
-                  position: "relative",
-                  height: gridHeight,
-                  borderLeft: dayIndex > 0 ? "1px solid var(--border)" : "none",
-                  background: key === tkey ? "var(--accent-today-bg)" : "transparent",
-                }}
-              >
-                {hours.map((h, i) => (
-                  <div key={h} style={{ position: "absolute", top: i * HOUR_HEIGHT, left: 0, right: 0, borderTop: "1px solid var(--border)" }} />
-                ))}
-                {timedEvents.map((ev) => {
-                  const pos = eventPosition(ev);
-                  if (!pos) return null;
-                  return (
-                    <div
-                      key={ev.id}
-                      title={`${ev.title} — ${formatEventTime(ev)}`}
-                      style={{
-                        position: "absolute",
-                        top: pos.top,
-                        height: pos.height,
-                        left: 3,
-                        right: 3,
-                        borderRadius: 5,
-                        padding: "2px 5px",
-                        fontSize: 10,
-                        lineHeight: 1.3,
-                        color: "#fff",
-                        background: ev.color || "var(--accent)",
-                        overflow: "hidden",
-                        cursor: "default",
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatEventTime(ev)}</div>
-                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {days.map((d, dayIndex) => {
+              const key = dateToKey(d);
+              const timedEvents = (eventsByDay.get(key) ?? []).filter((e) => !e.allDay);
+              return (
+                <div
+                  key={key}
+                  style={{
+                    position: "relative",
+                    height: gridHeight,
+                    borderLeft: dayIndex > 0 ? "1px solid var(--border)" : "none",
+                    background: key === tkey ? "var(--accent-today-bg)" : "transparent",
+                  }}
+                >
+                  {hours.map((h, i) => (
+                    <div key={h} style={{ position: "absolute", top: i * HOUR_HEIGHT, left: 0, right: 0, borderTop: "1px solid var(--border)" }} />
+                  ))}
+                  {timedEvents.map((ev) => {
+                    const pos = eventPosition(ev);
+                    if (!pos) return null;
+                    return (
+                      <div
+                        key={ev.id}
+                        title={`${ev.title} — ${formatEventTime(ev)}`}
+                        style={{
+                          position: "absolute",
+                          top: pos.top,
+                          height: pos.height,
+                          left: 3,
+                          right: 3,
+                          borderRadius: 5,
+                          padding: "2px 5px",
+                          fontSize: 10,
+                          lineHeight: 1.3,
+                          color: "#fff",
+                          background: ev.color || "var(--accent)",
+                          opacity: isEventPast(ev) ? 0.55 : 1,
+                          overflow: "hidden",
+                          cursor: "default",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatEventTime(ev)}</div>
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -746,7 +793,7 @@ function DayList({
 // top alongside a genuine time comparison for the rest).
 export function EventsHeader({ events }: { events: GoogleEvent[] }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", marginBottom: 4 }}>
       {events.map((ev) => (
         <a
           key={ev.id}
@@ -754,7 +801,7 @@ export function EventsHeader({ events }: { events: GoogleEvent[] }) {
           target={ev.htmlLink ? "_blank" : undefined}
           rel={ev.htmlLink ? "noreferrer" : undefined}
           title={ev.calendarSummary}
-          style={eventRowStyle}
+          style={{ ...eventRowStyle, opacity: isEventPast(ev) ? 0.55 : 1 }}
         >
           <span style={{ width: 8, height: 8, borderRadius: 99, background: ev.color || "var(--accent)", flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0, minWidth: 64 }}>{formatEventTime(ev)}</span>
@@ -841,7 +888,7 @@ const miniChipLabelStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-function eventChipStyle(color: string | null): CSSProperties {
+function eventChipStyle(color: string | null, past = false): CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
@@ -854,6 +901,7 @@ function eventChipStyle(color: string | null): CSSProperties {
     padding: "2px 7px",
     cursor: "default",
     overflow: "hidden",
+    opacity: past ? 0.55 : 1,
   };
 }
 
@@ -866,7 +914,7 @@ const eventRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 8,
-  padding: "6px 8px",
+  padding: "2px 8px",
   borderRadius: 8,
   textDecoration: "none",
   cursor: "pointer",

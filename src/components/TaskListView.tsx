@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
-import type { GoogleEvent, Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
+import type { Recurrence, Todo, TodoList, TodoSubtask, View } from "../types";
 import { LIST_COLOR_HEX } from "../types";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
@@ -89,33 +89,18 @@ export function TaskListView({
   />;
 }
 
-// Today's own events, sorted all-day-first-then-by-time — fetches just
-// today's range (local midnight to next local midnight) rather than
-// reusing whatever range Calendar's Month/Week/Day sub-tabs last asked
-// for, since this view can be open with Calendar never having been
-// visited at all in the session.
+// Today's own events — reads useGoogleCalendar's own cached todayEvents
+// rather than fetching here, so switching away from Today and back
+// (which unmounts/remounts this component, since it's only conditionally
+// rendered) is instant instead of re-fetching every single visit. The
+// hook itself lives for the whole session and only refetches when
+// `calendars` actually changes (connect/disconnect/visibility toggle).
 function TodayEvents({ googleCalendarData }: { googleCalendarData: ReturnType<typeof useGoogleCalendar> }) {
-  const [events, setEvents] = useState<GoogleEvent[]>([]);
-
-  useEffect(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    let cancelled = false;
-    googleCalendarData.getEvents(start.toISOString(), end.toISOString()).then(({ events: fetched }) => {
-      if (!cancelled) setEvents(fetched);
-    });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [googleCalendarData.calendars]);
-
-  if (events.length === 0) return null;
+  const { todayEvents } = googleCalendarData;
+  if (todayEvents.length === 0) return null;
   return (
     <div style={{ marginBottom: 16 }}>
-      <EventsHeader events={events} />
+      <EventsHeader events={todayEvents} />
     </div>
   );
 }
