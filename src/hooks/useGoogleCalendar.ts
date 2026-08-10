@@ -3,7 +3,12 @@ import { supabase } from "../lib/supabaseClient";
 import type { GoogleAccount, GoogleCalendarEntry, GoogleEvent } from "../types";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+// calendar.readonly alone isn't enough to call Google's userinfo endpoint
+// (google-oauth-exchange's follow-up call to fetch the account's email/id)
+// — that needs openid + email/profile access too, or the exchange
+// succeeds but the userinfo call 401s with "Failed to fetch Google
+// account info".
+const GOOGLE_SCOPE = "openid email https://www.googleapis.com/auth/calendar.readonly";
 const OAUTH_STATE_KEY = "evertill_google_oauth_state";
 
 // The root URL, not a dedicated path — this app has no client-side router
