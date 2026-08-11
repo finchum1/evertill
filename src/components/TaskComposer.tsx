@@ -3,7 +3,6 @@ import type { CSSProperties, FormEvent } from "react";
 import type { Recurrence, TodoList } from "../types";
 import { SmartDateInput } from "./SmartDateInput";
 import { DatePickerField } from "./DatePickerField";
-import { minutesToTimeString, timeStringToMinutes } from "../lib/dates";
 
 interface TaskComposerProps {
   lists: TodoList[];
@@ -108,51 +107,17 @@ export function TaskComposer({
       />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
-        <DatePickerField value={dueDate} onChange={onDueDateChange} recurrence={recurrence} onRecurrenceChange={onRecurrenceChange} />
+        <DatePickerField
+          value={dueDate}
+          onChange={onDueDateChange}
+          recurrence={recurrence}
+          onRecurrenceChange={onRecurrenceChange}
+          dueTime={dueTime}
+          onDueTimeChange={onDueTimeChange}
+          durationMinutes={durationMinutes}
+          onDurationMinutesChange={onDurationMinutesChange}
+        />
       </div>
-
-      {onDueTimeChange && dueDate && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <ClockIcon />
-          <input
-            type="time"
-            value={dueTime ?? ""}
-            onChange={(e) => {
-              const v = e.target.value || null;
-              onDueTimeChange(v);
-              if (!v) onDurationMinutesChange?.(null);
-              else if (durationMinutes == null) onDurationMinutesChange?.(30);
-            }}
-            style={timeInputStyle}
-          />
-          {dueTime && (
-            <>
-              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>to</span>
-              <input
-                type="time"
-                value={minutesToTimeString(timeStringToMinutes(dueTime) + (durationMinutes ?? 30))}
-                onChange={(e) => {
-                  if (!e.target.value) return;
-                  const diff = timeStringToMinutes(e.target.value) - timeStringToMinutes(dueTime);
-                  onDurationMinutesChange?.(diff > 0 ? diff : 15);
-                }}
-                style={timeInputStyle}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  onDueTimeChange(null);
-                  onDurationMinutesChange?.(null);
-                }}
-                aria-label="Remove time"
-                style={clearTimeButtonStyle}
-              >
-                ×
-              </button>
-            </>
-          )}
-        </div>
-      )}
 
       {subtaskTitles.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -250,14 +215,6 @@ function PlusIcon() {
     </svg>
   );
 }
-function ClockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: "var(--text-muted)" }}>
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M7 4V7L9 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 function SubtaskCheckIcon() {
   return (
     <span
@@ -299,29 +256,6 @@ const descriptionInputStyle: CSSProperties = {
   outline: "none",
   fontFamily: "inherit",
   resize: "none" as const,
-};
-
-const timeInputStyle: CSSProperties = {
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-primary)",
-  fontSize: 13,
-  padding: "5px 8px",
-  outline: "none",
-  fontFamily: "inherit",
-  minHeight: 24,
-};
-
-const clearTimeButtonStyle: CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  cursor: "pointer",
-  fontSize: 15,
-  lineHeight: 1,
-  minWidth: 24,
-  minHeight: 24,
 };
 
 const dividerStyle: CSSProperties = {

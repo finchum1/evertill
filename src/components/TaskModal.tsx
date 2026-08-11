@@ -3,7 +3,6 @@ import type { CSSProperties } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { DatePickerField } from "./DatePickerField";
 import { useDialogs } from "./DialogHost";
-import { minutesToTimeString, timeStringToMinutes } from "../lib/dates";
 
 interface TaskModalProps {
   todo: Todo;
@@ -87,47 +86,14 @@ export function TaskModal({
             }
             recurrence={todo.recurrence}
             onRecurrenceChange={(recurrence: Recurrence) => onUpdate(todo.id, { recurrence })}
+            dueTime={todo.due_time}
+            onDueTimeChange={(due_time) =>
+              onUpdate(todo.id, due_time ? { due_time, duration_minutes: todo.duration_minutes ?? 30 } : { due_time, duration_minutes: null })
+            }
+            durationMinutes={todo.duration_minutes}
+            onDurationMinutesChange={(duration_minutes) => onUpdate(todo.id, { duration_minutes })}
           />
         </div>
-
-        {todo.due_date && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <ClockIcon />
-            <input
-              type="time"
-              value={todo.due_time ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                if (!v) onUpdate(todo.id, { due_time: null, duration_minutes: null });
-                else onUpdate(todo.id, { due_time: v, duration_minutes: todo.duration_minutes ?? 30 });
-              }}
-              style={timeInputStyle}
-            />
-            {todo.due_time && (
-              <>
-                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>to</span>
-                <input
-                  type="time"
-                  value={minutesToTimeString(timeStringToMinutes(todo.due_time) + (todo.duration_minutes ?? 30))}
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    const diff = timeStringToMinutes(e.target.value) - timeStringToMinutes(todo.due_time!);
-                    onUpdate(todo.id, { duration_minutes: diff > 0 ? diff : 15 });
-                  }}
-                  style={timeInputStyle}
-                />
-                <button
-                  type="button"
-                  onClick={() => onUpdate(todo.id, { due_time: null, duration_minutes: null })}
-                  aria-label="Remove time"
-                  style={clearTimeButtonStyle}
-                >
-                  ×
-                </button>
-              </>
-            )}
-          </div>
-        )}
 
         <label style={labelStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -312,15 +278,6 @@ function NewSubtaskDot() {
   );
 }
 
-function ClockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: "var(--text-muted)" }}>
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M7 4V7L9 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function ExpandIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: expanded ? "rotate(180deg)" : "none" }}>
@@ -431,29 +388,6 @@ const dividerStyle: CSSProperties = {
   height: 1,
   background: "var(--border)",
   margin: "2px 0",
-};
-
-const timeInputStyle: CSSProperties = {
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-primary)",
-  fontSize: 13,
-  padding: "5px 8px",
-  outline: "none",
-  fontFamily: "inherit",
-  minHeight: 24,
-};
-
-const clearTimeButtonStyle: CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  cursor: "pointer",
-  fontSize: 15,
-  lineHeight: 1,
-  minWidth: 24,
-  minHeight: 24,
 };
 
 const listPillStyle: CSSProperties = {
