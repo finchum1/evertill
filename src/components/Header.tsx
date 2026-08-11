@@ -65,15 +65,20 @@ export function Header({
                   key={item.key}
                   onClick={() => onSetPage(item.key)}
                   style={{
-                    background: "none",
+                    // A translucent tinted pill instead of the old bottom-
+                    // border underline — color-mix keeps this one line
+                    // regardless of which of the 4 accent colors (or
+                    // light/dark theme) is active, rather than needing a
+                    // separate --accent-subtle-bg-style token per variant.
+                    background: page === item.key ? "color-mix(in srgb, var(--accent) 16%, transparent)" : "transparent",
                     border: "none",
-                    borderBottom: `2px solid ${page === item.key ? "var(--accent)" : "transparent"}`,
-                    borderRadius: 0,
-                    color: page === item.key ? "var(--text-primary)" : "var(--text-secondary)",
+                    borderRadius: 999,
+                    color: page === item.key ? "var(--accent-light)" : "var(--text-secondary)",
                     fontSize: 13,
                     fontWeight: 600,
                     padding: "7px 14px",
                     cursor: "pointer",
+                    transition: "background 120ms ease, color 120ms ease",
                   }}
                 >
                   {item.label}

@@ -32,6 +32,10 @@ interface SidebarProps {
   // into plain color-dot buttons since folder grouping needs a text
   // header this width can't show.
   collapsed?: boolean;
+  // Drag-resized width in px (only applies while expanded — the collapsed
+  // rail above stays a fixed 52px). Falls back to 240 (the original fixed
+  // width) if omitted, so this stays optional for any future caller.
+  width?: number;
 }
 
 export function Sidebar({
@@ -55,6 +59,7 @@ export function Sidebar({
   toasts,
   onUndoComplete,
   collapsed,
+  width,
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -213,7 +218,7 @@ export function Sidebar({
     <nav
       aria-label="Tasks sidebar"
       style={{
-        width: 240,
+        width: width ?? 240,
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         padding: "12px 12px 20px",

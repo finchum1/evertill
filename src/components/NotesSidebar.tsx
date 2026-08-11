@@ -16,13 +16,16 @@ interface NotesSidebarProps {
   // When true, renders a narrow icon-only rail instead of the full nav —
   // driven by CollapsibleSidebar in App.tsx, same pattern as Sidebar.tsx.
   collapsed?: boolean;
+  // Drag-resized width in px (expanded state only) — same pattern as
+  // Sidebar.tsx, falls back to 240 if omitted.
+  width?: number;
 }
 
 // Far simpler than Tasks' Sidebar.tsx — no lists tier, no drag-and-drop
 // reordering (deferred, same as every other module's first pass). "All
 // Notes" is the pinned default view, analogous to Today, showing every
 // note including unfiled ones.
-export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder, collapsed }: NotesSidebarProps) {
+export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAddFolder, onRenameFolder, onSetFolderColor, onDeleteFolder, collapsed, width }: NotesSidebarProps) {
   if (collapsed) {
     return (
       <nav
@@ -62,7 +65,7 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAdd
     <nav
       aria-label="Notes sidebar"
       style={{
-        width: 240,
+        width: width ?? 240,
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         padding: "12px 12px 20px",

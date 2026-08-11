@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
@@ -157,10 +157,90 @@ function MenuIcon() {
 // wrapper's only job is floating the same reopen/collapse toggle button on
 // the sidebar's right edge in both states, so the control itself never
 // moves or disappears.
-function CollapsibleSidebar({ collapsed, onToggle, label, children }: { collapsed: boolean; onToggle: () => void; label: string; children: ReactNode }) {
+const SIDEBAR_MIN_WIDTH = 180;
+const SIDEBAR_MAX_WIDTH = 320;
+
+// Adds a draggable resize handle to the sidebar's right edge, in addition
+// to the existing collapse toggle — only rendered while expanded (the
+// collapsed icon rail is a fixed 52px with nothing worth resizing). Drag
+// state itself is plain closured locals inside the mousedown handler,
+// same pattern as the Week view's hour-grid drag-to-create: no React
+// state needed for the drag itself, since every mousemove just calls
+// onWidthChange directly for live feedback and the caller (TasksDashboard/
+// NotesDashboard) owns the actual persisted width.
+function CollapsibleSidebar({
+  collapsed,
+  onToggle,
+  label,
+  width,
+  onWidthChange,
+  children,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  label: string;
+  width: number;
+  onWidthChange: (width: number) => void;
+  children: ReactNode;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const handleActive = dragging || hovering;
+
+  function handleResizeStart(e: ReactMouseEvent) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = width;
+    setDragging(true);
+    function onMove(ev: MouseEvent) {
+      const next = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, startWidth + (ev.clientX - startX)));
+      onWidthChange(next);
+    }
+    function onUp() {
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   return (
     <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
       {children}
+      {!collapsed && (
+        <div
+          onMouseDown={handleResizeStart}
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={`Resize ${label}`}
+          title="Drag to resize"
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            right: -3,
+            width: 6,
+            cursor: "col-resize",
+            zIndex: 4,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              width: 2,
+              alignSelf: "stretch",
+              borderRadius: 2,
+              background: handleActive ? "var(--accent)" : "transparent",
+              transition: dragging ? "none" : "background 120ms ease",
+            }}
+          />
+        </div>
+      )}
       <button
         onClick={onToggle}
         aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
@@ -262,6 +342,18 @@ function TasksDashboard({
       return next;
     });
   }
+  // Draggable width, same per-browser localStorage pattern as the collapse
+  // preference above, under its own key so it survives independently of
+  // whether the sidebar happens to be collapsed.
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return 240;
+    const stored = Number(localStorage.getItem("tasks-sidebar-width"));
+    return stored >= SIDEBAR_MIN_WIDTH && stored <= SIDEBAR_MAX_WIDTH ? stored : 240;
+  });
+  function handleSidebarWidthChange(next: number) {
+    setSidebarWidth(next);
+    localStorage.setItem("tasks-sidebar-width", String(next));
+  }
 
   // Clears any still-pending auto-dismiss timers if this dashboard unmounts
   // (e.g. navigating off the Tasks page) while a toast is showing.
@@ -353,6 +445,7 @@ function TasksDashboard({
       toasts={toasts}
       onUndoComplete={handleUndoComplete}
       collapsed={!isMobile && sidebarCollapsed}
+      width={sidebarWidth}
     />
   );
 
@@ -363,7 +456,13 @@ function TasksDashboard({
           {sidebarElement}
         </SidebarDrawer>
       ) : (
-        <CollapsibleSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebarCollapsed} label="Tasks sidebar">
+        <CollapsibleSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebarCollapsed}
+          label="Tasks sidebar"
+          width={sidebarWidth}
+          onWidthChange={handleSidebarWidthChange}
+        >
           {sidebarElement}
         </CollapsibleSidebar>
       )}
@@ -439,6 +538,16 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
       return next;
     });
   }
+  // Same draggable-width pattern as Tasks' sidebar, own storage key.
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return 240;
+    const stored = Number(localStorage.getItem("notes-sidebar-width"));
+    return stored >= SIDEBAR_MIN_WIDTH && stored <= SIDEBAR_MAX_WIDTH ? stored : 240;
+  });
+  function handleSidebarWidthChange(next: number) {
+    setSidebarWidth(next);
+    localStorage.setItem("notes-sidebar-width", String(next));
+  }
 
   if (loading) {
     return (
@@ -474,6 +583,7 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
         deleteFolder(id);
       }}
       collapsed={!isMobile && sidebarCollapsed}
+      width={sidebarWidth}
     />
   );
 
@@ -484,7 +594,13 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
           {sidebarElement}
         </SidebarDrawer>
       ) : (
-        <CollapsibleSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebarCollapsed} label="Notes sidebar">
+        <CollapsibleSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebarCollapsed}
+          label="Notes sidebar"
+          width={sidebarWidth}
+          onWidthChange={handleSidebarWidthChange}
+        >
           {sidebarElement}
         </CollapsibleSidebar>
       )}
