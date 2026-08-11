@@ -19,7 +19,7 @@ interface UpcomingViewProps {
     listId: string,
     title: string,
     dueDate: string | null,
-    extra?: { description?: string; recurrence?: Recurrence }
+    extra?: { description?: string; recurrence?: Recurrence; dueTime?: string | null; durationMinutes?: number | null }
   ) => Promise<Todo | undefined> | void;
   onToggleComplete: (id: string) => void;
   onAddSubtask: (todoId: string, title: string) => void;
@@ -56,6 +56,8 @@ export function UpcomingView({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [dueTime, setDueTime] = useState<string | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [composerListId, setComposerListId] = useState("");
   const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
@@ -126,6 +128,8 @@ export function UpcomingView({
     setTitle("");
     setDescription("");
     setDueDate(dateKey);
+    setDueTime(null);
+    setDurationMinutes(null);
     setRecurrence("none");
     setSubtaskTitles([]);
     setAddingDate(dateKey);
@@ -149,7 +153,12 @@ export function UpcomingView({
       }
     }
 
-    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, {
+      description: description.trim(),
+      recurrence,
+      dueTime,
+      durationMinutes,
+    });
     if (newTodo) {
       for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
     }
@@ -243,6 +252,10 @@ export function UpcomingView({
                 onDescriptionChange={setDescription}
                 dueDate={dueDate}
                 onDueDateChange={setDueDate}
+                dueTime={dueTime}
+                onDueTimeChange={setDueTime}
+                durationMinutes={durationMinutes}
+                onDurationMinutesChange={setDurationMinutes}
                 recurrence={recurrence}
                 onRecurrenceChange={setRecurrence}
                 subtaskTitles={subtaskTitles}

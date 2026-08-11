@@ -887,6 +887,8 @@ function DayList({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(dayKey);
+  const [dueTime, setDueTime] = useState<string | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [composerListId, setComposerListId] = useState(inbox?.id ?? lists[0]?.id ?? "");
   const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
@@ -896,6 +898,8 @@ function DayList({
     setTitle("");
     setDescription("");
     setDueDate(dayKey);
+    setDueTime(null);
+    setDurationMinutes(null);
     setRecurrence("none");
     setSubtaskTitles([]);
     setAdding(true);
@@ -916,7 +920,12 @@ function DayList({
       }
     }
 
-    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, { description: description.trim(), recurrence });
+    const newTodo = await onAddTodo(composerListId, finalTitle, finalDueDate, {
+      description: description.trim(),
+      recurrence,
+      dueTime,
+      durationMinutes,
+    });
     if (newTodo) {
       for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
     }
@@ -939,6 +948,10 @@ function DayList({
             onDescriptionChange={setDescription}
             dueDate={dueDate}
             onDueDateChange={setDueDate}
+            dueTime={dueTime}
+            onDueTimeChange={setDueTime}
+            durationMinutes={durationMinutes}
+            onDurationMinutesChange={setDurationMinutes}
             recurrence={recurrence}
             onRecurrenceChange={setRecurrence}
             subtaskTitles={subtaskTitles}
