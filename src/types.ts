@@ -53,6 +53,8 @@ export interface Todo {
   title: string;
   description: string | null;
   due_date: string | null; // 'YYYY-MM-DD'
+  due_time: string | null; // 'HH:MM', 24-hour, local wall-clock — null unless due_date is also set
+  duration_minutes: number | null; // set together with due_time, null when due_time is null
   completed: boolean;
   recurrence: Recurrence;
   sort_order: number;

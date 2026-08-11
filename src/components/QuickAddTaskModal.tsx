@@ -7,6 +7,8 @@ import { TaskComposer } from "./TaskComposer";
 interface QuickAddTaskModalProps {
   lists: TodoList[];
   initialDueDate?: string | null;
+  initialDueTime?: string | null;
+  initialDurationMinutes?: number | null;
   onClose: () => void;
   onCreate: (
     listId: string,
@@ -14,16 +16,27 @@ interface QuickAddTaskModalProps {
     description: string,
     dueDate: string | null,
     recurrence: Recurrence,
-    subtaskTitles: string[]
+    subtaskTitles: string[],
+    dueTime: string | null,
+    durationMinutes: number | null
   ) => void;
 }
 
-export function QuickAddTaskModal({ lists, initialDueDate = null, onClose, onCreate }: QuickAddTaskModalProps) {
+export function QuickAddTaskModal({
+  lists,
+  initialDueDate = null,
+  initialDueTime = null,
+  initialDurationMinutes = null,
+  onClose,
+  onCreate,
+}: QuickAddTaskModalProps) {
   const inbox = lists.find((l) => l.is_inbox);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [listId, setListId] = useState(inbox?.id ?? lists[0]?.id ?? "");
   const [dueDate, setDueDate] = useState<string | null>(initialDueDate);
+  const [dueTime, setDueTime] = useState<string | null>(initialDueTime);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(initialDurationMinutes);
   const [recurrence, setRecurrence] = useState<Recurrence>("none");
   const [subtaskTitles, setSubtaskTitles] = useState<string[]>([]);
 
@@ -43,7 +56,7 @@ export function QuickAddTaskModal({ lists, initialDueDate = null, onClose, onCre
         finalTitle = parsed.title || rawTitle;
       }
     }
-    onCreate(listId, finalTitle, description.trim(), finalDueDate, recurrence, subtaskTitles);
+    onCreate(listId, finalTitle, description.trim(), finalDueDate, recurrence, subtaskTitles, dueTime, durationMinutes);
   }
 
   return (
@@ -71,6 +84,10 @@ export function QuickAddTaskModal({ lists, initialDueDate = null, onClose, onCre
           onDescriptionChange={setDescription}
           dueDate={dueDate}
           onDueDateChange={setDueDate}
+          dueTime={dueTime}
+          onDueTimeChange={setDueTime}
+          durationMinutes={durationMinutes}
+          onDurationMinutesChange={setDurationMinutes}
           recurrence={recurrence}
           onRecurrenceChange={setRecurrence}
           subtaskTitles={subtaskTitles}

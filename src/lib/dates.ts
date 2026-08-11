@@ -50,3 +50,29 @@ export function nextWeekday(from: Date, targetDay: number): Date {
   const diff = ((targetDay - from.getDay() + 7) % 7) || 7;
   return addDays(from, diff);
 }
+
+// Time-of-day helpers for Todo.due_time — a plain 'HH:MM' 24-hour string,
+// same local-wall-clock convention as due_date (no Date object, no
+// timezone conversion) so minute math for the Week view's drag-to-create
+// stays trivial and never drifts a task's displayed time across DST or
+// timezone boundaries the way round-tripping through a real Date would.
+export function minutesToTimeString(minutesFromMidnight: number): string {
+  const clamped = Math.max(0, Math.min(24 * 60 - 1, Math.round(minutesFromMidnight)));
+  const hh = String(Math.floor(clamped / 60)).padStart(2, "0");
+  const mm = String(clamped % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+export function timeStringToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// "9:00 AM" — uses a throwaway local Date purely to borrow
+// toLocaleTimeString's locale-aware formatting, never persisted or
+// compared as a Date anywhere.
+export function formatTimeOfDay(time: string): string {
+  const minutes = timeStringToMinutes(time);
+  const d = new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60);
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}

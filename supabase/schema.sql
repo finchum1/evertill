@@ -140,6 +140,18 @@ alter table todos drop constraint if exists todos_recurrence_check;
 alter table todos add constraint todos_recurrence_check
   check (recurrence in ('none', 'daily', 'weekly', 'monthly', 'weekday', 'yearly'));
 
+-- Optional time-of-day for a task, independent of due_date (which stays
+-- required for every other flow — a task can have a due_date with no
+-- due_time, same as always, but not a due_time with no due_date). Stored
+-- as a plain 'HH:MM' 24-hour string rather than a real time/timestamptz —
+-- matches due_date's own local-wall-clock convention (no timezone
+-- conversion happening anywhere else in this app's date handling) and
+-- keeps drag-to-create's minute math trivial on the client. duration_minutes
+-- is null whenever due_time is null; when due_time is set it's always set
+-- too (defaults to 30 on a plain click, whatever the drag spanned otherwise).
+alter table todos add column if not exists due_time text;
+alter table todos add column if not exists duration_minutes integer;
+
 create table if not exists todo_subtasks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,

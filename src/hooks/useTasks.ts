@@ -174,7 +174,7 @@ export function useTasks(userId: string | undefined) {
     listId: string,
     title: string,
     dueDate: string | null = null,
-    extra?: { description?: string; recurrence?: Recurrence }
+    extra?: { description?: string; recurrence?: Recurrence; dueTime?: string | null; durationMinutes?: number | null }
   ) {
     if (!userId) return;
     const existing = todos.filter((t) => t.list_id === listId);
@@ -185,6 +185,8 @@ export function useTasks(userId: string | undefined) {
         list_id: listId,
         title,
         due_date: dueDate,
+        due_time: extra?.dueTime ?? null,
+        duration_minutes: extra?.durationMinutes ?? null,
         description: extra?.description || null,
         recurrence: extra?.recurrence ?? "none",
         sort_order: existing.length,

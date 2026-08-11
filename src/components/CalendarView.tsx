@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { CSSProperties, FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import type { GoogleEvent, Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { LIST_COLOR_HEX } from "../types";
-import { addDays, addMonths, dateToKey, startOfWeek, todayKey } from "../lib/dates";
+import { addDays, addMonths, dateToKey, formatTimeOfDay, minutesToTimeString, startOfWeek, timeStringToMinutes, todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME } from "../lib/dragTypes";
 import { TaskRow } from "./TaskRow";
 import { TaskComposer } from "./TaskComposer";
@@ -24,7 +24,7 @@ interface CalendarViewProps {
     listId: string,
     title: string,
     dueDate: string | null,
-    extra?: { description?: string; recurrence?: Recurrence }
+    extra?: { description?: string; recurrence?: Recurrence; dueTime?: string | null; durationMinutes?: number | null }
   ) => Promise<Todo | undefined> | void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
@@ -85,7 +85,11 @@ export function CalendarView({
 }: CalendarViewProps) {
   const [subView, setSubView] = useState<SubView>("month");
   const [anchor, setAnchor] = useState(() => new Date());
-  const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
+  // A plain click-to-add (Month day cell, Week's all-day lane) only ever
+  // sets dateKey — dueTime/durationMinutes stay undefined, so the modal's
+  // time row starts empty. Week's hour-grid drag-to-create is the only
+  // thing that populates dueTime/durationMinutes too.
+  const [quickAdd, setQuickAdd] = useState<{ dateKey: string; dueTime?: string | null; durationMinutes?: number | null } | null>(null);
 
   // The visible date range depends on which sub-tab is active — a 42-day
   // grid for Month, 7 days for Week, one day for Day — computed here once
@@ -111,13 +115,22 @@ export function CalendarView({
     description: string,
     dueDate: string | null,
     recurrence: Recurrence,
-    subtaskTitles: string[]
+    subtaskTitles: string[],
+    dueTime: string | null,
+    durationMinutes: number | null
   ) {
-    const newTodo = await onAddTodo(listId, title, dueDate, { description, recurrence });
+    const newTodo = await onAddTodo(listId, title, dueDate, { description, recurrence, dueTime, durationMinutes });
     if (newTodo) {
       for (const subtaskTitle of subtaskTitles) onAddSubtask(newTodo.id, subtaskTitle);
     }
-    setQuickAddDate(null);
+    setQuickAdd(null);
+  }
+
+  // Wired to WeekGrid's hour-grid drag-to-create: startMinutes is minutes
+  // from midnight (already includes GRID_START_HOUR's offset), converted
+  // to the same 'HH:MM' string convention as due_time everywhere else.
+  function handleCreateTimedTask(dateKey: string, startMinutes: number, durationMinutes: number) {
+    setQuickAdd({ dateKey, dueTime: minutesToTimeString(startMinutes), durationMinutes });
   }
 
   // Calendar never shows completed tasks — they live in the Completed view instead.
@@ -182,7 +195,7 @@ export function CalendarView({
           onOpenDay={openDay}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
-          onQuickAddDate={setQuickAddDate}
+          onQuickAddDate={(dateKey) => setQuickAdd({ dateKey })}
           onDropTodoOnDate={onDropTodoOnDate}
         />
       )}
@@ -195,7 +208,8 @@ export function CalendarView({
           onOpenDay={openDay}
           onOpenTodo={onOpenTodo}
           onToggleComplete={onToggleComplete}
-          onQuickAddDate={setQuickAddDate}
+          onQuickAddDate={(dateKey) => setQuickAdd({ dateKey })}
+          onCreateTimedTask={handleCreateTimedTask}
           onDropTodoOnDate={onDropTodoOnDate}
         />
       )}
@@ -218,8 +232,15 @@ export function CalendarView({
         />
       )}
 
-      {quickAddDate && (
-        <QuickAddTaskModal lists={lists} initialDueDate={quickAddDate} onClose={() => setQuickAddDate(null)} onCreate={handleQuickAddCreate} />
+      {quickAdd && (
+        <QuickAddTaskModal
+          lists={lists}
+          initialDueDate={quickAdd.dateKey}
+          initialDueTime={quickAdd.dueTime ?? null}
+          initialDurationMinutes={quickAdd.durationMinutes ?? null}
+          onClose={() => setQuickAdd(null)}
+          onCreate={handleQuickAddCreate}
+        />
       )}
     </div>
   );
@@ -389,6 +410,18 @@ const HOUR_HEIGHT = 48;
 // grid's available width differently even with identical gridTemplateColumns.
 const WEEK_GUTTER_WIDTH = 52;
 
+// Live state for an in-progress click-and-drag in the hour-grid. columnTop
+// is the clicked day column's own getBoundingClientRect().top, captured
+// once at mousedown — every subsequent mousemove/mouseup re-derives minutes
+// from that same reference rather than re-querying the DOM, so the drag
+// stays correct even if the pointer strays outside the original column.
+interface HourDragState {
+  dayKey: string;
+  columnTop: number;
+  startMinutes: number; // minutes from GRID_START_HOUR, snapped to 15
+  currentMinutes: number;
+}
+
 function WeekGrid({
   anchor,
   todosByDay,
@@ -398,6 +431,7 @@ function WeekGrid({
   onOpenTodo,
   onToggleComplete,
   onQuickAddDate,
+  onCreateTimedTask,
   onDropTodoOnDate,
 }: {
   anchor: Date;
@@ -408,9 +442,18 @@ function WeekGrid({
   onOpenTodo: (id: string) => void;
   onToggleComplete: (id: string) => void;
   onQuickAddDate: (dateKey: string) => void;
+  onCreateTimedTask: (dateKey: string, startMinutes: number, durationMinutes: number) => void;
   onDropTodoOnDate: (todoId: string, dateKey: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [hourDrag, setHourDrag] = useState<HourDragState | null>(null);
+  // Mirrors hourDrag for the window mouseup handler to read synchronously.
+  // Calling onCreateTimedTask (which setStates the parent CalendarView)
+  // from inside setHourDrag's functional updater trips React's "Cannot
+  // update a component while rendering a different component" — updater
+  // functions must stay pure. Reading the latest value off this ref lets
+  // onUp call onCreateTimedTask as a plain function call instead.
+  const hourDragRef = useRef<HourDragState | null>(null);
   const start = startOfWeek(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const tkey = todayKey();
@@ -438,6 +481,64 @@ function WeekGrid({
     return () => ro.disconnect();
   }, []);
 
+  const totalGridMinutes = hours.length * 60;
+
+  // clientY -> minutes from GRID_START_HOUR, clamped to the visible grid
+  // and snapped to 15-minute increments (matches due_time's own minute
+  // granularity — no reason to offer finer control than that).
+  function minutesFromClientY(clientY: number, columnTop: number): number {
+    const raw = ((clientY - columnTop) / HOUR_HEIGHT) * 60;
+    const snapped = Math.round(raw / 15) * 15;
+    return Math.max(0, Math.min(totalGridMinutes, snapped));
+  }
+
+  function handleColumnMouseDown(e: ReactMouseEvent<HTMLDivElement>, dayKey: string) {
+    if (e.button !== 0) return;
+    e.preventDefault(); // avoid selecting hour-label/event text while dragging
+    const rect = e.currentTarget.getBoundingClientRect();
+    const startMinutes = minutesFromClientY(e.clientY, rect.top);
+    const next = { dayKey, columnTop: rect.top, startMinutes, currentMinutes: startMinutes };
+    hourDragRef.current = next;
+    setHourDrag(next);
+  }
+
+  // Attached at the window level (not on the column div) so the drag keeps
+  // tracking even if the pointer leaves the column or the grid entirely —
+  // a plain onMouseMove/onMouseUp on the column would silently stop
+  // updating the moment the cursor crossed into a neighboring day.
+  useEffect(() => {
+    if (!hourDrag) return;
+    function onMove(e: globalThis.MouseEvent) {
+      setHourDrag((d) => {
+        if (!d) return d;
+        const next = { ...d, currentMinutes: minutesFromClientY(e.clientY, d.columnTop) };
+        hourDragRef.current = next;
+        return next;
+      });
+    }
+    function onUp(e: globalThis.MouseEvent) {
+      const d = hourDragRef.current;
+      hourDragRef.current = null;
+      setHourDrag(null);
+      if (!d) return;
+      const endMinutes = minutesFromClientY(e.clientY, d.columnTop);
+      const lo = Math.min(d.startMinutes, endMinutes);
+      const hi = Math.max(d.startMinutes, endMinutes);
+      // A near-zero-movement click (or any drag under 15 minutes) just
+      // creates a default 30-minute block starting where they clicked,
+      // rather than a sliver too short to be useful.
+      const duration = hi - lo >= 15 ? hi - lo : 30;
+      onCreateTimedTask(d.dayKey, GRID_START_HOUR * 60 + lo, duration);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hourDrag !== null]);
+
   return (
     <div>
       <div style={{ display: "flex", marginBottom: 12, paddingRight: scrollbarWidth }}>
@@ -445,7 +546,10 @@ function WeekGrid({
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {days.map((d, dayIndex) => {
             const key = dateToKey(d);
-            const dayTodos = todosByDay.get(key) ?? [];
+            // A task with due_time now renders positioned in the hour-grid
+            // below instead — this lane stays for untimed tasks only, same
+            // as before this feature existed.
+            const untimedTodos = (todosByDay.get(key) ?? []).filter((t) => !t.due_time);
             const dayEvents = eventsByDay.get(key) ?? [];
             const allDayEvents = dayEvents.filter((e) => e.allDay);
             const isDragOver = dragOverKey === key;
@@ -512,7 +616,7 @@ function WeekGrid({
                     minWidth: 0,
                   }}
                 >
-                  {dayTodos.map((t) => (
+                  {untimedTodos.map((t) => (
                     <span
                       key={t.id}
                       draggable
@@ -573,14 +677,22 @@ function WeekGrid({
             {days.map((d, dayIndex) => {
               const key = dateToKey(d);
               const timedEvents = (eventsByDay.get(key) ?? []).filter((e) => !e.allDay);
+              const timedTodos = (todosByDay.get(key) ?? []).filter((t) => t.due_time);
+              const drag = hourDrag?.dayKey === key ? hourDrag : null;
+              const dragLo = drag ? Math.min(drag.startMinutes, drag.currentMinutes) : 0;
+              const dragHi = drag ? Math.max(drag.startMinutes, drag.currentMinutes) : 0;
               return (
                 <div
                   key={key}
+                  onMouseDown={(e) => handleColumnMouseDown(e, key)}
+                  title="Click and drag to add a task at a specific time"
                   style={{
                     position: "relative",
                     height: gridHeight,
                     borderLeft: dayIndex > 0 ? "1px solid var(--border)" : "none",
                     background: key === tkey ? "var(--accent-today-bg)" : "transparent",
+                    cursor: "crosshair",
+                    userSelect: "none",
                   }}
                 >
                   {hours.map((h, i) => (
@@ -592,6 +704,7 @@ function WeekGrid({
                     return (
                       <div
                         key={ev.id}
+                        onMouseDown={(e) => e.stopPropagation()}
                         title={`${ev.title} — ${formatEventTime(ev)}`}
                         style={{
                           position: "absolute",
@@ -615,6 +728,71 @@ function WeekGrid({
                       </div>
                     );
                   })}
+                  {timedTodos.map((t) => {
+                    const pos = todoPosition(t);
+                    if (!pos) return null;
+                    const list = lists.find((l) => l.id === t.list_id);
+                    const color = list ? LIST_COLOR_HEX[list.color] : "var(--accent)";
+                    return (
+                      <div
+                        key={t.id}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenTodo(t.id);
+                        }}
+                        title={`${t.title} — ${formatTimeOfDay(t.due_time!)}`}
+                        style={{
+                          position: "absolute",
+                          top: pos.top,
+                          height: pos.height,
+                          left: 3,
+                          right: 3,
+                          borderRadius: 5,
+                          padding: "2px 5px",
+                          fontSize: 10,
+                          lineHeight: 1.3,
+                          color: "#fff",
+                          background: color,
+                          border: "1px solid rgba(255,255,255,0.35)",
+                          overflow: "hidden",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatTimeOfDay(t.due_time!)}</div>
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
+                      </div>
+                    );
+                  })}
+                  {drag &&
+                    (() => {
+                      // Mirrors the exact duration formula finalizeDrag/onUp
+                      // apply on mouseup, so the live label never promises a
+                      // range shorter than what actually gets created.
+                      const previewDuration = dragHi - dragLo >= 15 ? dragHi - dragLo : 30;
+                      const previewEnd = dragLo + previewDuration;
+                      return (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: (dragLo / 60) * HOUR_HEIGHT,
+                            height: Math.max(4, (previewDuration / 60) * HOUR_HEIGHT),
+                            left: 3,
+                            right: 3,
+                            borderRadius: 5,
+                            border: "1.5px dashed var(--accent)",
+                            background: "var(--accent-subtle-bg)",
+                            pointerEvents: "none",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--accent-light)", padding: "2px 5px", whiteSpace: "nowrap" }}>
+                            {formatTimeOfDay(minutesToTimeString(GRID_START_HOUR * 60 + dragLo))} –{" "}
+                            {formatTimeOfDay(minutesToTimeString(GRID_START_HOUR * 60 + previewEnd))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                 </div>
               );
             })}
@@ -641,6 +819,24 @@ function eventPosition(event: GoogleEvent): { top: number; height: number } | nu
   const startMinutes = Math.max(0, (start.getHours() - GRID_START_HOUR) * 60 + start.getMinutes());
   const totalMinutes = (GRID_END_HOUR - GRID_START_HOUR + 1) * 60;
   const endMinutes = Math.min(totalMinutes, (end.getHours() - GRID_START_HOUR) * 60 + end.getMinutes());
+  if (endMinutes <= 0 || startMinutes >= totalMinutes) return null;
+  const top = (startMinutes / 60) * HOUR_HEIGHT;
+  const height = Math.max(18, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT);
+  return { top, height };
+}
+
+// Same clamped-to-the-visible-window logic as eventPosition, for a timed
+// task (due_time set). duration_minutes defaults to 30 defensively — every
+// write path that sets due_time also sets duration_minutes, but a null
+// here shouldn't render a zero-height sliver if that invariant is ever
+// violated directly in the DB.
+function todoPosition(todo: Todo): { top: number; height: number } | null {
+  if (!todo.due_time) return null;
+  const totalMinutes = (GRID_END_HOUR - GRID_START_HOUR + 1) * 60;
+  const rawStart = timeStringToMinutes(todo.due_time) - GRID_START_HOUR * 60;
+  const duration = todo.duration_minutes ?? 30;
+  const startMinutes = Math.max(0, rawStart);
+  const endMinutes = Math.min(totalMinutes, rawStart + duration);
   if (endMinutes <= 0 || startMinutes >= totalMinutes) return null;
   const top = (startMinutes / 60) * HOUR_HEIGHT;
   const height = Math.max(18, ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT);
@@ -674,7 +870,7 @@ function DayList({
     listId: string,
     title: string,
     dueDate: string | null,
-    extra?: { description?: string; recurrence?: Recurrence }
+    extra?: { description?: string; recurrence?: Recurrence; dueTime?: string | null; durationMinutes?: number | null }
   ) => Promise<Todo | undefined> | void;
   onAddSubtask: (todoId: string, title: string) => void;
   onToggleSubtask: (id: string) => void;
