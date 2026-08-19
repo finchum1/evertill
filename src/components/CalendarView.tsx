@@ -107,7 +107,7 @@ export function CalendarView({
     rangeStart = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
     rangeEnd = addDays(rangeStart, 1);
   }
-  const { eventsByDay } = useEventsByDay(googleCalendarData, rangeStart, rangeEnd);
+  const { eventsByDay, eventErrors } = useEventsByDay(googleCalendarData, rangeStart, rangeEnd);
 
   async function handleQuickAddCreate(
     listId: string,
@@ -185,6 +185,34 @@ export function CalendarView({
         </button>
         <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-body)", marginLeft: 6 }}>{headingFor(subView, anchor)}</span>
       </div>
+
+      {eventErrors.length > 0 && (
+        // Was computed by useEventsByDay all along but never actually
+        // rendered — a broken Google connection (typically an expired
+        // refresh token) silently showed zero events everywhere with no
+        // explanation. Same banner styling as Settings' Google card.
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            fontSize: 12,
+            color: "var(--danger)",
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            borderRadius: 8,
+            padding: "8px 10px",
+            marginBottom: 16,
+          }}
+        >
+          {eventErrors.map((e, i) => (
+            <span key={i}>
+              {e.email ? `${e.email}: ` : ""}
+              {e.message} Fix this in Settings → Calendars.
+            </span>
+          ))}
+        </div>
+      )}
 
       {subView === "month" && (
         <MonthGrid

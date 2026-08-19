@@ -109,7 +109,13 @@ Deno.serve(async (req) => {
             .from("google_accounts")
             .update({ access_token: accessToken, token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString() })
             .eq("id", account.id);
-        } catch {
+        } catch (err) {
+          // Logged (was previously swallowed silently) so a persistent
+          // refresh failure shows up in the function's logs instead of only
+          // as a generic user-facing message with no way to tell whether it
+          // was invalid_grant (revoked/expired), invalid_client (a rotated
+          // secret), or something else entirely.
+          console.error(`Token refresh failed for ${account.email}:`, err);
           errors.push({ email: account.email, message: "Reconnect this account — its Google access has expired or was revoked." });
           continue;
         }

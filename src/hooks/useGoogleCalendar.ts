@@ -47,6 +47,14 @@ export function useGoogleCalendar(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  // Per-account fetch failures (typically an expired/revoked refresh
+  // token) — the Edge Function already reports these in its response's
+  // `errors` array, but until now nothing actually read that array, so a
+  // broken connection just showed "no events" everywhere with no
+  // explanation. Every getEvents() call below refreshes this with
+  // whatever the most recent fetch found, so Settings/Calendar can show
+  // a real "reconnect this account" message instead of silence.
+  const [syncErrors, setSyncErrors] = useState<{ email: string; message: string }[]>([]);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -168,7 +176,12 @@ export function useGoogleCalendar(userId: string | undefined) {
       body: { start: startISO, end: endISO },
     });
     if (error) throw error;
-    return { events: (data?.events ?? []) as GoogleEvent[], errors: data?.errors ?? [] };
+    const errors = (data?.errors ?? []) as { email: string; message: string }[];
+    // Replace, not merge — a stale error from an account that's since been
+    // fixed (or disconnected) shouldn't linger forever just because some
+    // earlier call happened to report it.
+    setSyncErrors(errors);
+    return { events: (data?.events ?? []) as GoogleEvent[], errors };
   }
 
   // Today's events specifically get cached here, at this hook's level,
@@ -226,5 +239,6 @@ export function useGoogleCalendar(userId: string | undefined) {
     getEvents,
     todayEvents,
     todayEventsLoading,
+    syncErrors,
   };
 }

@@ -308,7 +308,8 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 // stated here since that's not otherwise visible from the UI itself.
 function GoogleCalendarsCard({ googleCalendarData }: { googleCalendarData: ReturnType<typeof useGoogleCalendar> }) {
   const dialogs = useDialogs();
-  const { accounts, calendars, loading, connecting, connectError, clearConnectError, connect, disconnectAccount, setCalendarVisible } = googleCalendarData;
+  const { accounts, calendars, loading, connecting, connectError, clearConnectError, connect, disconnectAccount, setCalendarVisible, syncErrors } =
+    googleCalendarData;
 
   async function handleDisconnect(account: GoogleAccount) {
     const ok = await dialogs.confirm({
@@ -347,6 +348,34 @@ function GoogleCalendarsCard({ googleCalendarData }: { googleCalendarData: Retur
           >
             ×
           </button>
+        </div>
+      )}
+      {syncErrors.length > 0 && (
+        // Distinct from connectError above — that one's about the OAuth
+        // connect flow itself failing; this is a *previously* connected
+        // account whose token refresh has started failing on every
+        // calendar fetch since (expired/revoked on Google's side). Same
+        // banner styling, no dismiss button — it reflects live state, not
+        // a one-off event, and clears itself once a fetch succeeds again.
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            fontSize: 12,
+            color: "var(--danger)",
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            borderRadius: 8,
+            padding: "8px 10px",
+          }}
+        >
+          {syncErrors.map((e, i) => (
+            <span key={i}>
+              {e.email ? `${e.email}: ` : ""}
+              {e.message}
+            </span>
+          ))}
         </div>
       )}
       {!loading && accounts.length === 0 && <div style={{ fontSize: 13, color: "var(--text-muted)" }}>No Google accounts connected yet.</div>}
