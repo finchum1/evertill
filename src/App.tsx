@@ -6,6 +6,7 @@ import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
 import { useNotes } from "./hooks/useNotes";
 import { Header } from "./components/Header";
+import { LeftNav } from "./components/LeftNav";
 import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
@@ -64,45 +65,66 @@ const EMPTY_TAG_IDS: string[] = [];
 // drawer instead — the sidebar itself (Sidebar.tsx/NotesSidebar.tsx) is
 // completely unchanged, just relocated into an overlay when isMobile is
 // true. Shared by both TasksDashboard and NotesDashboard below.
-function SidebarDrawer({ isMobile, label, children }: { isMobile: boolean; label: string; children: ReactNode }) {
+function SidebarDrawer({
+  isMobile,
+  label,
+  renderTrigger,
+  children,
+}: {
+  isMobile: boolean;
+  label: string;
+  // Lets a caller swap in its own trigger (same renderTrigger pattern as
+  // DatePickerField's own trigger override) while reusing this component's
+  // overlay/drawer mechanics wholesale — LeftNav uses this so its mobile
+  // toggle reads as a distinct top app bar rather than a second identical
+  // hamburger button sitting right next to each module's own sidebar
+  // toggle, which is genuinely ambiguous (which one opens what?) when both
+  // render with the default trigger below.
+  renderTrigger?: (onOpen: () => void) => ReactNode;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   if (!isMobile) return <>{children}</>;
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label={`Open ${label}`}
-        style={{
-          // sticky (not fixed) so it renders in normal flow right after
-          // Header — no guessing Header's rendered height, which varies
-          // since Header wraps to 2-3 rows on narrow viewports (see
-          // Header.tsx's flexWrap). It then sticks 12px from the viewport
-          // top once the page scrolls past its natural position, keeping
-          // it reachable without a hardcoded top offset that could overlap
-          // whatever Header happens to render above it.
-          position: "sticky",
-          top: 12,
-          alignSelf: "flex-start",
-          margin: "12px 0 0 12px",
-          zIndex: 20,
-          width: 36,
-          height: 36,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: 10,
-          color: "var(--text-body)",
-          cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-        }}
-      >
-        <MenuIcon />
-      </button>
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label={`Open ${label}`}
+          style={{
+            // sticky (not fixed) so it renders in normal flow right after
+            // Header — no guessing Header's rendered height, which varies
+            // since Header wraps to 2-3 rows on narrow viewports (see
+            // Header.tsx's flexWrap). It then sticks 12px from the viewport
+            // top once the page scrolls past its natural position, keeping
+            // it reachable without a hardcoded top offset that could overlap
+            // whatever Header happens to render above it.
+            position: "sticky",
+            top: 12,
+            alignSelf: "flex-start",
+            margin: "12px 0 0 12px",
+            zIndex: 20,
+            width: 36,
+            height: 36,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-panel)",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 10,
+            color: "var(--text-body)",
+            cursor: "pointer",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+          }}
+        >
+          <MenuIcon />
+        </button>
+      )}
       {open && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
           <div
@@ -110,7 +132,17 @@ function SidebarDrawer({ isMobile, label, children }: { isMobile: boolean; label
             aria-hidden
             style={{ position: "absolute", inset: 0, background: "rgba(2, 8, 23, 0.6)" }}
           />
-          <div style={{ position: "relative", height: "100%", display: "flex", boxShadow: "0 0 40px rgba(0,0,0,0.5)" }}>
+          <div style={{ position: "relative", height: "100%", display: "flex", background: "var(--bg-app)", boxShadow: "0 0 40px rgba(0,0,0,0.5)" }}>
+            {/* Still-visible trigger sitting behind this overlay (only the
+                overlay itself is conditionally rendered — the trigger
+                isn't hidden while open, same as before this fix) would
+                otherwise bleed through: none of LeftNav/Sidebar/
+                NotesSidebar sets its own opaque background, since normally
+                the page's own root background already shows through
+                correctly there. This one spot (the drawer panel) is the
+                one place that assumption doesn't hold, so it gets its own
+                explicit background instead of pushing that fix onto every
+                current and future SidebarDrawer consumer individually. */}
             {children}
             <button
               onClick={() => setOpen(false)}
@@ -267,6 +299,30 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+// Same sticky-not-fixed positioning as SidebarDrawer's default trigger
+// (see its own comment on why), just wider content and a filled
+// background so it's unmistakably a different control from the plain
+// icon-only trigger sitting right next to it.
+const mainNavMobileTriggerStyle = {
+  position: "sticky",
+  top: 12,
+  alignSelf: "flex-start",
+  margin: "12px 0 0 12px",
+  zIndex: 21,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  height: 36,
+  padding: "0 14px 0 10px",
+  background: "var(--accent-strong)",
+  border: "none",
+  borderRadius: 10,
+  color: "#fff",
+  cursor: "pointer",
+  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+} as const;
+
 const collapseToggleButtonStyle = {
   width: 24,
   height: 24,
@@ -406,7 +462,7 @@ function TasksDashboard({
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -450,7 +506,7 @@ function TasksDashboard({
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
       {isMobile ? (
         <SidebarDrawer isMobile={isMobile} label="Tasks sidebar">
           {sidebarElement}
@@ -551,7 +607,7 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -588,7 +644,7 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 61px)" }}>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
       {isMobile ? (
         <SidebarDrawer isMobile={isMobile} label="Notes sidebar">
           {sidebarElement}
@@ -659,7 +715,7 @@ function LeadsDashboard({
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -672,7 +728,7 @@ function LeadsDashboard({
   const nextCard = openCardIndex >= 0 && openCardIndex < openCardSiblings.length - 1 ? openCardSiblings[openCardIndex + 1] : undefined;
 
   return (
-    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+    <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px 0" }}>
         <ViewTabs active={subView} onChange={setSubView} />
       </div>
@@ -771,7 +827,7 @@ function PipelineDashboard({
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -784,7 +840,7 @@ function PipelineDashboard({
   const nextCard = openCardIndex >= 0 && openCardIndex < openCardSiblings.length - 1 ? openCardSiblings[openCardIndex + 1] : undefined;
 
   return (
-    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+    <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px 0" }}>
         <ViewTabs active={subView} onChange={setSubView} />
       </div>
@@ -886,7 +942,7 @@ function DealsDashboard({
 
   if (loading) {
     return (
-      <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
         Loading…
       </div>
     );
@@ -915,7 +971,7 @@ function DealsDashboard({
   const statusValueCards = deals.map((d) => ({ column_id: d.status, value: d.value }));
 
   return (
-    <div style={{ minHeight: "calc(100vh - 61px)" }}>
+    <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Deals</h1>
@@ -1045,6 +1101,9 @@ function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
   const [page, setPage] = useState<Page>("tasks");
+  // Gates LeftNav's own mobile drawer below — same isMobile source each
+  // module's dashboard already calls for its own Sidebar/NotesSidebar.
+  const isMobile = useIsMobile();
 
   // Lifted above any single page so the header's global "+ Create" menu can
   // create a Task/Lead/Pipeline/Deal — and pop its modal open in place, with
@@ -1166,43 +1225,69 @@ function App() {
   return (
     <DialogsProvider>
     <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
-      <Header
-        session={session}
-        profile={profile.profile}
-        page={page}
-        onSetPage={setPage}
-        onLogin={() => setAuthModal("signin")}
-        onSignup={() => setAuthModal("signup")}
-        onCreate={handleCreate}
-        hiddenModules={hiddenModules}
-        themeEffective={theme.effective}
-        onToggleTheme={theme.toggleEffective}
-      />
       {session ? (
-        // <Landing> already renders its own <main> for the logged-out case
-        // (see LandingPage.tsx) — only wrap the logged-in branch here, or a
-        // signed-in visitor would get this <main> while a logged-out one
-        // gets Landing's, never both/neither nested inside each other.
-        <main>
-          <PageContent
-            page={page}
-            session={session}
-            tasksData={tasks}
-            leadsData={leads}
-            pipelineData={pipeline}
-            dealsData={deals}
-            dealTemplatesData={dealTemplates}
-            tagsData={tags}
-            notesData={notes}
-            profileData={profile}
-            theme={theme}
-            googleCalendarData={googleCalendar}
-            onNewTask={() => setQuickAddOpen(true)}
-            onMoveDealToPipeline={handleMoveDealToPipeline}
-          />
-        </main>
+        // Signed-in app shell: LeftNav's vertical rail + content side by
+        // side, instead of Header's old horizontal top bar. Same
+        // SidebarDrawer hamburger/overlay pattern each module's own
+        // Sidebar/NotesSidebar already uses on narrow viewports, reused
+        // here for consistency rather than inventing a second pattern.
+        <div style={{ display: "flex", minHeight: "100vh" }}>
+          <SidebarDrawer
+            isMobile={isMobile}
+            label="Main navigation"
+            renderTrigger={(onOpen) => (
+              // Wordmark + hamburger together (not a bare icon) so this
+              // reads as "open the app's main menu" at a glance, distinct
+              // from the plain icon-only trigger each module's own
+              // Sidebar/NotesSidebar shows right next to it for its own
+              // in-module nav — two identical unlabeled hamburgers side by
+              // side had no way to tell which was which.
+              <button onClick={onOpen} aria-label="Open main navigation" style={mainNavMobileTriggerStyle}>
+                <MenuIcon />
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.02em" }}>Evertill</span>
+              </button>
+            )}
+          >
+            <LeftNav
+              session={session}
+              profile={profile.profile}
+              page={page}
+              onSetPage={setPage}
+              onCreate={handleCreate}
+              hiddenModules={hiddenModules}
+              themeEffective={theme.effective}
+              onToggleTheme={theme.toggleEffective}
+            />
+          </SidebarDrawer>
+          <main style={{ flex: 1, minWidth: 0 }}>
+            <PageContent
+              page={page}
+              session={session}
+              tasksData={tasks}
+              leadsData={leads}
+              pipelineData={pipeline}
+              dealsData={deals}
+              dealTemplatesData={dealTemplates}
+              tagsData={tags}
+              notesData={notes}
+              profileData={profile}
+              theme={theme}
+              googleCalendarData={googleCalendar}
+              onNewTask={() => setQuickAddOpen(true)}
+              onMoveDealToPipeline={handleMoveDealToPipeline}
+            />
+          </main>
+        </div>
       ) : (
-        <Landing onGetStarted={() => setAuthModal("signup")} />
+        <>
+          <Header
+            onLogin={() => setAuthModal("signin")}
+            onSignup={() => setAuthModal("signup")}
+            themeEffective={theme.effective}
+            onToggleTheme={theme.toggleEffective}
+          />
+          <Landing onGetStarted={() => setAuthModal("signup")} />
+        </>
       )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
 
@@ -1210,8 +1295,8 @@ function App() {
         <QuickAddTaskModal
           lists={tasks.lists}
           onClose={() => setQuickAddOpen(false)}
-          onCreate={async (listId, title, description, dueDate, recurrence, subtaskTitles) => {
-            const newTodo = await tasks.addTodo(listId, title, dueDate, { description, recurrence });
+          onCreate={async (listId, title, description, dueDate, recurrence, subtaskTitles, dueTime, durationMinutes) => {
+            const newTodo = await tasks.addTodo(listId, title, dueDate, { description, recurrence, dueTime, durationMinutes });
             if (newTodo) {
               for (const subtaskTitle of subtaskTitles) await tasks.addSubtask(newTodo.id, subtaskTitle);
             }

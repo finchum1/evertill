@@ -1,44 +1,19 @@
-import type { Session } from "@supabase/supabase-js";
-import type { Page } from "../types";
-import type { Profile } from "../hooks/useProfile";
-import { CreateMenu } from "./CreateMenu";
-import type { CreateType } from "./CreateMenu";
-import { Avatar } from "./Avatar";
-
+// Logged-out top bar only — sits above <Landing> (App.tsx's own comment on
+// that render branch explains why: Landing renders no header of its own,
+// relying entirely on this one for the "Evertill" wordmark + Log in/Sign
+// up). The signed-in app's own navigation (module switcher, +Create,
+// avatar/Settings) moved to LeftNav.tsx's vertical rail — this component
+// used to render both cases behind a `session &&` branch, but keeping a
+// component named "Header" half-dead for the case it actually still
+// serves was more confusing than trimming it down to just that case.
 interface HeaderProps {
-  session: Session | null;
-  profile: Profile | null;
-  page: Page;
-  onSetPage: (page: Page) => void;
   onLogin: () => void;
   onSignup: () => void;
-  onCreate: (type: CreateType) => void;
-  hiddenModules: string[];
   themeEffective: "dark" | "light";
   onToggleTheme: () => void;
 }
 
-const NAV_ITEMS: { key: Page; label: string }[] = [
-  { key: "tasks", label: "Tasks" },
-  { key: "leads", label: "Leads" },
-  { key: "pipeline", label: "Pipeline" },
-  { key: "deals", label: "Deals" },
-  { key: "notes", label: "Notes" },
-];
-
-export function Header({
-  session,
-  profile,
-  page,
-  onSetPage,
-  onLogin,
-  onSignup,
-  onCreate,
-  hiddenModules,
-  themeEffective,
-  onToggleTheme,
-}: HeaderProps) {
-  const visibleNavItems = NAV_ITEMS.filter((item) => !hiddenModules.includes(item.key));
+export function Header({ onLogin, onSignup, themeEffective, onToggleTheme }: HeaderProps) {
   return (
     <div
       style={{
@@ -52,80 +27,23 @@ export function Header({
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", rowGap: 8 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-          Evertill
-        </div>
-        {session && (
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <CreateMenu onSelect={onCreate} hiddenModules={hiddenModules} />
-            <nav style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {visibleNavItems.map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => onSetPage(item.key)}
-                  style={{
-                    // A translucent tinted pill instead of the old bottom-
-                    // border underline — color-mix keeps this one line
-                    // regardless of which of the 4 accent colors (or
-                    // light/dark theme) is active, rather than needing a
-                    // separate --accent-subtle-bg-style token per variant.
-                    background: page === item.key ? "color-mix(in srgb, var(--accent) 16%, transparent)" : "transparent",
-                    border: "none",
-                    borderRadius: 999,
-                    color: page === item.key ? "var(--accent-light)" : "var(--text-secondary)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    padding: "7px 14px",
-                    cursor: "pointer",
-                    transition: "background 120ms ease, color 120ms ease",
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        )}
-      </div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Evertill</div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <ThemeToggleButton effective={themeEffective} onToggle={onToggleTheme} />
-        {session ? (
-          <button
-            onClick={() => onSetPage("settings")}
-            title="Go to Settings"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: page === "settings" ? "var(--border)" : "none",
-              border: "none",
-              borderRadius: 99,
-              padding: "4px 10px 4px 4px",
-              cursor: "pointer",
-            }}
-          >
-            <Avatar name={profile?.full_name || session.user.email} avatarDataUrl={profile?.avatar_data_url} size={28} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: page === "settings" ? "var(--text-primary)" : "var(--text-secondary)" }}>
-              {profile?.full_name || session.user.email}
-            </span>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onLogin} style={ghostButtonStyle}>
+            Log in
           </button>
-        ) : (
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onLogin} style={ghostButtonStyle}>
-              Log in
-            </button>
-            <button onClick={onSignup} style={primaryButtonStyle}>
-              Sign up
-            </button>
-          </div>
-        )}
+          <button onClick={onSignup} style={primaryButtonStyle}>
+            Sign up
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function ThemeToggleButton({ effective, onToggle }: { effective: "dark" | "light"; onToggle: () => void }) {
+export function ThemeToggleButton({ effective, onToggle }: { effective: "dark" | "light"; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
