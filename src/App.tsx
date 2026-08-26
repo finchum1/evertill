@@ -22,8 +22,9 @@ import { LeadCardMini } from "./components/LeadCardMini";
 import { PipelineBoard } from "./components/PipelineBoard";
 import { PipelineCardModal } from "./components/PipelineCardModal";
 import { PipelineCardMini } from "./components/PipelineCardMini";
-import { ViewTabs } from "./components/ViewTabs";
+import { ViewTabs, BOARD_VIEW_LABELS, DEFAULT_BOARD_VIEW_ORDER } from "./components/ViewTabs";
 import type { BoardSubView } from "./components/ViewTabs";
+import { todayKey } from "./lib/dates";
 import { BoardListView } from "./components/BoardListView";
 import { BoardValueView } from "./components/BoardValueView";
 import { BoardCalendarView } from "./components/BoardCalendarView";
@@ -346,6 +347,46 @@ type DealsData = ReturnType<typeof useDeals>;
 type DealTemplatesData = ReturnType<typeof useDealTemplates>;
 type NotesData = ReturnType<typeof useNotes>;
 
+// Tasks' own "smart view" switcher — Today/Upcoming/Calendar/Completed —
+// used to live as four rows stacked inside Sidebar.tsx, directly below
+// LeftNav's own module switcher. Two nearly-identical-looking vertical
+// rails sitting side by side (both dark columns of left-aligned nav rows)
+// read as one overlong, redundant nav, and — more importantly given this
+// app's eventual iOS port — a permanent second sidebar has no real iPhone
+// equivalent at all (iOS doesn't stack sidebars; even iPad only ever shows
+// one). Moving these four into the same horizontal pill-tab pattern
+// Leads/Pipeline/Deals' own ViewTabs already uses maps directly onto a
+// segmented control, which iOS does have, and leaves Sidebar.tsx holding
+// only what's genuinely sidebar-shaped: Lists (folders + custom lists,
+// analogous to Mail.app's mailbox list) — Inbox included, since it's a
+// real list like any other, not a smart filter.
+type TasksView = "today" | "upcoming" | "calendar" | "completed";
+const TASKS_VIEW_TABS: { key: TasksView; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "calendar", label: "Calendar" },
+  { key: "completed", label: "Completed" },
+];
+
+function TasksViewTabs({
+  view,
+  onSetView,
+  todayCount,
+  upcomingCount,
+}: {
+  view: View;
+  onSetView: (view: View) => void;
+  todayCount: number;
+  upcomingCount: number;
+}) {
+  const badges: Partial<Record<TasksView, number>> = { today: todayCount, upcoming: upcomingCount };
+  return (
+    <div style={{ padding: "20px 24px 0" }}>
+      <ViewTabs tabs={TASKS_VIEW_TABS.map((t) => ({ ...t, badge: badges[t.key] }))} active={view} onChange={onSetView} />
+    </div>
+  );
+}
+
 function TasksDashboard({
   tasks,
   googleCalendarData,
@@ -386,6 +427,11 @@ function TasksDashboard({
   const [view, setView] = useState<View>("today");
   const [openTodoId, setOpenTodoId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<CompletionToast[]>([]);
+  // Badge counts for TasksViewTabs — moved up from Sidebar.tsx along with
+  // Today/Upcoming themselves.
+  const tkey = todayKey();
+  const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
+  const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
   // Per-browser layout preference, not synced data — same lightweight
   // localStorage pattern as theme/accent in useTheme.ts.
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
@@ -522,41 +568,44 @@ function TasksDashboard({
           {sidebarElement}
         </CollapsibleSidebar>
       )}
-      {view === "calendar" ? (
-        <CalendarView
-          todos={todos}
-          lists={lists}
-          subtasks={subtasks}
-          googleCalendarData={googleCalendarData}
-          onOpenTodo={setOpenTodoId}
-          onToggleComplete={handleToggleComplete}
-          onAddTodo={addTodo}
-          onAddSubtask={addSubtask}
-          onToggleSubtask={toggleSubtask}
-          onEditSubtask={updateSubtask}
-          onDeleteSubtask={deleteSubtask}
-          onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
-          onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
-          onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
-        />
-      ) : (
-        <TaskListView
-          view={view}
-          lists={lists}
-          todos={todos}
-          subtasks={subtasks}
-          googleCalendarData={googleCalendarData}
-          onAddTodo={addTodo}
-          onToggleComplete={handleToggleComplete}
-          onAddSubtask={addSubtask}
-          onToggleSubtask={toggleSubtask}
-          onEditSubtask={updateSubtask}
-          onDeleteSubtask={deleteSubtask}
-          onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
-          onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
-          onOpenTodo={setOpenTodoId}
-        />
-      )}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <TasksViewTabs view={view} onSetView={setView} todayCount={todayCount} upcomingCount={upcomingCount} />
+        {view === "calendar" ? (
+          <CalendarView
+            todos={todos}
+            lists={lists}
+            subtasks={subtasks}
+            googleCalendarData={googleCalendarData}
+            onOpenTodo={setOpenTodoId}
+            onToggleComplete={handleToggleComplete}
+            onAddTodo={addTodo}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={updateSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
+            onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
+            onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
+          />
+        ) : (
+          <TaskListView
+            view={view}
+            lists={lists}
+            todos={todos}
+            subtasks={subtasks}
+            googleCalendarData={googleCalendarData}
+            onAddTodo={addTodo}
+            onToggleComplete={handleToggleComplete}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={updateSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
+            onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
+            onOpenTodo={setOpenTodoId}
+          />
+        )}
+      </div>
       {openTodo && (
         <TaskModal
           todo={openTodo}
@@ -730,7 +779,7 @@ function LeadsDashboard({
   return (
     <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px 0" }}>
-        <ViewTabs active={subView} onChange={setSubView} />
+        <ViewTabs tabs={DEFAULT_BOARD_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "board" && (
         <LeadsBoard
@@ -842,7 +891,7 @@ function PipelineDashboard({
   return (
     <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px 0" }}>
-        <ViewTabs active={subView} onChange={setSubView} />
+        <ViewTabs tabs={DEFAULT_BOARD_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "board" && (
         <PipelineBoard
@@ -983,7 +1032,7 @@ function DealsDashboard({
       </div>
       <DealsStatCards deals={deals} />
       <div style={{ padding: "0 24px" }}>
-        <ViewTabs active={subView} onChange={setSubView} order={DEALS_VIEW_ORDER} />
+        <ViewTabs tabs={DEALS_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "list" && <DealsListView deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
       {subView === "board" && <DealsBoard deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}

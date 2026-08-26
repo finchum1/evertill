@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { LIST_COLOR_HEX } from "../types";
 import type { CompletionToast, ListColor, Todo, TodoFolder, TodoList, View } from "../types";
-import { todayKey } from "../lib/dates";
 import { TODO_DRAG_MIME, TODO_FOLDER_DRAG_MIME, TODO_LIST_DRAG_MIME } from "../lib/dragTypes";
 import { ListMenu } from "./ListMenu";
 
@@ -63,9 +62,6 @@ export function Sidebar({
 }: SidebarProps) {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
-  const tkey = todayKey();
-  const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
-  const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
 
   const inbox = lists.find((l) => l.is_inbox);
   const unfiledLists = lists.filter((l) => !l.folder_id && !l.is_inbox);
@@ -189,20 +185,6 @@ export function Sidebar({
             <InboxNavIcon />
           </button>
         )}
-        <button onClick={() => onSetView("today")} title="Today" aria-label="Today" style={iconRailButtonStyle(view === "today")}>
-          <TodayNavIcon />
-        </button>
-        <button onClick={() => onSetView("upcoming")} title="Upcoming" aria-label="Upcoming" style={iconRailButtonStyle(view === "upcoming")}>
-          <UpcomingNavIcon />
-        </button>
-        <button onClick={() => onSetView("calendar")} title="Calendar" aria-label="Calendar" style={iconRailButtonStyle(view === "calendar")}>
-          <CalendarNavIcon />
-        </button>
-        {inbox && (
-          <button onClick={() => onSetView("completed")} title="Completed" aria-label="Completed" style={iconRailButtonStyle(view === "completed")}>
-            <CompletedNavIcon />
-          </button>
-        )}
         {unfiledIcon.length > 0 && <div style={railDividerStyle} />}
         {unfiledIcon.map((list) => (
           <button key={list.id} onClick={() => onSetView(list.id)} title={list.name} aria-label={list.name} style={iconRailButtonStyle(view === list.id)}>
@@ -232,37 +214,8 @@ export function Sidebar({
         <AddTaskPlusIcon />
         Add Task
       </button>
-      {inbox && listRow(inbox)}
-      <button onClick={() => onSetView("today")} style={navButtonStyle(view === "today")}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <TodayNavIcon />
-          <span>Today</span>
-        </span>
-        {todayCount > 0 && <span style={{ fontSize: 11, color: view === "today" ? "#fff" : "var(--text-muted)" }}>{todayCount}</span>}
-      </button>
-      <button onClick={() => onSetView("upcoming")} style={navButtonStyle(view === "upcoming")}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <UpcomingNavIcon />
-          <span>Upcoming</span>
-        </span>
-        {upcomingCount > 0 && <span style={{ fontSize: 11, color: view === "upcoming" ? "#fff" : "var(--text-muted)" }}>{upcomingCount}</span>}
-      </button>
-      <button onClick={() => onSetView("calendar")} style={navButtonStyle(view === "calendar")}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <CalendarNavIcon />
-          <span>Calendar</span>
-        </span>
-      </button>
-
       {inbox && (
-        <div style={{ marginTop: 12, marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
-          <button onClick={() => onSetView("completed")} style={navButtonStyle(view === "completed")}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <CompletedNavIcon />
-              <span>Completed</span>
-            </span>
-          </button>
-        </div>
+        <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>{listRow(inbox)}</div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 4px" }}>
@@ -506,12 +459,10 @@ const smallIconButtonStyle = {
   minHeight: 24,
 };
 
-// A fixed 18x18 slot every nav icon sits inside (Upcoming/Calendar/Inbox's
-// own <svg width={18} height={18}> already fill this exactly) so every row
-// reports the same content height to its flex row regardless of how big
-// the icon's own visible glyph is inside — otherwise Today/Completed's
-// smaller 14x14 chip made just those two rows a few px shorter than the
-// rest, breaking the sidebar's vertical rhythm.
+// A fixed 18x18 slot matching Inbox's own <svg width={18} height={18}> — so
+// AddTaskPlusIcon's smaller 14x14 chip still reports the same content
+// height to its flex row instead of making that one row a few px shorter
+// than an Inbox/list row, breaking the sidebar's vertical rhythm.
 const iconSlotStyle: CSSProperties = {
   width: 18,
   height: 18,
@@ -520,67 +471,6 @@ const iconSlotStyle: CSSProperties = {
   justifyContent: "center",
   flexShrink: 0,
 };
-
-// Today's icon shows the live date number (matching the reference: a
-// "24"-style icon) — same currentColor treatment as Upcoming/Calendar/Inbox,
-// so it recolors with the row's own active/inactive state exactly like
-// theirs instead of staying a fixed color. Recomputed on every render, so
-// it stays correct across a day boundary without a timer.
-function TodayNavIcon() {
-  const day = new Date().getDate();
-  return (
-    <span style={iconSlotStyle}>
-      <span
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: 4,
-          border: "1.4px solid currentColor",
-          fontSize: 9,
-          fontWeight: 800,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          lineHeight: 1,
-        }}
-      >
-        {day}
-      </span>
-    </span>
-  );
-}
-
-// A calendar frame with a couple of thick agenda lines inside — reads as
-// "a list of upcoming days," distinct from Calendar's own dot-grid icon
-// below. Plain currentColor line icon (no fixed chip), so it recolors with
-// the row's own active/inactive state same as the label text.
-function UpcomingNavIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-      <rect x="3" y="4" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M7 2.5V5.5M13 2.5V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M6.5 11H10.5M6.5 13.5H13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-// A calendar frame with a small dot grid — reads as "a month view," distinct
-// from Upcoming's list-style icon above. Same plain currentColor treatment.
-function CalendarNavIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-      <rect x="3" y="4" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M7 2.5V5.5M13 2.5V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="7" cy="11.5" r="1" fill="currentColor" />
-      <circle cx="10" cy="11.5" r="1" fill="currentColor" />
-      <circle cx="13" cy="11.5" r="1" fill="currentColor" />
-      <circle cx="7" cy="14.5" r="1" fill="currentColor" />
-      <circle cx="10" cy="14.5" r="1" fill="currentColor" />
-    </svg>
-  );
-}
 
 // Inbox tray glyph (slanted funnel sides + a notched lip), matching the
 // reference screenshot — plain currentColor, no fixed chip, same as Upcoming
@@ -620,31 +510,5 @@ function FolderIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-// Same currentColor treatment as Upcoming/Calendar/Inbox — recolors with
-// the row's own active/inactive state instead of staying a fixed color —
-// with the same checkmark glyph already used for a completed task's own
-// checkbox (TaskRow's AnimatedCheckbox).
-function CompletedNavIcon() {
-  return (
-    <span style={iconSlotStyle}>
-      <span
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: 4,
-          border: "1.4px solid currentColor",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-          <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-    </span>
   );
 }

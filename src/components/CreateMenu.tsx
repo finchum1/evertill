@@ -6,10 +6,10 @@ export type CreateType = "task" | "lead" | "pipeline" | "deal" | "note";
 
 const ITEMS: { key: CreateType; label: string; page: Page }[] = [
   { key: "task", label: "Task", page: "tasks" },
+  { key: "note", label: "Note", page: "notes" },
   { key: "lead", label: "Lead", page: "leads" },
   { key: "pipeline", label: "Pipeline", page: "pipeline" },
   { key: "deal", label: "Deal", page: "deals" },
-  { key: "note", label: "Note", page: "notes" },
 ];
 
 export function CreateMenu({ onSelect, hiddenModules }: { onSelect: (type: CreateType) => void; hiddenModules: string[] }) {

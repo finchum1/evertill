@@ -19,10 +19,10 @@ interface LeftNavProps {
 
 const NAV_ITEMS: { key: Page; label: string }[] = [
   { key: "tasks", label: "Tasks" },
+  { key: "notes", label: "Notes" },
   { key: "leads", label: "Leads" },
   { key: "pipeline", label: "Pipeline" },
   { key: "deals", label: "Deals" },
-  { key: "notes", label: "Notes" },
 ];
 
 // The signed-in app's own navigation — module switcher, +Create, account —

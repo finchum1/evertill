@@ -84,10 +84,10 @@ export type Page = "tasks" | "leads" | "pipeline" | "deals" | "notes" | "setting
 // so it's never hideable. Add a new entry here when a future module ships.
 export const HIDEABLE_MODULES: { key: Page; label: string }[] = [
   { key: "tasks", label: "Tasks" },
+  { key: "notes", label: "Notes" },
   { key: "leads", label: "Leads" },
   { key: "pipeline", label: "Pipeline" },
   { key: "deals", label: "Deals" },
-  { key: "notes", label: "Notes" },
 ];
 
 // One toast per task completion, snapshotting the exact prior completed/
