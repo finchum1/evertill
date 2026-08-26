@@ -85,12 +85,26 @@ export function TaskRow({
         />
         <div
           onClick={() => onOpen(todo.id)}
-          style={{ flex: 1, minWidth: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
+          // overflow:hidden is load-bearing here, not decorative: on a
+          // narrow row (mobile width) there isn't room for both this
+          // flex:1 column and the list badge at their natural sizes, and
+          // flexbox resolves that by shrinking this column — which
+          // minWidth:0 used to let go all the way to zero — while its own
+          // content (the date badge below has no overflow handling of its
+          // own) kept rendering at full size regardless, visibly bleeding
+          // out over the list badge and chevron button sitting next to it.
+          // Clipping here guarantees nothing ever renders outside this
+          // column's actual box. minWidth: 44 (not 0) guarantees this
+          // column — the task's own title and time, the primary content —
+          // keeps at least a few truncated characters even on the
+          // narrowest rows, rather than being squeezed to fully invisible
+          // by the list badge below claiming everything else.
+          style={{ flex: 1, minWidth: 44, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
         >
           <TaskText checked={checked} fontSize={14} color="var(--text-primary)">
             {todo.title}
           </TaskText>
-          <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--text-secondary)", minWidth: 0, overflow: "hidden" }}>
             <DueDateBadge
               todo={todo}
               overdue={overdue}
@@ -104,7 +118,7 @@ export function TaskRow({
                   e.stopPropagation();
                   setExpanded((x) => !x);
                 }}
-                style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", flexShrink: 0 }}
                 title={expanded ? "Collapse subtasks" : "Expand subtasks"}
               >
                 <SubtaskIcon />
@@ -114,7 +128,33 @@ export function TaskRow({
           </span>
         </div>
         {list && (
-          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0, maxWidth: 100 }}>
+          // flexShrink 0 -> 1 and a real minWidth (not the old
+          // flexShrink:0, which refused to give up any space at all and
+          // pushed the title/date column above to zero width first) — this
+          // badge is secondary info, so it should be the one that
+          // truncates ("The A…") on a tight row, not the task's own
+          // title and due date.
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              // A much higher shrink factor than the title/date column's
+              // implicit 1 (shrink amount is proportional to flex-basis ×
+              // shrink-factor) — without this, the badge's own smaller
+              // natural size meant it was actually shrinking *less* in
+              // absolute pixels than the longer title/date column despite
+              // being the lower-priority content, the opposite of what's
+              // wanted.
+              flexShrink: 5,
+              minWidth: 28,
+              maxWidth: 100,
+              overflow: "hidden",
+            }}
+          >
             <span style={{ width: 6, height: 6, borderRadius: 99, background: LIST_COLOR_HEX[list.color], flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {list.is_inbox ? "Inbox" : list.name}
@@ -308,6 +348,7 @@ function DueDateBadge({
             fontWeight: 600,
             color: todo.due_date ? (overdue ? "var(--danger)" : "var(--text-secondary)") : "var(--border-strong)",
             flexShrink: 0,
+            whiteSpace: "nowrap",
             cursor: "pointer",
             fontFamily: "inherit",
           }}
