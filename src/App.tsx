@@ -6,7 +6,7 @@ import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
 import { useNotes } from "./hooks/useNotes";
 import { Header } from "./components/Header";
-import { LeftNav } from "./components/LeftNav";
+import { TopNav } from "./components/TopNav";
 import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
 import { Sidebar } from "./components/Sidebar";
@@ -45,7 +45,7 @@ import { SettingsPage } from "./components/SettingsPage";
 import { DialogsProvider, useDialogs } from "./components/DialogHost";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import type { CreateType } from "./components/CreateMenu";
-import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR, HIDEABLE_MODULES } from "./types";
+import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
 import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
@@ -59,6 +59,48 @@ const NO_HIDDEN_MODULES: string[] = [];
 // NO_HIDDEN_MODULES above, avoids a fresh `[]` literal on every render.
 const EMPTY_TAG_IDS: string[] = [];
 
+// Evertill is really two separate apps sharing one login and one
+// database: a Tasks+Notes app and a Leads/Pipeline/Deals CRM app. Each
+// gets its own URL (/ for Tasks, /crm for the CRM app) and its own
+// TopNav scoped to only its own modules — no client-side router library,
+// just reading/writing window.location directly, same hand-rolled
+// approach this app already uses for Google's OAuth redirect (see
+// useGoogleCalendar.ts's redirectUri/handleOAuthCallback). vercel.json's
+// catch-all rewrite is what lets a direct visit or refresh on /crm serve
+// this same index.html instead of 404ing.
+type AppId = "tasks" | "crm";
+
+function appIdFromPath(pathname: string): AppId {
+  return pathname.startsWith("/crm") ? "crm" : "tasks";
+}
+
+const APP_CONFIG: Record<
+  AppId,
+  { path: string; otherAppLabel: string; navItems: { key: Page; label: string }[]; createTypes: CreateType[]; defaultPage: Page }
+> = {
+  tasks: {
+    path: "/",
+    otherAppLabel: "CRM",
+    navItems: [
+      { key: "tasks", label: "Tasks" },
+      { key: "notes", label: "Notes" },
+    ],
+    createTypes: ["task", "note"],
+    defaultPage: "tasks",
+  },
+  crm: {
+    path: "/crm",
+    otherAppLabel: "Tasks",
+    navItems: [
+      { key: "leads", label: "Leads" },
+      { key: "pipeline", label: "Pipeline" },
+      { key: "deals", label: "Deals" },
+    ],
+    createTypes: ["lead", "pipeline", "deal"],
+    defaultPage: "leads",
+  },
+};
+
 // The app has no responsive layout at all below desktop widths — Sidebar/
 // NotesSidebar are a fixed 240px sitting in a flex row with the content,
 // which just gets crushed on a narrow viewport. Below the breakpoint, this
@@ -66,66 +108,45 @@ const EMPTY_TAG_IDS: string[] = [];
 // drawer instead — the sidebar itself (Sidebar.tsx/NotesSidebar.tsx) is
 // completely unchanged, just relocated into an overlay when isMobile is
 // true. Shared by both TasksDashboard and NotesDashboard below.
-function SidebarDrawer({
-  isMobile,
-  label,
-  renderTrigger,
-  children,
-}: {
-  isMobile: boolean;
-  label: string;
-  // Lets a caller swap in its own trigger (same renderTrigger pattern as
-  // DatePickerField's own trigger override) while reusing this component's
-  // overlay/drawer mechanics wholesale — LeftNav uses this so its mobile
-  // toggle reads as a distinct top app bar rather than a second identical
-  // hamburger button sitting right next to each module's own sidebar
-  // toggle, which is genuinely ambiguous (which one opens what?) when both
-  // render with the default trigger below.
-  renderTrigger?: (onOpen: () => void) => ReactNode;
-  children: ReactNode;
-}) {
+function SidebarDrawer({ isMobile, label, children }: { isMobile: boolean; label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   if (!isMobile) return <>{children}</>;
 
   return (
     <>
-      {renderTrigger ? (
-        renderTrigger(() => setOpen(true))
-      ) : (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label={`Open ${label}`}
-          style={{
-            // sticky (not fixed) so it renders in normal flow right after
-            // Header — no guessing Header's rendered height, which varies
-            // since Header wraps to 2-3 rows on narrow viewports (see
-            // Header.tsx's flexWrap). It then sticks 12px from the viewport
-            // top once the page scrolls past its natural position, keeping
-            // it reachable without a hardcoded top offset that could overlap
-            // whatever Header happens to render above it.
-            position: "sticky",
-            top: 12,
-            alignSelf: "flex-start",
-            margin: "12px 0 0 12px",
-            zIndex: 20,
-            width: 36,
-            height: 36,
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--bg-panel)",
-            border: "1px solid var(--border-strong)",
-            borderRadius: 10,
-            color: "var(--text-body)",
-            cursor: "pointer",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-          }}
-        >
-          <MenuIcon />
-        </button>
-      )}
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={`Open ${label}`}
+        style={{
+          // sticky (not fixed) so it renders in normal flow right after
+          // TopNav — no guessing TopNav's rendered height, which varies
+          // since it wraps to 2-3 rows on narrow viewports (see
+          // TopNav.tsx's flexWrap). It then sticks 12px from the viewport
+          // top once the page scrolls past its natural position, keeping
+          // it reachable without a hardcoded top offset that could overlap
+          // whatever TopNav happens to render above it.
+          position: "sticky",
+          top: 12,
+          alignSelf: "flex-start",
+          margin: "12px 0 0 12px",
+          zIndex: 20,
+          width: 36,
+          height: 36,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border-strong)",
+          borderRadius: 10,
+          color: "var(--text-body)",
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+        }}
+      >
+        <MenuIcon />
+      </button>
       {open && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
           <div
@@ -136,14 +157,14 @@ function SidebarDrawer({
           <div style={{ position: "relative", height: "100%", display: "flex", background: "var(--bg-app)", boxShadow: "0 0 40px rgba(0,0,0,0.5)" }}>
             {/* Still-visible trigger sitting behind this overlay (only the
                 overlay itself is conditionally rendered — the trigger
-                isn't hidden while open, same as before this fix) would
-                otherwise bleed through: none of LeftNav/Sidebar/
-                NotesSidebar sets its own opaque background, since normally
-                the page's own root background already shows through
-                correctly there. This one spot (the drawer panel) is the
-                one place that assumption doesn't hold, so it gets its own
-                explicit background instead of pushing that fix onto every
-                current and future SidebarDrawer consumer individually. */}
+                isn't hidden while open) would otherwise bleed through:
+                neither Sidebar.tsx nor NotesSidebar.tsx sets its own
+                opaque background, since normally the page's own root
+                background already shows through correctly there. This one
+                spot (the drawer panel) is the one place that assumption
+                doesn't hold, so it gets its own explicit background
+                instead of pushing that fix onto every current and future
+                SidebarDrawer consumer individually. */}
             {children}
             <button
               onClick={() => setOpen(false)}
@@ -300,30 +321,6 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-// Same sticky-not-fixed positioning as SidebarDrawer's default trigger
-// (see its own comment on why), just wider content and a filled
-// background so it's unmistakably a different control from the plain
-// icon-only trigger sitting right next to it.
-const mainNavMobileTriggerStyle = {
-  position: "sticky",
-  top: 12,
-  alignSelf: "flex-start",
-  margin: "12px 0 0 12px",
-  zIndex: 21,
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  height: 36,
-  padding: "0 14px 0 10px",
-  background: "var(--accent-strong)",
-  border: "none",
-  borderRadius: 10,
-  color: "#fff",
-  cursor: "pointer",
-  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-} as const;
-
 const collapseToggleButtonStyle = {
   width: 24,
   height: 24,
@@ -348,13 +345,15 @@ type DealTemplatesData = ReturnType<typeof useDealTemplates>;
 type NotesData = ReturnType<typeof useNotes>;
 
 // Tasks' own "smart view" switcher — Today/Upcoming/Calendar/Completed —
-// used to live as four rows stacked inside Sidebar.tsx, directly below
-// LeftNav's own module switcher. Two nearly-identical-looking vertical
-// rails sitting side by side (both dark columns of left-aligned nav rows)
-// read as one overlong, redundant nav, and — more importantly given this
-// app's eventual iOS port — a permanent second sidebar has no real iPhone
-// equivalent at all (iOS doesn't stack sidebars; even iPad only ever shows
-// one). Moving these four into the same horizontal pill-tab pattern
+// used to live as four rows stacked inside Sidebar.tsx, directly below the
+// app-level module switcher of the day (first a horizontal top nav, then
+// a vertical rail, now a horizontal top nav again). Whatever shape that
+// switcher took, stacking a *second* nav column of near-identical-looking
+// rows directly beneath it read as one overlong, redundant nav — and,
+// more importantly given this app's eventual iOS port, a persistent
+// second sidebar has no real iPhone equivalent at all (iOS doesn't stack
+// sidebars; even iPad only ever shows one). Moving these four into the
+// same horizontal pill-tab pattern
 // Leads/Pipeline/Deals' own ViewTabs already uses maps directly onto a
 // segmented control, which iOS does have, and leaves Sidebar.tsx holding
 // only what's genuinely sidebar-shaped: Lists (folders + custom lists,
@@ -1150,9 +1149,25 @@ function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
   const [page, setPage] = useState<Page>("tasks");
-  // Gates LeftNav's own mobile drawer below — same isMobile source each
-  // module's dashboard already calls for its own Sidebar/NotesSidebar.
-  const isMobile = useIsMobile();
+  // Which of the two apps (Tasks+Notes vs Leads/Pipeline/Deals) is open —
+  // derived from the URL at load, kept in sync with browser back/forward
+  // via popstate, and pushed via switchApp below on an explicit switch (no
+  // full page reload, same in-memory session/data either way).
+  const [appId, setAppId] = useState<AppId>(() => (typeof window !== "undefined" ? appIdFromPath(window.location.pathname) : "tasks"));
+
+  useEffect(() => {
+    function onPopState() {
+      setAppId(appIdFromPath(window.location.pathname));
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function switchApp(next: AppId) {
+    window.history.pushState({}, "", APP_CONFIG[next].path);
+    setAppId(next);
+    setPage(APP_CONFIG[next].defaultPage);
+  }
 
   // Lifted above any single page so the header's global "+ Create" menu can
   // create a Task/Lead/Pipeline/Deal — and pop its modal open in place, with
@@ -1179,14 +1194,25 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  // If the currently-open module gets hidden (its nav tab just vanished),
-  // don't leave a dead page up with no way back — jump to the first module
-  // still visible, or Settings if every module has been hidden.
+  // Two things keep `page` valid: (1) if it belongs to the *other* app
+  // (e.g. the URL was edited by hand, or a stale page carried over from
+  // before a switch) jump to this app's own default page — Settings is
+  // shared across both apps, so it's exempt; (2) if the currently-open
+  // module gets hidden (its nav tab just vanished), don't leave a dead
+  // page up with no way back — jump to the first module in *this app*
+  // that's still visible, or Settings if every one of this app's modules
+  // has been hidden.
   useEffect(() => {
-    if (page === "settings" || !hiddenModules.includes(page)) return;
-    const fallback = HIDEABLE_MODULES.find((m) => !hiddenModules.includes(m.key));
+    if (page === "settings") return;
+    const belongsToThisApp = APP_CONFIG[appId].navItems.some((m) => m.key === page);
+    if (!belongsToThisApp) {
+      setPage(APP_CONFIG[appId].defaultPage);
+      return;
+    }
+    if (!hiddenModules.includes(page)) return;
+    const fallback = APP_CONFIG[appId].navItems.find((m) => !hiddenModules.includes(m.key));
     setPage(fallback?.key ?? "settings");
-  }, [page, hiddenModules]);
+  }, [page, hiddenModules, appId]);
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createNoteId, setCreateNoteId] = useState<string | null>(null);
@@ -1275,39 +1301,25 @@ function App() {
     <DialogsProvider>
     <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
       {session ? (
-        // Signed-in app shell: LeftNav's vertical rail + content side by
-        // side, instead of Header's old horizontal top bar. Same
-        // SidebarDrawer hamburger/overlay pattern each module's own
-        // Sidebar/NotesSidebar already uses on narrow viewports, reused
-        // here for consistency rather than inventing a second pattern.
-        <div style={{ display: "flex", minHeight: "100vh" }}>
-          <SidebarDrawer
-            isMobile={isMobile}
-            label="Main navigation"
-            renderTrigger={(onOpen) => (
-              // Wordmark + hamburger together (not a bare icon) so this
-              // reads as "open the app's main menu" at a glance, distinct
-              // from the plain icon-only trigger each module's own
-              // Sidebar/NotesSidebar shows right next to it for its own
-              // in-module nav — two identical unlabeled hamburgers side by
-              // side had no way to tell which was which.
-              <button onClick={onOpen} aria-label="Open main navigation" style={mainNavMobileTriggerStyle}>
-                <MenuIcon />
-                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.02em" }}>Evertill</span>
-              </button>
-            )}
-          >
-            <LeftNav
-              session={session}
-              profile={profile.profile}
-              page={page}
-              onSetPage={setPage}
-              onCreate={handleCreate}
-              hiddenModules={hiddenModules}
-              themeEffective={theme.effective}
-              onToggleTheme={theme.toggleEffective}
-            />
-          </SidebarDrawer>
+        // Signed-in app shell: a horizontal TopNav scoped to whichever app
+        // is currently open, stacked above that app's content — two
+        // distinct apps rather than one five-module nav (that was
+        // LeftNav.tsx, since removed).
+        <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+          <TopNav
+            session={session}
+            profile={profile.profile}
+            page={page}
+            onSetPage={setPage}
+            onCreate={handleCreate}
+            hiddenModules={hiddenModules}
+            themeEffective={theme.effective}
+            onToggleTheme={theme.toggleEffective}
+            navItems={APP_CONFIG[appId].navItems}
+            createTypes={APP_CONFIG[appId].createTypes}
+            otherAppLabel={APP_CONFIG[appId].otherAppLabel}
+            onSwitchApp={() => switchApp(appId === "tasks" ? "crm" : "tasks")}
+          />
           <main style={{ flex: 1, minWidth: 0 }}>
             <PageContent
               page={page}

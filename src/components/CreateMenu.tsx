@@ -12,9 +12,20 @@ const ITEMS: { key: CreateType; label: string; page: Page }[] = [
   { key: "deal", label: "Deal", page: "deals" },
 ];
 
-export function CreateMenu({ onSelect, hiddenModules }: { onSelect: (type: CreateType) => void; hiddenModules: string[] }) {
+export function CreateMenu({
+  onSelect,
+  hiddenModules,
+  allowedTypes,
+}: {
+  onSelect: (type: CreateType) => void;
+  hiddenModules: string[];
+  // Scopes the menu to whichever app is currently open (Tasks+Notes vs
+  // Leads+Pipeline+Deals) — omit to show every non-hidden type, same as
+  // before the app split existed.
+  allowedTypes?: CreateType[];
+}) {
   const [open, setOpen] = useState(false);
-  const visibleItems = ITEMS.filter((item) => !hiddenModules.includes(item.page));
+  const visibleItems = ITEMS.filter((item) => !hiddenModules.includes(item.page) && (!allowedTypes || allowedTypes.includes(item.key)));
 
   return (
     <div style={{ position: "relative" }}>

@@ -2,10 +2,11 @@
 // that render branch explains why: Landing renders no header of its own,
 // relying entirely on this one for the "Evertill" wordmark + Log in/Sign
 // up). The signed-in app's own navigation (module switcher, +Create,
-// avatar/Settings) moved to LeftNav.tsx's vertical rail — this component
-// used to render both cases behind a `session &&` branch, but keeping a
-// component named "Header" half-dead for the case it actually still
-// serves was more confusing than trimming it down to just that case.
+// avatar/Settings) lives in TopNav.tsx instead — this component used to
+// render both cases behind a `session &&` branch, but keeping a component
+// named "Header" half-dead for the case it actually still serves was more
+// confusing than trimming it down to just that case. (ThemeToggleButton
+// below is exported and reused by TopNav.tsx rather than duplicated.)
 interface HeaderProps {
   onLogin: () => void;
   onSignup: () => void;
