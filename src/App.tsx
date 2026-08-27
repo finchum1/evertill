@@ -1347,7 +1347,12 @@ function App() {
             themeEffective={theme.effective}
             onToggleTheme={theme.toggleEffective}
           />
-          <Landing onGetStarted={() => setAuthModal("signup")} />
+          <Landing
+            onGetStarted={(appHint) => {
+              if (appHint) switchApp(appHint);
+              setAuthModal("signup");
+            }}
+          />
         </>
       )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}

@@ -13,8 +13,14 @@ import { LIST_COLOR_HEX } from "../types";
 // any resolution, and automatically correct in both light and dark theme.
 // The data inside every preview is entirely fictional.
 
+// Which app a "get started" click should land the new signup in — the two
+// apps are TasksApp (Tasks + Notes, at "/") and CRMApp (Leads + Pipeline +
+// Deals, at "/crm") in App.tsx. Undefined means "no preference," which
+// App.tsx's call site leaves on whichever app the visitor is already on.
+export type AppHint = "tasks" | "crm";
+
 interface LandingProps {
-  onGetStarted: () => void;
+  onGetStarted: (appHint?: AppHint) => void;
 }
 
 // The app's own component font stack — kept separate so the module preview
@@ -91,6 +97,14 @@ export function Landing({ onGetStarted }: LandingProps) {
       <Hero onGetStarted={onGetStarted} />
 
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px" }}>
+        <AppGroupIntro
+          label="The Tasks app"
+          title="Tasks and Notes, together"
+          description="Everyday to-dos and a real notes editor, sharing one top nav — nothing else competing for space."
+          ctaLabel="Get started with Tasks"
+          appHint="tasks"
+          onGetStarted={onGetStarted}
+        />
         <ModuleSection
           eyebrow="Tasks"
           badgeColor={MODULE_COLOR.tasks}
@@ -106,6 +120,30 @@ export function Landing({ onGetStarted }: LandingProps) {
           reverse={false}
         />
         <ModuleSection
+          eyebrow="Notes"
+          badgeColor={MODULE_COLOR.notes}
+          icon={<NotesIcon />}
+          title="Real formatting, not just plain text"
+          description="Headings, bold, underline, and multicolor highlighting — organized into folders, with pinned notes at the top."
+          bullets={[
+            "A proper rich-text editor, not a bare textarea",
+            "Pin the notes you reference constantly",
+            "Folders keep unrelated notes from piling up",
+          ]}
+          preview={<NotesPreview />}
+          reverse
+        />
+
+        <AppGroupIntro
+          label="The CRM app"
+          title="Leads, Pipeline, and Deals — a CRM of its own"
+          description="A separate app, separate nav, built around working relationships and closing files rather than checking off to-dos."
+          ctaLabel="Get started with the CRM"
+          appHint="crm"
+          onGetStarted={onGetStarted}
+          topBorder
+        />
+        <ModuleSection
           eyebrow="Leads"
           badgeColor={MODULE_COLOR.leads}
           icon={<LeadsIcon />}
@@ -117,7 +155,7 @@ export function Landing({ onGetStarted }: LandingProps) {
             "Never lose track of who to call next",
           ]}
           preview={<LeadsPreview />}
-          reverse
+          reverse={false}
         />
         <ModuleSection
           eyebrow="Pipeline"
@@ -131,7 +169,7 @@ export function Landing({ onGetStarted }: LandingProps) {
             "One click converts a busted Deal into Pipeline",
           ]}
           preview={<PipelinePreview />}
-          reverse={false}
+          reverse
         />
         <ModuleSection
           eyebrow="Deals"
@@ -145,20 +183,6 @@ export function Landing({ onGetStarted }: LandingProps) {
             "Contact fields and notes history per deal",
           ]}
           preview={<DealsPreview />}
-          reverse
-        />
-        <ModuleSection
-          eyebrow="Notes"
-          badgeColor={MODULE_COLOR.notes}
-          icon={<NotesIcon />}
-          title="Real formatting, not just plain text"
-          description="Headings, bold, underline, and multicolor highlighting — organized into folders, with pinned notes at the top."
-          bullets={[
-            "A proper rich-text editor, not a bare textarea",
-            "Pin the notes you reference constantly",
-            "Folders keep unrelated notes from piling up",
-          ]}
-          preview={<NotesPreview />}
           reverse={false}
           last
         />
@@ -171,7 +195,7 @@ export function Landing({ onGetStarted }: LandingProps) {
   );
 }
 
-function Hero({ onGetStarted }: { onGetStarted: () => void }) {
+function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
   return (
     <section
       style={{
@@ -220,9 +244,9 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             textWrap: "balance",
           }}
         >
-          Every task. Every follow-up.
+          Every task. Every deal.
           <br />
-          One workspace.
+          Two apps, one login.
         </h1>
         <p
           style={{
@@ -234,12 +258,12 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             textWrap: "pretty",
           }}
         >
-          Tasks and Notes for everyone, plus Leads, Pipeline, and Deals if you're tracking
-          relationships and transactions too. Turn on only what fits.
+          Tasks + Notes for everyday work, and a Leads, Pipeline, and Deals CRM for the
+          relationships and transactions you're closing. Run one, or run both.
         </p>
         <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 40 }}>
-          <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
-            Create your workspace
+          <button onClick={() => onGetStarted()} className="landing-btn-primary" style={primaryButtonStyle}>
+            Create your account
           </button>
           <a href="#tasks" className="landing-link-cta" style={linkCtaStyle}>
             See what's inside
@@ -248,12 +272,10 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
             </span>
           </a>
         </div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-          {["Tasks", "Leads", "Pipeline", "Deals", "Notes"].map((m) => (
-            <a key={m} href={`#${m.toLowerCase()}`} className="landing-pill" style={pillStyle}>
-              {m}
-            </a>
-          ))}
+        <div style={{ display: "flex", gap: 28, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          <HeroAppGroup label="Tasks app" items={["Tasks", "Notes"]} />
+          <span aria-hidden style={{ width: 1, height: 32, background: "var(--border)", flexShrink: 0 }} />
+          <HeroAppGroup label="CRM app" items={["Leads", "Pipeline", "Deals"]} />
         </div>
       </div>
 
@@ -278,6 +300,94 @@ function Hero({ onGetStarted }: { onGetStarted: () => void }) {
         </BrowserFrame>
       </div>
     </section>
+  );
+}
+
+// One labeled cluster of module pills in the hero — grouped so the two-app
+// split reads at a glance instead of five flat, ungrouped pills implying one
+// undifferentiated list of modules.
+function HeroAppGroup({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        {label}
+      </span>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        {items.map((m) => (
+          <a key={m} href={`#${m.toLowerCase()}`} className="landing-pill" style={pillStyle}>
+            {m}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A neutral, peer-level section header introducing one whole app (not one
+// module) before its own ModuleSections — deliberately un-colored (unlike
+// ModuleSection's per-module eyebrow) so it reads as "this is a separate
+// app" rather than just another module in the same list.
+function AppGroupIntro({
+  label,
+  title,
+  description,
+  ctaLabel,
+  appHint,
+  onGetStarted,
+  topBorder,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  appHint: AppHint;
+  onGetStarted: (appHint?: AppHint) => void;
+  topBorder?: boolean;
+}) {
+  return (
+    <Reveal>
+      <div
+        style={{
+          textAlign: "center",
+          maxWidth: 620,
+          margin: "0 auto",
+          padding: topBorder ? "80px 0 8px" : "64px 0 8px",
+          borderTop: topBorder ? "1px solid var(--border)" : "none",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: "var(--text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            marginBottom: 14,
+          }}
+        >
+          {label}
+        </div>
+        <h2
+          style={{
+            fontSize: 32,
+            fontWeight: 800,
+            color: "var(--text-primary)",
+            letterSpacing: "-0.02em",
+            margin: "0 0 14px",
+            lineHeight: 1.18,
+            textWrap: "balance",
+          }}
+        >
+          {title}
+        </h2>
+        <p style={{ fontSize: 15.5, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 auto 24px", maxWidth: 480, textWrap: "pretty" }}>
+          {description}
+        </p>
+        <button onClick={() => onGetStarted(appHint)} className="landing-btn-primary" style={primaryButtonStyle}>
+          {ctaLabel}
+        </button>
+      </div>
+    </Reveal>
   );
 }
 
@@ -394,8 +504,8 @@ function Highlights() {
     { icon: <ThemeIcon />, title: "Dark, light, or system", body: "Plus four accent colors to match your style." },
     {
       icon: <ToggleIcon />,
-      title: "Only the modules you use",
-      body: "Keep all five for real estate, or turn off what you don't need — it disappears from nav and Create.",
+      title: "Two apps, or just one",
+      body: "Run Tasks + Notes, the CRM, or both under the same login — then hide any individual module you don't need from Settings.",
     },
     { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Tasks, leads, clients, calendar days — drag them wherever they go." },
     { icon: <LockIcon />, title: "Your own private workspace", body: "Self-service signup, your data scoped to your account alone." },
@@ -417,7 +527,7 @@ function Highlights() {
   );
 }
 
-function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
+function FinalCta({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
   return (
     <Reveal>
       <section style={{ textAlign: "center", padding: "88px 24px" }}>
@@ -431,13 +541,13 @@ function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
             textWrap: "balance",
           }}
         >
-          Stop juggling five tools for one file.
+          One account. Both apps whenever you need them.
         </h2>
         <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
-          See it end to end in under a minute.
+          Create your account once — jump into Tasks, the CRM, or both, and switch anytime from the nav.
         </p>
-        <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
-          Create your workspace
+        <button onClick={() => onGetStarted()} className="landing-btn-primary" style={primaryButtonStyle}>
+          Create your account
         </button>
       </section>
     </Reveal>
@@ -445,7 +555,7 @@ function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
 }
 
 function Footer() {
-  const links = ["Tasks", "Leads", "Pipeline", "Deals", "Notes"];
+  const links = ["Tasks", "Notes", "Leads", "Pipeline", "Deals"];
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "28px 24px" }}>
       <div
@@ -461,7 +571,7 @@ function Footer() {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Evertill</span>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>One workspace, only the modules you need.</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Two apps, one login — Tasks + Notes, and a Leads/Pipeline/Deals CRM.</span>
         </div>
         <nav style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
           {links.map((l) => (
