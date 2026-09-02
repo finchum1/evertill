@@ -47,7 +47,6 @@ import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import { DialogsProvider, useDialogs } from "./components/DialogHost";
 import { useIsMobile } from "./hooks/useMediaQuery";
-import type { CreateType } from "./components/CreateMenu";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
 import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
 
@@ -77,10 +76,7 @@ function appIdFromPath(pathname: string): AppId {
   return pathname.startsWith("/crm") ? "crm" : "tasks";
 }
 
-const APP_CONFIG: Record<
-  AppId,
-  { path: string; otherAppLabel: string; navItems: { key: Page; label: string }[]; createTypes: CreateType[]; defaultPage: Page }
-> = {
+const APP_CONFIG: Record<AppId, { path: string; otherAppLabel: string; navItems: { key: Page; label: string }[]; defaultPage: Page }> = {
   tasks: {
     path: "/",
     otherAppLabel: "CRM",
@@ -88,7 +84,6 @@ const APP_CONFIG: Record<
       { key: "tasks", label: "Tasks" },
       { key: "notes", label: "Notes" },
     ],
-    createTypes: ["task", "note"],
     defaultPage: "tasks",
   },
   crm: {
@@ -99,7 +94,6 @@ const APP_CONFIG: Record<
       { key: "pipeline", label: "Pipeline" },
       { key: "deals", label: "Deals" },
     ],
-    createTypes: ["lead", "pipeline", "deal"],
     defaultPage: "leads",
   },
 };
@@ -1198,11 +1192,11 @@ function App() {
   }, [page, hiddenModules, appId]);
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [createNoteId, setCreateNoteId] = useState<string | null>(null);
-  const [createLeadCardId, setCreateLeadCardId] = useState<string | null>(null);
+  // Still needed even with the global +Create menu gone (see handleCreate's
+  // removal below) — this one has a second caller, handleMoveDealToPipeline,
+  // which opens the just-converted card the same way a fresh one from
+  // Pipeline's own "+Add" would.
   const [createPipelineCardId, setCreatePipelineCardId] = useState<string | null>(null);
-  const [createShowNewDeal, setCreateShowNewDeal] = useState(false);
-  const [createDealId, setCreateDealId] = useState<string | null>(null);
 
   // "Bust" a deal: convert it into a Pipeline card (first column) carrying
   // over address/value/type-as-tag plus its note history, then remove it
@@ -1238,35 +1232,6 @@ function App() {
     if (newCard) setCreatePipelineCardId(newCard.id);
   }
 
-  async function handleCreate(type: CreateType) {
-    if (type === "task") {
-      setQuickAddOpen(true);
-    } else if (type === "lead") {
-      const column = leads.columns[0];
-      if (!column) {
-        setPage("leads");
-        return;
-      }
-      const card = await leads.addCard(column.id);
-      if (card) setCreateLeadCardId(card.id);
-    } else if (type === "pipeline") {
-      const column = pipeline.columns[0];
-      if (!column) {
-        setPage("pipeline");
-        return;
-      }
-      const card = await pipeline.addCard(column.id);
-      if (card) setCreatePipelineCardId(card.id);
-    } else if (type === "deal") {
-      setCreateShowNewDeal(true);
-    } else {
-      // Unlike Lead/Pipeline cards, a note doesn't need a column to exist
-      // first — it's created unfiled (folder_id null) and opened directly.
-      const note = await notes.addNote(null);
-      if (note) setCreateNoteId(note.id);
-    }
-  }
-
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1275,10 +1240,7 @@ function App() {
     );
   }
 
-  const createLeadCard = createLeadCardId ? leads.cards.find((c) => c.id === createLeadCardId) : undefined;
   const createPipelineCard = createPipelineCardId ? pipeline.cards.find((c) => c.id === createPipelineCardId) : undefined;
-  const createDeal = createDealId ? deals.deals.find((d) => d.id === createDealId) : undefined;
-  const createNote = createNoteId ? notes.notes.find((n) => n.id === createNoteId) : undefined;
 
   return (
     <DialogsProvider>
@@ -1298,12 +1260,10 @@ function App() {
             profile={profile.profile}
             page={page}
             onSetPage={setPage}
-            onCreate={handleCreate}
             hiddenModules={hiddenModules}
             themeEffective={theme.effective}
             onToggleTheme={theme.toggleEffective}
             navItems={APP_CONFIG[appId].navItems}
-            createTypes={APP_CONFIG[appId].createTypes}
             otherAppLabel={APP_CONFIG[appId].otherAppLabel}
             onSwitchApp={() => switchApp(appId === "tasks" ? "crm" : "tasks")}
           />
@@ -1376,23 +1336,6 @@ function App() {
         />
       )}
 
-      {createLeadCard && (
-        <LeadCardModal
-          card={createLeadCard}
-          columns={leads.columns}
-          notes={leads.notes.filter((n) => n.card_id === createLeadCard.id)}
-          tags={tags.tags}
-          cardTagIds={leads.cardTagIds[createLeadCard.id] ?? EMPTY_TAG_IDS}
-          onSetCardTags={leads.setCardTags}
-          onCreateTag={tags.addTag}
-          onClose={() => setCreateLeadCardId(null)}
-          onUpdate={leads.updateCard}
-          onDelete={leads.deleteCard}
-          onAddNote={leads.addNote}
-          onDeleteNote={leads.deleteNote}
-        />
-      )}
-
       {createPipelineCard && (
         <PipelineCardModal
           card={createPipelineCard}
@@ -1410,52 +1353,6 @@ function App() {
         />
       )}
 
-      {createShowNewDeal && (
-        <NewDealModal
-          onClose={() => setCreateShowNewDeal(false)}
-          onCreate={async (address, type, acceptanceDate) => {
-            const deal = await deals.addDeal(address, type, acceptanceDate);
-            setCreateShowNewDeal(false);
-            if (deal) {
-              await Promise.all([dealTemplates.seedDealChecklist(deal.id, deal.type), deals.seedContactFields(deal.id)]);
-              setCreateDealId(deal.id);
-            }
-          }}
-        />
-      )}
-
-      {createDeal && (
-        <DealModal
-          deal={createDeal}
-          notes={deals.notes.filter((n) => n.deal_id === createDeal.id)}
-          checklistItems={deals.checklistItems.filter((i) => i.deal_id === createDeal.id)}
-          contactFields={deals.contactFields.filter((f) => f.deal_id === createDeal.id)}
-          onClose={() => setCreateDealId(null)}
-          onUpdate={deals.updateDeal}
-          onDelete={deals.deleteDeal}
-          onAddNote={deals.addNote}
-          onDeleteNote={deals.deleteNote}
-          onAddChecklistItem={deals.addChecklistItem}
-          onToggleChecklistItem={deals.toggleChecklistItem}
-          onDeleteChecklistItem={deals.deleteChecklistItem}
-          onEnsureContactFields={deals.ensureContactFields}
-          onAddContactField={deals.addContactField}
-          onUpdateContactField={deals.updateContactField}
-          onDeleteContactField={deals.deleteContactField}
-          onMoveToPipeline={handleMoveDealToPipeline}
-        />
-      )}
-
-      {createNote && (
-        <NoteModal
-          note={createNote}
-          folders={notes.folders}
-          onClose={() => setCreateNoteId(null)}
-          onUpdate={notes.updateNote}
-          onDelete={notes.deleteNote}
-          onTogglePinned={notes.togglePinned}
-        />
-      )}
     </div>
     </DialogsProvider>
   );
