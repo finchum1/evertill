@@ -95,21 +95,32 @@ function tabButtonStyle(active: boolean): CSSProperties {
 // A filled glyph for the active tab, thin outline otherwise — reads as a
 // real app tab bar (Reminders, Music, Files, etc. all do this) rather than
 // a flat color change, which reads more like a web nav pill.
+//
+// Every fill/stroke that needs the CSS variable goes through style={{}},
+// never the bare fill=/stroke= JSX attribute — iOS Safari doesn't reliably
+// resolve var() when it's set as a plain SVG presentation attribute rather
+// than through an actual style declaration, so fill={color}/stroke={color}
+// silently rendered as invisible icons there (labels below them were fine,
+// since those are plain text, not touched by this at all). Chromium-based
+// browsers resolve it either way, which is why this passed testing here
+// and only broke on a real iPhone.
 function TabIcon({ page, active }: { page: Page; active: boolean }) {
   const color = active ? "var(--accent-light)" : "var(--text-muted)";
   const size = 23;
-  const outline = { width: size, height: size, viewBox: "0 0 20 20", fill: "none" as const, stroke: color, strokeWidth: 1.6 };
+  const outlineAttrs = { width: size, height: size, viewBox: "0 0 20 20", fill: "none" as const, strokeWidth: 1.6 };
+  const outlineStyle = { stroke: color };
   switch (page) {
     case "tasks":
       return active ? (
         <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="3" width="14" height="14" rx="4" fill={color} />
+          <rect x="3" y="3" width="14" height="14" rx="4" style={{ fill: color }} />
           {/* White, not the tab bar's own background — this checkmark sits
-              against the solid accent fill above, not the page behind it. */}
+              against the solid accent fill above, not the page behind it.
+              A literal hex, not a var(), so the bare attribute is fine. */}
           <path d="M6.5 10L8.5 12L13.5 7" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
-        <svg {...outline}>
+        <svg {...outlineAttrs} style={outlineStyle}>
           <rect x="3" y="3" width="14" height="14" rx="4" />
           <path d="M6.5 10L8.5 12L13.5 7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -117,40 +128,40 @@ function TabIcon({ page, active }: { page: Page; active: boolean }) {
     case "notes":
       return active ? (
         <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-          <rect x="4" y="3" width="12" height="14" rx="2" fill={color} />
+          <rect x="4" y="3" width="12" height="14" rx="2" style={{ fill: color }} />
           {/* White, not the tab bar's own background — same reasoning as
               the "tasks"/"deals" filled icons above: these lines sit
               against the solid accent fill, not the page behind it. */}
           <path d="M6.5 7H13.5M6.5 10H13.5M6.5 13H11" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       ) : (
-        <svg {...outline}>
+        <svg {...outlineAttrs} style={outlineStyle}>
           <rect x="4" y="3" width="12" height="14" rx="2" />
           <path d="M6.5 7H13.5M6.5 10H13.5M6.5 13H11" strokeLinecap="round" />
         </svg>
       );
     case "leads":
       return (
-        <svg width={size} height={size} viewBox="0 0 20 20" fill={active ? color : "none"} stroke={active ? "none" : color} strokeWidth={1.6}>
+        <svg width={size} height={size} viewBox="0 0 20 20" strokeWidth={1.6} style={{ fill: active ? color : "none", stroke: active ? "none" : color }}>
           <path d="M3 4H17L12.5 10.5V16L7.5 14V10.5L3 4Z" strokeLinejoin="round" />
         </svg>
       );
     case "pipeline":
       return (
-        <svg {...outline} strokeWidth={active ? 2.1 : 1.6}>
+        <svg {...outlineAttrs} strokeWidth={active ? 2.1 : 1.6} style={outlineStyle}>
           <path d="M3 6H17M3 10H17M3 14H12" strokeLinecap="round" />
-          <circle cx="17" cy="14" r="1.5" fill={color} stroke="none" />
+          <circle cx="17" cy="14" r="1.5" style={{ fill: color }} stroke="none" />
         </svg>
       );
     case "deals":
       return active ? (
         <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="4" width="14" height="12" rx="2.5" fill={color} />
+          <rect x="3" y="4" width="14" height="12" rx="2.5" style={{ fill: color }} />
           <path d="M3 8.5H17" stroke="#fff" strokeWidth="1.4" />
           <path d="M6.5 12H10" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       ) : (
-        <svg {...outline}>
+        <svg {...outlineAttrs} style={outlineStyle}>
           <rect x="3" y="4" width="14" height="12" rx="2" />
           <path d="M3 8.5H17" />
           <path d="M6.5 12H10" strokeLinecap="round" />
