@@ -24,15 +24,23 @@
          worker registration automatically from vite.config.ts's manifest
          option — these are the pieces it doesn't cover, iOS Safari's own
          older, non-manifest-spec way of configuring "Add to Home Screen".
-         apple-mobile-web-app-status-bar-style is deliberately "default"
-         (an opaque system status bar, content starts below it) rather than
-         "black-translucent" (content draws under a transparent status bar)
-         — the latter needs every top-level screen to add its own
-         safe-area-inset-top padding to avoid the clock/icons overlapping
-         content, which TopNav.tsx/Header.tsx don't currently do. -->
+         apple-mobile-web-app-status-bar-style is "black-translucent" (web
+         content draws full-bleed under a transparent status bar) rather
+         than "default" (an opaque native status bar area, content starts
+         below it) — "default" turned out to make iOS miscalculate 100dvh
+         in standalone/home-screen mode by roughly the status bar's own
+         height, pushing BottomTabBar.tsx's fixed bottom bar that far below
+         the real visible area (only a normal Safari tab was fine — Safari
+         ignores viewport-fit=cover there entirely, so this bug only ever
+         showed up once actually launched from the home screen).
+         black-translucent avoids relying on that iOS auto-reservation
+         at all; TopNav.tsx/Header.tsx now pad for the status bar
+         themselves via env(safe-area-inset-top), the same explicit,
+         well-tested pattern BottomTabBar.tsx already uses for the bottom
+         safe area. -->
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Evertill" />
     <!-- Used by the landing page only (src/components/LandingPage.tsx) — the
          rest of the app intentionally keeps its existing system-font stack,

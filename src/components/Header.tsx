@@ -23,7 +23,10 @@ export function Header({ onLogin, onSignup, themeEffective, onToggleTheme }: Hea
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: 12,
-        padding: "16px 24px",
+        // Same env(safe-area-inset-top) reasoning as TopNav.tsx — a no-op
+        // in a normal browser tab, but keeps this bar clear of the status
+        // bar if the app is launched from the home screen while signed out.
+        padding: "calc(16px + env(safe-area-inset-top)) 24px 16px",
         borderBottom: "1px solid var(--border)",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}

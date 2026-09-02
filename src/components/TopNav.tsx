@@ -53,7 +53,12 @@ export function TopNav({ session, profile, page, onSetPage, hiddenModules, theme
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: 12,
-        padding: "16px 24px",
+        // The extra top inset only does anything in standalone/home-screen
+        // mode (index.html's apple-mobile-web-app-status-bar-style is
+        // black-translucent, so content draws under the status bar there —
+        // a no-op in a normal browser tab, which has no such inset). Same
+        // env() convention BottomTabBar.tsx already uses for the bottom.
+        padding: "calc(16px + env(safe-area-inset-top)) 24px 16px",
         borderBottom: "1px solid var(--border)",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
