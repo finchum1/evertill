@@ -1282,13 +1282,17 @@ function App() {
 
   return (
     <DialogsProvider>
-    <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
+    <div style={{ minHeight: "100dvh", background: "var(--bg-app)" }}>
       {session ? (
         // Signed-in app shell: a horizontal TopNav scoped to whichever app
         // is currently open, stacked above that app's content — two
         // distinct apps rather than one five-module nav (that was
         // LeftNav.tsx, since removed).
-        <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        // 100dvh, not 100vh — see index.css's #root comment for why: this
+        // is the container BottomTabBar.tsx's position:fixed bar lives
+        // inside, and iOS Safari's vh-vs-visible-viewport mismatch is
+        // exactly what was cutting that bar off.
+        <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
           <TopNav
             session={session}
             profile={profile.profile}

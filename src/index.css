@@ -179,7 +179,14 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  /* dvh (dynamic viewport height), not vh — iOS Safari computes vh against
+     the layout viewport as if its own address-bar/toolbar chrome were
+     always hidden, taller than what's actually visible whenever that
+     chrome is showing. BottomTabBar.tsx's position:fixed;bottom:0 bar
+     then sits at the bottom of that too-tall vh, below the real visible
+     area — exactly the "bottom nav bar is cut off" bug this fixes. dvh
+     tracks the actual visible viewport as Safari's chrome shows/hides. */
+  min-height: 100dvh;
 }
 
 /* Notes rich-text editor (Tiptap). A deliberate exception to this app's
