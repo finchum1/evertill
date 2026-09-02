@@ -28,7 +28,7 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
   const dialogs = useDialogs();
 
   return (
-    <MobileSheet onClose={onClose} maxWidth={760} maxHeight="90vh">
+    <MobileSheet onClose={onClose} maxWidth={760} maxHeight="94vh" fillHeight>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             value={title}

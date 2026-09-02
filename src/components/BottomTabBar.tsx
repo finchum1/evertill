@@ -115,9 +115,18 @@ function TabIcon({ page, active }: { page: Page; active: boolean }) {
         </svg>
       );
     case "notes":
-      return (
-        <svg width={size} height={size} viewBox="0 0 20 20" fill={active ? color : "none"} stroke={active ? "none" : color} strokeWidth={1.6}>
-          <path d="M5 3H15V17L10 14.5L5 17V3Z" strokeLinejoin="round" />
+      return active ? (
+        <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+          <rect x="4" y="3" width="12" height="14" rx="2" fill={color} />
+          {/* White, not the tab bar's own background — same reasoning as
+              the "tasks"/"deals" filled icons above: these lines sit
+              against the solid accent fill, not the page behind it. */}
+          <path d="M6.5 7H13.5M6.5 10H13.5M6.5 13H11" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      ) : (
+        <svg {...outline}>
+          <rect x="4" y="3" width="12" height="14" rx="2" />
+          <path d="M6.5 7H13.5M6.5 10H13.5M6.5 13H11" strokeLinecap="round" />
         </svg>
       );
     case "leads":

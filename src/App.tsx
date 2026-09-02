@@ -132,7 +132,7 @@ function ListsSlotButton({ children }: { children: ReactNode }) {
         <span style={{ fontSize: 10, fontWeight: 600 }}>Lists</span>
       </button>
       {open && (
-        <MobileSheet onClose={() => setOpen(false)} maxWidth={320} maxHeight="80vh" contentPadding={0}>
+        <MobileSheet onClose={() => setOpen(false)} maxWidth={320} maxHeight="92vh" contentPadding={0}>
           {children}
         </MobileSheet>
       )}

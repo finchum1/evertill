@@ -10,6 +10,13 @@ interface MobileSheetProps {
   // full-width); maxHeight still caps how tall the sheet can grow there.
   maxWidth: number;
   maxHeight?: string;
+  // Mobile only: forces the sheet to exactly maxHeight instead of just
+  // capping it there — a short piece of content (a couple of fields) would
+  // otherwise leave the sheet only as tall as it needs to be, which reads
+  // as a small popup rather than the large, immersive editing surface
+  // NoteModal wants (its rich-text body should get real room to work in,
+  // not just whatever its current content happens to need).
+  fillHeight?: boolean;
   // Every current caller (TaskModal, NoteModal, etc.) passes bare content
   // that relies on this sheet's own padding — TasksListsButton's Lists
   // sheet is the first to pass a child (Sidebar) that already carries its
@@ -38,7 +45,7 @@ const DISMISS_THRESHOLD = 120;
 // resize/rotation (useIsMobile is a real hook, not a static flag), so a
 // sheet already open when the window crosses the breakpoint re-renders in
 // the right shape rather than needing a remount.
-export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", contentPadding, children }: MobileSheetProps) {
+export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", fillHeight, contentPadding, children }: MobileSheetProps) {
   const isMobile = useIsMobile();
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -90,6 +97,7 @@ export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", contentPadd
         style={{
           ...sheetPanelStyle,
           maxHeight,
+          height: fillHeight ? maxHeight : undefined,
           transform: entered ? `translateY(${dragY}px)` : "translateY(100%)",
           transition: isDragging ? "none" : "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
@@ -97,7 +105,21 @@ export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", contentPadd
         <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} style={dragHandleZoneStyle}>
           <div style={dragHandleStyle} />
         </div>
-        <div style={contentPadding !== undefined ? { ...sheetContentStyle, padding: contentPadding } : sheetContentStyle}>{children}</div>
+        <div
+          style={{
+            ...sheetContentStyle,
+            ...(contentPadding !== undefined ? { padding: contentPadding } : null),
+            // Only when fillHeight also gave the panel itself a fixed
+            // height, not auto — flex:1 on a child needs a sized flex
+            // container to actually grow into, and would otherwise fight
+            // unpredictably with the plain max-height cap the other sheets
+            // (Lists, task/lead/deal detail) rely on to just hug their own
+            // content instead of always filling the full cap.
+            ...(fillHeight ? { flex: 1 } : null),
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
