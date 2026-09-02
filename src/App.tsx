@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT, LISTS_SLOT_ID } from "./components/BottomTabBar";
+import { MobileSheet } from "./components/MobileSheet";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
@@ -101,110 +104,77 @@ const APP_CONFIG: Record<
   },
 };
 
-// The app has no responsive layout at all below desktop widths — Sidebar/
-// NotesSidebar are a fixed 240px sitting in a flex row with the content,
-// which just gets crushed on a narrow viewport. Below the breakpoint, this
-// swaps that always-visible column for a hamburger toggle + an off-canvas
-// drawer instead — the sidebar itself (Sidebar.tsx/NotesSidebar.tsx) is
-// completely unchanged, just relocated into an overlay when isMobile is
-// true. Shared by both TasksDashboard and NotesDashboard below.
-function SidebarDrawer({ isMobile, label, children }: { isMobile: boolean; label: string; children: ReactNode }) {
+// Portals its trigger button + sheet into BottomTabBar's LISTS_SLOT_ID node
+// (rendered between the Tasks/Notes tabs — see insertSlotAfterKey) instead
+// of rendering in its own natural DOM position, so "Lists" sits inline with
+// the tab bar despite belonging to whichever page-specific dashboard
+// (TasksDashboard or NotesDashboard) currently has folders/lists to show.
+// Both dashboards use this same component with their own state, and since
+// they're mutually exclusive pages, whichever one is mounted is the one
+// that ends up populating the slot — "Lists" on the Tasks page pops up
+// Tasks' folders/lists, on the Notes page it pops up Notes' folders,
+// automatically, with no explicit "which page am I" branching needed here.
+// Replaces the old fixed 240px-sidebar-crushed-into-a-hamburger-drawer
+// pattern entirely below the mobile breakpoint — that drawer (and its
+// hamburger competing for space with TasksViewTabs' own pill row) was
+// exactly the "crowded, strange navigation" this app's nav has already
+// been reworked around once before.
+function ListsSlotButton({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  // Queried after mount rather than at render time — the DOM node doesn't
+  // exist yet during the render pass that produces this component, only
+  // once React commits the whole tree (BottomTabBar's slot div included).
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setSlot(document.getElementById(LISTS_SLOT_ID));
+  }, []);
 
-  if (!isMobile) return <>{children}</>;
+  if (!slot) return null;
 
-  return (
+  return createPortal(
     <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label={`Open ${label}`}
-        style={{
-          // sticky (not fixed) so it renders in normal flow right after
-          // TopNav — no guessing TopNav's rendered height, which varies
-          // since it wraps to 2-3 rows on narrow viewports (see
-          // TopNav.tsx's flexWrap). It then sticks 12px from the viewport
-          // top once the page scrolls past its natural position, keeping
-          // it reachable without a hardcoded top offset that could overlap
-          // whatever TopNav happens to render above it.
-          position: "sticky",
-          top: 12,
-          alignSelf: "flex-start",
-          margin: "12px 0 0 12px",
-          zIndex: 20,
-          width: 36,
-          height: 36,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: 10,
-          color: "var(--text-body)",
-          cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-        }}
-      >
-        <MenuIcon />
+      <button className="native-tab-btn" onClick={() => setOpen(true)} style={listsSlotButtonStyle}>
+        <ListsIcon />
+        <span style={{ fontSize: 10, fontWeight: 600 }}>Lists</span>
       </button>
       {open && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
-          <div
-            onClick={() => setOpen(false)}
-            aria-hidden
-            style={{ position: "absolute", inset: 0, background: "rgba(2, 8, 23, 0.6)" }}
-          />
-          <div style={{ position: "relative", height: "100%", display: "flex", background: "var(--bg-app)", boxShadow: "0 0 40px rgba(0,0,0,0.5)" }}>
-            {/* Still-visible trigger sitting behind this overlay (only the
-                overlay itself is conditionally rendered — the trigger
-                isn't hidden while open) would otherwise bleed through:
-                neither Sidebar.tsx nor NotesSidebar.tsx sets its own
-                opaque background, since normally the page's own root
-                background already shows through correctly there. This one
-                spot (the drawer panel) is the one place that assumption
-                doesn't hold, so it gets its own explicit background
-                instead of pushing that fix onto every current and future
-                SidebarDrawer consumer individually. */}
-            {children}
-            <button
-              onClick={() => setOpen(false)}
-              aria-label={`Close ${label}`}
-              style={{
-                position: "absolute",
-                top: 8,
-                right: -44,
-                width: 36,
-                height: 36,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "var(--bg-panel)",
-                border: "1px solid var(--border-strong)",
-                borderRadius: 10,
-                color: "var(--text-body)",
-                cursor: "pointer",
-              }}
-            >
-              ×
-            </button>
-          </div>
-        </div>
+        <MobileSheet onClose={() => setOpen(false)} maxWidth={320} maxHeight="80vh" contentPadding={0}>
+          {children}
+        </MobileSheet>
       )}
-    </>
+    </>,
+    slot
   );
 }
 
-function MenuIcon() {
+// Matches BottomTabBar.tsx's own (unexported) tabButtonStyle look — icon
+// over a small label, muted color — so this reads as a normal fourth tab
+// rather than a visually distinct button that happens to sit among them.
+const listsSlotButtonStyle = {
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 3,
+  background: "none",
+  border: "none",
+  color: "var(--text-muted)",
+  cursor: "pointer",
+};
+
+function ListsIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M2 4H14M2 8H14M2 12H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="23" height="23" viewBox="0 0 20 20" fill="none">
+      <path d="M3 6H17M3 10H17M3 14H10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
-// Desktop-only collapse for the Tasks/Notes sidebars — mobile already
-// collapses by default behind SidebarDrawer's hamburger/overlay, a
-// different pattern that doesn't need this too. `children` is expected to
+// Desktop-only collapse for the Tasks/Notes sidebars — mobile already gets
+// its own nav via ListsSlotButton above, a different pattern that doesn't
+// need this too. `children` is expected to
 // already be the icon-rail rendering when collapsed (Sidebar.tsx and
 // NotesSidebar.tsx each take their own `collapsed` prop and switch their
 // own layout, since a bare blank rail loses the nav icons entirely) — this
@@ -515,47 +485,52 @@ function TasksDashboard({
 
   const openTodo = openTodoId ? todos.find((t) => t.id === openTodoId) : undefined;
 
-  const sidebarElement = (
-    <Sidebar
-      folders={folders}
-      lists={lists}
-      todos={todos}
-      view={view}
-      onSetView={setView}
-      onAddFolder={async () => {
-        const name = await dialogs.prompt({ message: "Folder name:" });
-        if (name) addFolder(name);
-      }}
-      onAddList={async (folderId) => {
-        const name = await dialogs.prompt({ message: "List name:" });
-        if (name) addList(name, folderId);
-      }}
-      onRenameList={renameList}
-      onSetListColor={setListColor}
-      onDeleteList={(id) => {
-        if (view === id) setView("today");
-        deleteList(id);
-      }}
-      onRenameFolder={renameFolder}
-      onDeleteFolder={deleteFolder}
-      onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
-      onMoveListToFolder={moveListToFolder}
-      onReorderLists={reorderLists}
-      onReorderFolders={reorderFolders}
-      onNewTask={onNewTask}
-      toasts={toasts}
-      onUndoComplete={handleUndoComplete}
-      collapsed={!isMobile && sidebarCollapsed}
-      width={sidebarWidth}
-    />
-  );
+  // A function, not a plain element, so the phone-width Lists sheet below
+  // can render its own instance at width="100%" instead of reusing the
+  // desktop-persisted sidebarWidth — every other prop is identical either
+  // way, so this avoids repeating this whole prop list a second time.
+  function renderSidebar(width: number | "100%") {
+    return (
+      <Sidebar
+        folders={folders}
+        lists={lists}
+        todos={todos}
+        view={view}
+        onSetView={setView}
+        onAddFolder={async () => {
+          const name = await dialogs.prompt({ message: "Folder name:" });
+          if (name) addFolder(name);
+        }}
+        onAddList={async (folderId) => {
+          const name = await dialogs.prompt({ message: "List name:" });
+          if (name) addList(name, folderId);
+        }}
+        onRenameList={renameList}
+        onSetListColor={setListColor}
+        onDeleteList={(id) => {
+          if (view === id) setView("today");
+          deleteList(id);
+        }}
+        onRenameFolder={renameFolder}
+        onDeleteFolder={deleteFolder}
+        onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
+        onMoveListToFolder={moveListToFolder}
+        onReorderLists={reorderLists}
+        onReorderFolders={reorderFolders}
+        onNewTask={onNewTask}
+        toasts={toasts}
+        onUndoComplete={handleUndoComplete}
+        collapsed={!isMobile && sidebarCollapsed}
+        width={width}
+      />
+    );
+  }
+  const sidebarElement = renderSidebar(sidebarWidth);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       {isMobile ? (
-        <SidebarDrawer isMobile={isMobile} label="Tasks sidebar">
-          {sidebarElement}
-        </SidebarDrawer>
+        <ListsSlotButton>{renderSidebar("100%")}</ListsSlotButton>
       ) : (
         <CollapsibleSidebar
           collapsed={sidebarCollapsed}
@@ -669,34 +644,38 @@ function NotesDashboard({ notes }: { notes: NotesData }) {
     if (note) setOpenNoteId(note.id);
   };
 
-  const sidebarElement = (
-    <NotesSidebar
-      folders={folders}
-      notes={allNotes}
-      view={view}
-      onSetView={setView}
-      onAddNote={handleAddNote}
-      onAddFolder={async () => {
-        const name = await dialogs.prompt({ message: "Folder name:" });
-        if (name) addFolder(name);
-      }}
-      onRenameFolder={renameFolder}
-      onSetFolderColor={setFolderColor}
-      onDeleteFolder={(id) => {
-        if (view === id) setView("all");
-        deleteFolder(id);
-      }}
-      collapsed={!isMobile && sidebarCollapsed}
-      width={sidebarWidth}
-    />
-  );
+  // Same reasoning as TasksDashboard's renderSidebar: a function, not a
+  // plain element, so the phone-width Lists sheet can render its own
+  // "100%"-wide instance without reusing the desktop-persisted sidebarWidth.
+  function renderNotesSidebar(width: number | "100%") {
+    return (
+      <NotesSidebar
+        folders={folders}
+        notes={allNotes}
+        view={view}
+        onSetView={setView}
+        onAddNote={handleAddNote}
+        onAddFolder={async () => {
+          const name = await dialogs.prompt({ message: "Folder name:" });
+          if (name) addFolder(name);
+        }}
+        onRenameFolder={renameFolder}
+        onSetFolderColor={setFolderColor}
+        onDeleteFolder={(id) => {
+          if (view === id) setView("all");
+          deleteFolder(id);
+        }}
+        collapsed={!isMobile && sidebarCollapsed}
+        width={width}
+      />
+    );
+  }
+  const sidebarElement = renderNotesSidebar(sidebarWidth);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       {isMobile ? (
-        <SidebarDrawer isMobile={isMobile} label="Notes sidebar">
-          {sidebarElement}
-        </SidebarDrawer>
+        <ListsSlotButton>{renderNotesSidebar("100%")}</ListsSlotButton>
       ) : (
         <CollapsibleSidebar
           collapsed={sidebarCollapsed}
@@ -1149,6 +1128,10 @@ function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
   const [page, setPage] = useState<Page>("tasks");
+  // Drives the phone-width chrome (BottomTabBar instead of TopNav's own
+  // pill row) — the same breakpoint TasksDashboard/NotesDashboard already
+  // use for their own sidebar-vs-drawer decision.
+  const isMobile = useIsMobile();
   // Which of the two apps (Tasks+Notes vs Leads/Pipeline/Deals) is open —
   // derived from the URL at load, kept in sync with browser back/forward
   // via popstate, and pushed via switchApp below on an explicit switch (no
@@ -1320,7 +1303,16 @@ function App() {
             otherAppLabel={APP_CONFIG[appId].otherAppLabel}
             onSwitchApp={() => switchApp(appId === "tasks" ? "crm" : "tasks")}
           />
-          <main style={{ flex: 1, minWidth: 0 }}>
+          <main
+            style={{
+              flex: 1,
+              minWidth: 0,
+              // Reserve room for the fixed BottomTabBar below so page content
+              // never renders underneath it — a no-op (0px) on desktop,
+              // where the bar isn't rendered at all.
+              paddingBottom: isMobile ? `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
+            }}
+          >
             <PageContent
               page={page}
               session={session}
@@ -1338,6 +1330,15 @@ function App() {
               onMoveDealToPipeline={handleMoveDealToPipeline}
             />
           </main>
+          {isMobile && (
+            <BottomTabBar
+              page={page}
+              onSetPage={setPage}
+              navItems={APP_CONFIG[appId].navItems}
+              hiddenModules={hiddenModules}
+              insertSlotAfterKey={appId === "tasks" ? "tasks" : undefined}
+            />
+          )}
         </div>
       ) : (
         <>

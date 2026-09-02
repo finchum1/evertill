@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import type { Page } from "../types";
 import type { Profile } from "../hooks/useProfile";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { CreateMenu } from "./CreateMenu";
 import type { CreateType } from "./CreateMenu";
 import { Avatar } from "./Avatar";
@@ -50,6 +51,7 @@ export function TopNav({
   onSwitchApp,
 }: TopNavProps) {
   const visibleNavItems = navItems.filter((item) => !hiddenModules.includes(item.key));
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -68,13 +70,21 @@ export function TopNav({
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Evertill</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <CreateMenu onSelect={onCreate} hiddenModules={hiddenModules} allowedTypes={createTypes} />
-          <nav style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {visibleNavItems.map((item) => (
-              <button key={item.key} onClick={() => onSetPage(item.key)} style={navItemStyle(page === item.key)}>
-                {item.label}
-              </button>
-            ))}
-          </nav>
+          {/* On phone widths, BottomTabBar.tsx (rendered by App.tsx below
+              <main>) takes over module navigation instead — this same pill
+              row wrapping onto a second line here was exactly the crowded,
+              "strange navigation" problem this app's nav has already been
+              redesigned around once before (see the top-nav/pill-tab
+              rework this comment block's neighbors describe). */}
+          {!isMobile && (
+            <nav style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {visibleNavItems.map((item) => (
+                <button key={item.key} onClick={() => onSetPage(item.key)} style={navItemStyle(page === item.key)}>
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>

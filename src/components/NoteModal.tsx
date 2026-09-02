@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Note, NoteFolder } from "../types";
 import { useDialogs } from "./DialogHost";
+import { MobileSheet } from "./MobileSheet";
 
 // Tiptap (NoteEditor's dependency) was ~280KB of the app's single ~1MB
 // production bundle despite only ever being needed once a note is actually
@@ -27,36 +28,7 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
   const dialogs = useDialogs();
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(2, 8, 23, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 760,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "28px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}
-      >
+    <MobileSheet onClose={onClose} maxWidth={760} maxHeight="90vh">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             value={title}
@@ -120,8 +92,7 @@ export function NoteModal({ note, folders, onClose, onUpdate, onDelete, onToggle
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </MobileSheet>
   );
 }
 

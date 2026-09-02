@@ -17,8 +17,9 @@ interface NotesSidebarProps {
   // driven by CollapsibleSidebar in App.tsx, same pattern as Sidebar.tsx.
   collapsed?: boolean;
   // Drag-resized width in px (expanded state only) — same pattern as
-  // Sidebar.tsx, falls back to 240 if omitted.
-  width?: number;
+  // Sidebar.tsx, falls back to 240 if omitted. "100%" is for
+  // ListsSlotButton's phone-width Lists sheet (App.tsx).
+  width?: number | "100%";
 }
 
 // Far simpler than Tasks' Sidebar.tsx — no lists tier, no drag-and-drop
@@ -67,7 +68,10 @@ export function NotesSidebar({ folders, notes, view, onSetView, onAddNote, onAdd
       style={{
         width: width ?? 240,
         flexShrink: 0,
-        borderRight: "1px solid var(--border)",
+        // A divider against the sheet's own edge (rather than against
+        // sibling page content, which is what this line exists to
+        // separate from everywhere else) would just be a stray line.
+        borderRight: width === "100%" ? "none" : "1px solid var(--border)",
         padding: "12px 12px 20px",
         display: "flex",
         flexDirection: "column",

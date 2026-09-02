@@ -34,7 +34,10 @@ interface SidebarProps {
   // Drag-resized width in px (only applies while expanded — the collapsed
   // rail above stays a fixed 52px). Falls back to 240 (the original fixed
   // width) if omitted, so this stays optional for any future caller.
-  width?: number;
+  // "100%" is for ListsSlotButton's phone-width Lists sheet (App.tsx),
+  // which wants this to fill the sheet rather than render at some
+  // persisted desktop drag-width.
+  width?: number | "100%";
 }
 
 export function Sidebar({
@@ -202,7 +205,10 @@ export function Sidebar({
       style={{
         width: width ?? 240,
         flexShrink: 0,
-        borderRight: "1px solid var(--border)",
+        // A divider against the sheet's own edge (rather than against
+        // sibling page content, which is what this line exists to
+        // separate from everywhere else) would just be a stray line.
+        borderRight: width === "100%" ? "none" : "1px solid var(--border)",
         padding: "12px 12px 20px",
         display: "flex",
         flexDirection: "column",

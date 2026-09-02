@@ -7,6 +7,7 @@ import { DealChecklist } from "./DealChecklist";
 import { DealContactsTab } from "./DealContactsTab";
 import { checklistProgress } from "../lib/dealChecklistProgress";
 import { useDialogs } from "./DialogHost";
+import { MobileSheet } from "./MobileSheet";
 
 interface DealModalProps {
   deal: Deal;
@@ -58,36 +59,7 @@ export function DealModal({
   const dialogs = useDialogs();
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(2, 8, 23, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 720,
-          maxHeight: "85vh",
-          overflowY: "auto",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: 28,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}
-      >
+    <MobileSheet onClose={onClose} maxWidth={720}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <select
@@ -188,8 +160,7 @@ export function DealModal({
             Delete Deal
           </button>
         </div>
-      </div>
-    </div>
+    </MobileSheet>
   );
 }
 

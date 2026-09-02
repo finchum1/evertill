@@ -5,6 +5,7 @@ import { DatePickerField } from "./DatePickerField";
 import type { DatePickerFieldHandle } from "./DatePickerField";
 import { TagPicker } from "./TagPicker";
 import { useDialogs } from "./DialogHost";
+import { MobileSheet } from "./MobileSheet";
 
 interface PipelineCardModalProps {
   card: PipelineCard;
@@ -49,36 +50,7 @@ export function PipelineCardModal({
   const dialogs = useDialogs();
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(2, 8, 23, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          maxHeight: "85vh",
-          overflowY: "auto",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: 28,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}
-      >
+    <MobileSheet onClose={onClose} maxWidth={520}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <input
             value={title}
@@ -200,8 +172,7 @@ export function PipelineCardModal({
             Delete Client
           </button>
         </div>
-      </div>
-    </div>
+    </MobileSheet>
   );
 }
 

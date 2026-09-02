@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { DealType } from "../types";
 import { openDatePicker } from "../lib/datePicker";
+import { MobileSheet } from "./MobileSheet";
 
 interface NewDealModalProps {
   onClose: () => void;
@@ -20,35 +21,11 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(2, 8, 23, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "28px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}
-      >
+    <MobileSheet onClose={onClose} maxWidth={420}>
+      {/* form, not the sheet's own panel div, owns onSubmit here — MobileSheet's
+          content slot is a plain ReactNode, so this nests inside it exactly as
+          it nested inside the old hand-rolled panel div. */}
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* h2, not h1 — this is a modal dialog title, and the Deals page
             behind it already owns the page's one <h1>. */}
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Deal</h2>
@@ -81,7 +58,7 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
           </button>
         </div>
       </form>
-    </div>
+    </MobileSheet>
   );
 }
 

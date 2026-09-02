@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import type { Recurrence, Todo, TodoList, TodoSubtask } from "../types";
 import { DatePickerField } from "./DatePickerField";
 import { useDialogs } from "./DialogHost";
+import { MobileSheet } from "./MobileSheet";
 
 interface TaskModalProps {
   todo: Todo;
@@ -38,36 +39,7 @@ export function TaskModal({
   const doneSubtasks = subtasks.filter((s) => s.checked);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(2, 8, 23, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          maxHeight: "85vh",
-          overflowY: "auto",
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "28px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}
-      >
+    <MobileSheet onClose={onClose} maxWidth={480}>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -199,8 +171,7 @@ export function TaskModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </MobileSheet>
   );
 }
 

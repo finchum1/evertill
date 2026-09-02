@@ -373,3 +373,13 @@ body {
   transform: translateY(0);
 }
 
+/* Phone-width tab-bar buttons (BottomTabBar.tsx, App.tsx's ListsSlotButton)
+   — dims on press for the same instant tap feedback a real app tab bar
+   gives, which an inline hover/:active-less <button> doesn't get for free. */
+.native-tab-btn {
+  transition: opacity 100ms ease;
+}
+.native-tab-btn:active {
+  opacity: 0.45;
+}
+
