@@ -76,7 +76,16 @@ const barStyle: CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  height: BOTTOM_TAB_BAR_HEIGHT,
+  // BOTTOM_TAB_BAR_HEIGHT is the actual content height (icon + label);
+  // the safe-area inset is added on top of it here, not carved out of it.
+  // Everything on the page uses the global `* { box-sizing: border-box }`
+  // (index.css), so a plain `height: BOTTOM_TAB_BAR_HEIGHT` would count
+  // paddingBottom below as part of that same 54px box — on a phone with a
+  // home indicator (safe-area-inset-bottom ~34px) that left only ~20px of
+  // real content room for the ~40px-tall icon+label stack, which overflowed
+  // evenly above and below the box (justifyContent: center) and rendered
+  // as the bar's own top border cutting through the middle of the icon.
+  height: `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))`,
   display: "flex",
   // A translucent blurred "material," not a flat panel — reads as an
   // actual app-shell tab bar rather than a strip of the page glued to the
