@@ -3,18 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the app draw under the notch/Dynamic Island
+         and home indicator when installed to the home screen (standalone
+         display mode) — a no-op in a normal browser tab, which has no
+         safe-area insets to speak of. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Evertill</title>
     <meta
       name="description"
-      content="Evertill is one private workspace for Tasks and Notes, plus Leads, Pipeline, and Deals when you're tracking relationships and transactions too. Turn on only the modules you need."
+      content="Evertill is two apps under one login: Tasks + Notes for everyday work, and a Leads, Pipeline, and Deals CRM for the relationships and transactions you're closing."
     />
     <meta property="og:title" content="Evertill" />
     <meta
       property="og:description"
-      content="One workspace, only the modules you need — Tasks and Notes for everyone, Leads/Pipeline/Deals when you're tracking relationships and transactions too."
+      content="Two apps, one login — Tasks + Notes for everyday work, and a Leads, Pipeline, and Deals CRM for relationships and transactions."
     />
     <meta property="og:type" content="website" />
+
+    <!-- PWA: vite-plugin-pwa injects the <link rel="manifest"> and service
+         worker registration automatically from vite.config.ts's manifest
+         option — these are the pieces it doesn't cover, iOS Safari's own
+         older, non-manifest-spec way of configuring "Add to Home Screen".
+         apple-mobile-web-app-status-bar-style is deliberately "default"
+         (an opaque system status bar, content starts below it) rather than
+         "black-translucent" (content draws under a transparent status bar)
+         — the latter needs every top-level screen to add its own
+         safe-area-inset-top padding to avoid the clock/icons overlapping
+         content, which TopNav.tsx/Header.tsx don't currently do. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Evertill" />
     <!-- Used by the landing page only (src/components/LandingPage.tsx) — the
          rest of the app intentionally keeps its existing system-font stack,
          so this doesn't touch any already-verified in-app UI. -->
