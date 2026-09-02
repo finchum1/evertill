@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT, LISTS_SLOT_ID } from "./components/BottomTabBar";
+import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT, ICON_SLOT_STYLE, LISTS_SLOT_ID } from "./components/BottomTabBar";
 import { MobileSheet } from "./components/MobileSheet";
 import { useAuth } from "./hooks/useAuth";
 import { useTasks } from "./hooks/useTasks";
@@ -128,7 +128,13 @@ function ListsSlotButton({ children }: { children: ReactNode }) {
   return createPortal(
     <>
       <button className="native-tab-btn" onClick={() => setOpen(true)} style={listsSlotButtonStyle}>
-        <ListsIcon />
+        {/* Same ICON_SLOT_STYLE wrapper as BottomTabBar.tsx's own tabs, and
+            for the same reason — see that file's comment on this exact
+            span: iOS Safari doesn't reliably size an <svg> by its own
+            width/height attributes as a flex-column item. */}
+        <span style={ICON_SLOT_STYLE}>
+          <ListsIcon />
+        </span>
         <span style={{ fontSize: 10, fontWeight: 600 }}>Lists</span>
       </button>
       {open && (
@@ -160,7 +166,7 @@ const listsSlotButtonStyle = {
 
 function ListsIcon() {
   return (
-    <svg width="23" height="23" viewBox="0 0 20 20" fill="none">
+    <svg width="100%" height="100%" viewBox="0 0 20 20" fill="none">
       <path d="M3 6H17M3 10H17M3 14H10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );

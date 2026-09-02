@@ -34,7 +34,18 @@ export function BottomTabBar({ page, onSetPage, navItems, hiddenModules, insertS
         return (
           <Fragment key={item.key}>
             <button className="native-tab-btn" onClick={() => onSetPage(item.key)} style={tabButtonStyle(active)}>
-              <TabIcon page={item.key} active={active} />
+              {/* A plain block-level box with its own explicit width/height,
+                  not just the <svg>'s own width/height attributes — iOS
+                  Safari doesn't reliably respect an SVG's intrinsic size as
+                  a flex item in a flex *column* (this one), rendering it at
+                  a tiny fraction of 23x23 instead (confirmed on-device: a
+                  few-px dot/line/rect where a full icon should be, in a
+                  Chromium browser that never reproduced it). This wrapper's
+                  own size is a normal block box, which Safari sizes
+                  correctly, and the SVG just fills it via width/height:100%. */}
+              <span style={ICON_SLOT_STYLE}>
+                <TabIcon page={item.key} active={active} />
+              </span>
               <span style={{ fontSize: 10, fontWeight: active ? 700 : 600 }}>{item.label}</span>
             </button>
             {item.key === insertSlotAfterKey && <div id={LISTS_SLOT_ID} style={{ flex: 1, display: "flex" }} />}
@@ -53,6 +64,12 @@ export const LISTS_SLOT_ID = "bottom-tab-bar-lists-slot";
 // never renders underneath this bar — kept as one constant so the two stay
 // in sync instead of two hand-tuned numbers drifting apart.
 export const BOTTOM_TAB_BAR_HEIGHT = 54;
+
+// Exported so App.tsx's ListsSlotButton (its icon sits inline among these
+// same tabs) can size its own icon slot identically.
+export const TAB_ICON_SIZE = 23;
+
+export const ICON_SLOT_STYLE: CSSProperties = { width: TAB_ICON_SIZE, height: TAB_ICON_SIZE, flexShrink: 0 };
 
 const barStyle: CSSProperties = {
   position: "fixed",
@@ -106,7 +123,11 @@ function tabButtonStyle(active: boolean): CSSProperties {
 // and only broke on a real iPhone.
 function TabIcon({ page, active }: { page: Page; active: boolean }) {
   const color = active ? "var(--accent-light)" : "var(--text-muted)";
-  const size = 23;
+  // "100%", not a fixed px number — this fills ICON_SLOT_STYLE's own
+  // explicit width/height (see the wrapping <span> in BottomTabBar's map
+  // above) rather than relying on the <svg>'s own intrinsic size, which
+  // iOS Safari doesn't reliably respect as a flex-column item.
+  const size = "100%";
   const outlineAttrs = { width: size, height: size, viewBox: "0 0 20 20", fill: "none" as const, strokeWidth: 1.6 };
   const outlineStyle = { stroke: color };
   switch (page) {
