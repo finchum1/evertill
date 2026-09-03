@@ -40,6 +40,7 @@ import { useGoogleCalendar } from "./hooks/useGoogleCalendar";
 import type { Session } from "@supabase/supabase-js";
 import { DealsBoard } from "./components/DealsBoard";
 import { DealsListView } from "./components/DealsListView";
+import { DealsAgentsView } from "./components/DealsAgentsView";
 import { DealsStatCards } from "./components/DealsStatCards";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
@@ -50,7 +51,7 @@ import { useIsMobile } from "./hooks/useMediaQuery";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
 import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
 
-const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "calendar", "value"];
+const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "agents", "calendar", "value"];
 
 // Stable reference (not a fresh `[]` literal per render) so the redirect
 // effect below can safely depend on `hiddenModules` without re-running on
@@ -1014,6 +1015,7 @@ function DealsDashboard({
       </div>
       {subView === "list" && <DealsListView deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
       {subView === "board" && <DealsBoard deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
+      {subView === "agents" && <DealsAgentsView deals={deals} onOpenDeal={setOpenDealId} />}
       {subView === "calendar" && (
         <div style={{ padding: "0 24px 20px" }}>
           <BoardCalendarView
@@ -1033,8 +1035,8 @@ function DealsDashboard({
       {showNewDeal && (
         <NewDealModal
           onClose={() => setShowNewDeal(false)}
-          onCreate={async (address, type, acceptanceDate) => {
-            const deal = await addDeal(address, type, acceptanceDate);
+          onCreate={async (address, type, acceptanceDate, agentName) => {
+            const deal = await addDeal(address, type, acceptanceDate, agentName);
             setShowNewDeal(false);
             if (deal) {
               await Promise.all([seedDealChecklist(deal.id, deal.type), seedContactFields(deal.id)]);

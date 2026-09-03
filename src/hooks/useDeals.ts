@@ -56,7 +56,7 @@ export function useDeals(userId: string | undefined) {
     };
   }, [userId, refresh]);
 
-  async function addDeal(address: string, type: DealType, acceptanceDate: string | null) {
+  async function addDeal(address: string, type: DealType, acceptanceDate: string | null, agentName: string | null = null) {
     if (!userId) return;
     const existing = deals.filter((d) => d.status === "Active");
     const { data, error } = await supabase
@@ -66,6 +66,7 @@ export function useDeals(userId: string | undefined) {
         address,
         type,
         acceptance_date: acceptanceDate,
+        agent_name: agentName,
         sort_order: existing.length,
       })
       .select()

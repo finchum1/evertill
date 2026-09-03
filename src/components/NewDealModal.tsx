@@ -6,18 +6,23 @@ import { MobileSheet } from "./MobileSheet";
 
 interface NewDealModalProps {
   onClose: () => void;
-  onCreate: (address: string, type: DealType, acceptanceDate: string | null) => void;
+  onCreate: (address: string, type: DealType, acceptanceDate: string | null, agentName: string | null) => void;
 }
 
 export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
   const [address, setAddress] = useState("");
   const [type, setType] = useState<DealType>("Buyer");
   const [acceptanceDate, setAcceptanceDate] = useState("");
+  // Set at creation, not just editable afterward from DealModal - a
+  // transaction coordinator juggling several agents' listings almost always
+  // knows whose it is the moment they create it, and having to reopen the
+  // deal right after to fill this in was pure friction.
+  const [agentName, setAgentName] = useState("");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!address.trim()) return;
-    onCreate(address.trim(), type, acceptanceDate || null);
+    onCreate(address.trim(), type, acceptanceDate || null, agentName.trim() || null);
   }
 
   return (
@@ -48,6 +53,16 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
             <input type="date" value={acceptanceDate} onChange={(e) => setAcceptanceDate(e.target.value)} onClick={openDatePicker} style={inputStyle} />
           </label>
         </div>
+
+        <label style={labelStyle}>
+          Agent (optional)
+          <input
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            placeholder="Whose listing/deal is this?"
+            style={inputStyle}
+          />
+        </label>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
           <button type="button" onClick={onClose} style={ghostButtonStyle}>

@@ -3,10 +3,16 @@ import type { CSSProperties } from "react";
 // Board sub-views (Leads/Pipeline/Deals) are the original and still only
 // consumer of this shape — kept here (rather than inline per dashboard in
 // App.tsx) since all three call sites need the same key/label pairing.
-export type BoardSubView = "board" | "list" | "calendar" | "value";
+// "agents" is Deals-only (App.tsx's DEALS_VIEW_ORDER is the only place that
+// includes it - Leads/Pipeline keep using DEFAULT_BOARD_VIEW_ORDER below,
+// which never lists it) but lives in this shared union rather than a
+// separate Deals-specific type, since BoardSubView is already the one type
+// all three boards' subView state shares.
+export type BoardSubView = "board" | "list" | "agents" | "calendar" | "value";
 export const BOARD_VIEW_LABELS: Record<BoardSubView, string> = {
   board: "Board",
   list: "List",
+  agents: "Agents",
   calendar: "Calendar",
   value: "Value",
 };

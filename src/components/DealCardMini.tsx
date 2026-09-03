@@ -44,7 +44,14 @@ export function DealCardMini({ deal, checklistItems, onOpen }: DealCardMiniProps
         )}
       </div>
 
-      <span style={tagStyle(deal.type === "Buyer" ? "#3b82f6" : "#a855f7")}>{deal.type}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={tagStyle(deal.type === "Buyer" ? "#3b82f6" : "#a855f7")}>{deal.type}</span>
+        {deal.agent_name && (
+          <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {deal.agent_name}
+          </span>
+        )}
+      </div>
 
       {deal.last_activity_text && (
         <span
