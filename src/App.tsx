@@ -367,7 +367,13 @@ function DealsDashboard({
         </button>
       </div>
       <DealsStatCards deals={deals} />
-      <div style={{ padding: "0 24px" }}>
+      {/* Bottom padding, not just DealsStatCards' own marginBottom above —
+          without it this row had zero space before whatever renders next:
+          DealsListView's own Type/Status/Agent filter row (no top margin of
+          its own, only marginBottom below it) sat flush against these tabs,
+          reading as one cramped, bleeding-together block instead of two
+          separate rows. */}
+      <div style={{ padding: "0 24px 16px" }}>
         <ViewTabs tabs={DEALS_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "list" && <DealsListView deals={deals} checklistItems={checklistItems} onOpenDeal={setOpenDealId} />}
