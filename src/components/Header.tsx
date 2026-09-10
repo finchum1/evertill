@@ -1,12 +1,12 @@
 // Logged-out top bar only — sits above <Landing> (App.tsx's own comment on
 // that render branch explains why: Landing renders no header of its own,
-// relying entirely on this one for the "Evertill" wordmark + Log in/Sign
-// up). The signed-in app's own navigation (module switcher, +Create,
-// avatar/Settings) lives in TopNav.tsx instead — this component used to
-// render both cases behind a `session &&` branch, but keeping a component
-// named "Header" half-dead for the case it actually still serves was more
-// confusing than trimming it down to just that case. (ThemeToggleButton
-// below is exported and reused by TopNav.tsx rather than duplicated.)
+// relying entirely on this one for the "Pipeline" wordmark + Log in/Sign
+// up). The signed-in app's own navigation (module switcher, avatar/
+// Settings) lives in LeftNav.tsx/TopNav.tsx instead — this component used
+// to render both cases behind a `session &&` branch, but keeping a
+// component named "Header" half-dead for the case it actually still serves
+// was more confusing than trimming it down to just that case.
+// (ThemeToggleButton below is exported and reused by both.)
 interface HeaderProps {
   onLogin: () => void;
   onSignup: () => void;
@@ -31,7 +31,7 @@ export function Header({ onLogin, onSignup, themeEffective, onToggleTheme }: Hea
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Evertill</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Pipeline</div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <ThemeToggleButton effective={themeEffective} onToggle={onToggleTheme} />
         <div style={{ display: "flex", gap: 10 }}>

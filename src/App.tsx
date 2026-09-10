@@ -1,24 +1,13 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT, ICON_SLOT_STYLE, LISTS_SLOT_ID } from "./components/BottomTabBar";
-import { MobileSheet } from "./components/MobileSheet";
+import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT } from "./components/BottomTabBar";
 import { useAuth } from "./hooks/useAuth";
-import { useTasks } from "./hooks/useTasks";
 import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
-import { useNotes } from "./hooks/useNotes";
 import { Header } from "./components/Header";
 import { TopNav } from "./components/TopNav";
+import { LeftNav } from "./components/LeftNav";
 import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
-import { Sidebar } from "./components/Sidebar";
-import { TaskListView } from "./components/TaskListView";
-import { TaskModal } from "./components/TaskModal";
-import { CalendarView } from "./components/CalendarView";
-import { NotesSidebar } from "./components/NotesSidebar";
-import { NotesListView } from "./components/NotesListView";
-import { NoteModal } from "./components/NoteModal";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { LeadCardMini } from "./components/LeadCardMini";
@@ -27,7 +16,6 @@ import { PipelineCardModal } from "./components/PipelineCardModal";
 import { PipelineCardMini } from "./components/PipelineCardMini";
 import { ViewTabs, BOARD_VIEW_LABELS, DEFAULT_BOARD_VIEW_ORDER } from "./components/ViewTabs";
 import type { BoardSubView } from "./components/ViewTabs";
-import { todayKey } from "./lib/dates";
 import { BoardListView } from "./components/BoardListView";
 import { BoardValueView } from "./components/BoardValueView";
 import { BoardCalendarView } from "./components/BoardCalendarView";
@@ -36,7 +24,6 @@ import { useDealTemplates } from "./hooks/useDealTemplates";
 import { useTags } from "./hooks/useTags";
 import { useTheme } from "./hooks/useTheme";
 import { useProfile } from "./hooks/useProfile";
-import { useGoogleCalendar } from "./hooks/useGoogleCalendar";
 import type { Session } from "@supabase/supabase-js";
 import { DealsBoard } from "./components/DealsBoard";
 import { DealsListView } from "./components/DealsListView";
@@ -44,12 +31,11 @@ import { DealsAgentsView } from "./components/DealsAgentsView";
 import { DealsStatCards } from "./components/DealsStatCards";
 import { NewDealModal } from "./components/NewDealModal";
 import { DealModal } from "./components/DealModal";
-import { QuickAddTaskModal } from "./components/QuickAddTaskModal";
 import { SettingsPage } from "./components/SettingsPage";
 import { DialogsProvider, useDialogs } from "./components/DialogHost";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
-import type { CompletionToast, Deal, ListColor, Page, Tag, View } from "./types";
+import type { Deal, ListColor, Page, Tag } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "agents", "calendar", "value"];
 
@@ -62,653 +48,24 @@ const NO_HIDDEN_MODULES: string[] = [];
 // NO_HIDDEN_MODULES above, avoids a fresh `[]` literal on every render.
 const EMPTY_TAG_IDS: string[] = [];
 
-// Evertill is really two separate apps sharing one login and one
-// database: a Tasks+Notes app and a Leads/Pipeline/Deals CRM app. Each
-// gets its own URL (/ for Tasks, /crm for the CRM app) and its own
-// TopNav scoped to only its own modules — no client-side router library,
-// just reading/writing window.location directly, same hand-rolled
-// approach this app already uses for Google's OAuth redirect (see
-// useGoogleCalendar.ts's redirectUri/handleOAuthCallback). vercel.json's
-// catch-all rewrite is what lets a direct visit or refresh on /crm serve
-// this same index.html instead of 404ing.
-type AppId = "tasks" | "crm";
+// Pipeline is one app now — Leads, Pipeline, and Transactions sharing one
+// nav (formerly a two-app split with a Tasks+Notes side at "/" and this CRM
+// side at "/crm"; that split, AppId/APP_CONFIG/switchApp, and everything
+// Tasks/Notes-only has been removed). "deals" stays the internal key (it
+// matches the Deal type, the `deals` Supabase table, and every DealsX
+// component name) even though its user-facing label below is
+// "Transactions" — renaming the internal identifier throughout would touch
+// dozens of files for zero user-visible benefit.
+const NAV_ITEMS: { key: Page; label: string }[] = [
+  { key: "leads", label: "Leads" },
+  { key: "pipeline", label: "Pipeline" },
+  { key: "deals", label: "Transactions" },
+];
 
-function appIdFromPath(pathname: string): AppId {
-  return pathname.startsWith("/crm") ? "crm" : "tasks";
-}
-
-const APP_CONFIG: Record<AppId, { path: string; otherAppLabel: string; navItems: { key: Page; label: string }[]; defaultPage: Page }> = {
-  tasks: {
-    path: "/",
-    otherAppLabel: "CRM",
-    navItems: [
-      { key: "tasks", label: "Tasks" },
-      { key: "notes", label: "Notes" },
-    ],
-    defaultPage: "tasks",
-  },
-  crm: {
-    path: "/crm",
-    otherAppLabel: "Tasks",
-    navItems: [
-      { key: "leads", label: "Leads" },
-      { key: "pipeline", label: "Pipeline" },
-      { key: "deals", label: "Deals" },
-    ],
-    defaultPage: "leads",
-  },
-};
-
-// Portals its trigger button + sheet into BottomTabBar's LISTS_SLOT_ID node
-// (rendered between the Tasks/Notes tabs — see insertSlotAfterKey) instead
-// of rendering in its own natural DOM position, so "Lists" sits inline with
-// the tab bar despite belonging to whichever page-specific dashboard
-// (TasksDashboard or NotesDashboard) currently has folders/lists to show.
-// Both dashboards use this same component with their own state, and since
-// they're mutually exclusive pages, whichever one is mounted is the one
-// that ends up populating the slot — "Lists" on the Tasks page pops up
-// Tasks' folders/lists, on the Notes page it pops up Notes' folders,
-// automatically, with no explicit "which page am I" branching needed here.
-// Replaces the old fixed 240px-sidebar-crushed-into-a-hamburger-drawer
-// pattern entirely below the mobile breakpoint — that drawer (and its
-// hamburger competing for space with TasksViewTabs' own pill row) was
-// exactly the "crowded, strange navigation" this app's nav has already
-// been reworked around once before.
-function ListsSlotButton({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  // Queried after mount rather than at render time — the DOM node doesn't
-  // exist yet during the render pass that produces this component, only
-  // once React commits the whole tree (BottomTabBar's slot div included).
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    setSlot(document.getElementById(LISTS_SLOT_ID));
-  }, []);
-
-  if (!slot) return null;
-
-  return createPortal(
-    <>
-      <button className="native-tab-btn" onClick={() => setOpen(true)} style={listsSlotButtonStyle}>
-        {/* Same ICON_SLOT_STYLE wrapper as BottomTabBar.tsx's own tabs, and
-            for the same reason — see that file's comment on this exact
-            span: iOS Safari doesn't reliably size an <svg> by its own
-            width/height attributes as a flex-column item. */}
-        <span style={ICON_SLOT_STYLE}>
-          <ListsIcon />
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 600 }}>Lists</span>
-      </button>
-      {open && (
-        <MobileSheet onClose={() => setOpen(false)} maxWidth={320} maxHeight="92vh" contentPadding={0}>
-          {children}
-        </MobileSheet>
-      )}
-    </>,
-    slot
-  );
-}
-
-// Matches BottomTabBar.tsx's own (unexported) tabButtonStyle look — icon
-// over a small label, muted color — so this reads as a normal fourth tab
-// rather than a visually distinct button that happens to sit among them.
-const listsSlotButtonStyle = {
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 3,
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  cursor: "pointer",
-};
-
-function ListsIcon() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 20 20" fill="none">
-      <path d="M3 6H17M3 10H17M3 14H10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-// Desktop-only collapse for the Tasks/Notes sidebars — mobile already gets
-// its own nav via ListsSlotButton above, a different pattern that doesn't
-// need this too. `children` is expected to
-// already be the icon-rail rendering when collapsed (Sidebar.tsx and
-// NotesSidebar.tsx each take their own `collapsed` prop and switch their
-// own layout, since a bare blank rail loses the nav icons entirely) — this
-// wrapper's only job is floating the same reopen/collapse toggle button on
-// the sidebar's right edge in both states, so the control itself never
-// moves or disappears.
-const SIDEBAR_MIN_WIDTH = 180;
-const SIDEBAR_MAX_WIDTH = 320;
-
-// Adds a draggable resize handle to the sidebar's right edge, in addition
-// to the existing collapse toggle — only rendered while expanded (the
-// collapsed icon rail is a fixed 52px with nothing worth resizing). Drag
-// state itself is plain closured locals inside the mousedown handler,
-// same pattern as the Week view's hour-grid drag-to-create: no React
-// state needed for the drag itself, since every mousemove just calls
-// onWidthChange directly for live feedback and the caller (TasksDashboard/
-// NotesDashboard) owns the actual persisted width.
-function CollapsibleSidebar({
-  collapsed,
-  onToggle,
-  label,
-  width,
-  onWidthChange,
-  children,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-  label: string;
-  width: number;
-  onWidthChange: (width: number) => void;
-  children: ReactNode;
-}) {
-  const [dragging, setDragging] = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const handleActive = dragging || hovering;
-
-  function handleResizeStart(e: ReactMouseEvent) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = width;
-    setDragging(true);
-    function onMove(ev: MouseEvent) {
-      const next = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, startWidth + (ev.clientX - startX)));
-      onWidthChange(next);
-    }
-    function onUp() {
-      setDragging(false);
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
-
-  return (
-    <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
-      {children}
-      {!collapsed && (
-        <div
-          onMouseDown={handleResizeStart}
-          onMouseEnter={() => setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={`Resize ${label}`}
-          title="Drag to resize"
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            right: -3,
-            width: 6,
-            cursor: "col-resize",
-            zIndex: 4,
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 2,
-              alignSelf: "stretch",
-              borderRadius: 2,
-              background: handleActive ? "var(--accent)" : "transparent",
-              transition: dragging ? "none" : "background 120ms ease",
-            }}
-          />
-        </div>
-      )}
-      <button
-        onClick={onToggle}
-        aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
-        title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
-        style={{ ...collapseToggleButtonStyle, position: "absolute", top: 12, right: -12 }}
-      >
-        <ChevronIcon direction={collapsed ? "right" : "left"} />
-      </button>
-    </div>
-  );
-}
-
-function ChevronIcon({ direction }: { direction: "left" | "right" }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path
-        d={direction === "left" ? "M7.5 2.5L3.5 6L7.5 9.5" : "M4.5 2.5L8.5 6L4.5 9.5"}
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const collapseToggleButtonStyle = {
-  width: 24,
-  height: 24,
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 99,
-  color: "var(--text-body)",
-  cursor: "pointer",
-  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-  zIndex: 5,
-} as const;
-
-type TasksData = ReturnType<typeof useTasks>;
 type LeadsData = ReturnType<typeof useLeads>;
 type PipelineData = ReturnType<typeof usePipeline>;
 type DealsData = ReturnType<typeof useDeals>;
 type DealTemplatesData = ReturnType<typeof useDealTemplates>;
-type NotesData = ReturnType<typeof useNotes>;
-
-// Tasks' own "smart view" switcher — Today/Upcoming/Calendar/Completed —
-// used to live as four rows stacked inside Sidebar.tsx, directly below the
-// app-level module switcher of the day (first a horizontal top nav, then
-// a vertical rail, now a horizontal top nav again). Whatever shape that
-// switcher took, stacking a *second* nav column of near-identical-looking
-// rows directly beneath it read as one overlong, redundant nav — and,
-// more importantly given this app's eventual iOS port, a persistent
-// second sidebar has no real iPhone equivalent at all (iOS doesn't stack
-// sidebars; even iPad only ever shows one). Moving these four into the
-// same horizontal pill-tab pattern
-// Leads/Pipeline/Deals' own ViewTabs already uses maps directly onto a
-// segmented control, which iOS does have, and leaves Sidebar.tsx holding
-// only what's genuinely sidebar-shaped: Lists (folders + custom lists,
-// analogous to Mail.app's mailbox list) — Inbox included, since it's a
-// real list like any other, not a smart filter.
-type TasksView = "today" | "upcoming" | "calendar" | "completed";
-const TASKS_VIEW_TABS: { key: TasksView; label: string }[] = [
-  { key: "today", label: "Today" },
-  { key: "upcoming", label: "Upcoming" },
-  { key: "calendar", label: "Calendar" },
-  { key: "completed", label: "Completed" },
-];
-
-function TasksViewTabs({
-  view,
-  onSetView,
-  todayCount,
-  upcomingCount,
-}: {
-  view: View;
-  onSetView: (view: View) => void;
-  todayCount: number;
-  upcomingCount: number;
-}) {
-  const badges: Partial<Record<TasksView, number>> = { today: todayCount, upcoming: upcomingCount };
-  return (
-    <div style={{ padding: "20px 24px 0" }}>
-      <ViewTabs tabs={TASKS_VIEW_TABS.map((t) => ({ ...t, badge: badges[t.key] }))} active={view} onChange={onSetView} />
-    </div>
-  );
-}
-
-function TasksDashboard({
-  tasks,
-  googleCalendarData,
-  onNewTask,
-}: {
-  tasks: TasksData;
-  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
-  onNewTask: () => void;
-}) {
-  const {
-    folders,
-    lists,
-    todos,
-    subtasks,
-    loading,
-    addFolder,
-    renameFolder,
-    deleteFolder,
-    reorderFolders,
-    addList,
-    renameList,
-    setListColor,
-    reorderLists,
-    moveListToFolder,
-    deleteList,
-    addTodo,
-    updateTodo,
-    toggleTodoComplete,
-    deleteTodo,
-    addSubtask,
-    toggleSubtask,
-    updateSubtask,
-    deleteSubtask,
-  } = tasks;
-
-  const dialogs = useDialogs();
-  const isMobile = useIsMobile();
-  const [view, setView] = useState<View>("today");
-  const [openTodoId, setOpenTodoId] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<CompletionToast[]>([]);
-  // Badge counts for TasksViewTabs — moved up from Sidebar.tsx along with
-  // Today/Upcoming themselves.
-  const tkey = todayKey();
-  const todayCount = todos.filter((t) => !t.completed && t.due_date && t.due_date <= tkey).length;
-  const upcomingCount = todos.filter((t) => !t.completed && t.due_date && t.due_date > tkey).length;
-  // Per-browser layout preference, not synced data — same lightweight
-  // localStorage pattern as theme/accent in useTheme.ts.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
-    () => typeof window !== "undefined" && localStorage.getItem("tasks-sidebar-collapsed") === "1"
-  );
-  function toggleSidebarCollapsed() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("tasks-sidebar-collapsed", next ? "1" : "0");
-      return next;
-    });
-  }
-  // Draggable width, same per-browser localStorage pattern as the collapse
-  // preference above, under its own key so it survives independently of
-  // whether the sidebar happens to be collapsed.
-  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    if (typeof window === "undefined") return 240;
-    const stored = Number(localStorage.getItem("tasks-sidebar-width"));
-    return stored >= SIDEBAR_MIN_WIDTH && stored <= SIDEBAR_MAX_WIDTH ? stored : 240;
-  });
-  function handleSidebarWidthChange(next: number) {
-    setSidebarWidth(next);
-    localStorage.setItem("tasks-sidebar-width", String(next));
-  }
-
-  // Clears any still-pending auto-dismiss timers if this dashboard unmounts
-  // (e.g. navigating off the Tasks page) while a toast is showing.
-  useEffect(() => {
-    return () => {
-      setToasts((prev) => {
-        prev.forEach((t) => window.clearTimeout(t.timeoutId));
-        return prev;
-      });
-    };
-  }, []);
-
-  function dismissToast(toastId: string) {
-    setToasts((prev) => prev.filter((t) => t.id !== toastId));
-  }
-
-  // Only one wrapper needed: TaskListView (-> TaskRow) and CalendarView
-  // (-> MiniCheckbox) are the only two places a top-level task gets marked
-  // complete, and both already just call whatever onToggleComplete they're
-  // given — so this single wrapper covers both with no changes needed in
-  // either component.
-  function handleToggleComplete(id: string) {
-    const todo = todos.find((t) => t.id === id);
-    if (todo && !todo.completed) {
-      // About to complete it (this also covers a recurring task's
-      // roll-forward, which never actually sets completed=true — it just
-      // advances due_date, so !todo.completed stays true every time).
-      const toastId = `${id}-${Date.now()}`;
-      const timeoutId = window.setTimeout(() => dismissToast(toastId), 4000);
-      setToasts((prev) => [
-        ...prev,
-        { id: toastId, title: todo.title, todoId: id, prevCompleted: todo.completed, prevDueDate: todo.due_date, timeoutId },
-      ]);
-    }
-    toggleTodoComplete(id);
-  }
-
-  // Snapshot-and-restore rather than "toggle again": toggleTodoComplete is
-  // asymmetric for recurring tasks (checking one off advances due_date and
-  // never sets completed), so calling it a second time wouldn't undo the
-  // first click — it would advance the date again. Restoring the exact
-  // prior completed/due_date directly handles both task kinds uniformly.
-  function handleUndoComplete(toastId: string) {
-    const toast = toasts.find((t) => t.id === toastId);
-    if (!toast) return;
-    window.clearTimeout(toast.timeoutId);
-    updateTodo(toast.todoId, { completed: toast.prevCompleted, due_date: toast.prevDueDate });
-    dismissToast(toastId);
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
-        Loading…
-      </div>
-    );
-  }
-
-  const openTodo = openTodoId ? todos.find((t) => t.id === openTodoId) : undefined;
-
-  // A function, not a plain element, so the phone-width Lists sheet below
-  // can render its own instance at width="100%" instead of reusing the
-  // desktop-persisted sidebarWidth — every other prop is identical either
-  // way, so this avoids repeating this whole prop list a second time.
-  function renderSidebar(width: number | "100%") {
-    return (
-      <Sidebar
-        folders={folders}
-        lists={lists}
-        todos={todos}
-        view={view}
-        onSetView={setView}
-        onAddFolder={async () => {
-          const name = await dialogs.prompt({ message: "Folder name:" });
-          if (name) addFolder(name);
-        }}
-        onAddList={async (folderId) => {
-          const name = await dialogs.prompt({ message: "List name:" });
-          if (name) addList(name, folderId);
-        }}
-        onRenameList={renameList}
-        onSetListColor={setListColor}
-        onDeleteList={(id) => {
-          if (view === id) setView("today");
-          deleteList(id);
-        }}
-        onRenameFolder={renameFolder}
-        onDeleteFolder={deleteFolder}
-        onDropTodoOnList={(todoId, listId) => updateTodo(todoId, { list_id: listId })}
-        onMoveListToFolder={moveListToFolder}
-        onReorderLists={reorderLists}
-        onReorderFolders={reorderFolders}
-        onNewTask={onNewTask}
-        toasts={toasts}
-        onUndoComplete={handleUndoComplete}
-        collapsed={!isMobile && sidebarCollapsed}
-        width={width}
-      />
-    );
-  }
-  const sidebarElement = renderSidebar(sidebarWidth);
-
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {isMobile ? (
-        <ListsSlotButton>{renderSidebar("100%")}</ListsSlotButton>
-      ) : (
-        <CollapsibleSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={toggleSidebarCollapsed}
-          label="Tasks sidebar"
-          width={sidebarWidth}
-          onWidthChange={handleSidebarWidthChange}
-        >
-          {sidebarElement}
-        </CollapsibleSidebar>
-      )}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <TasksViewTabs view={view} onSetView={setView} todayCount={todayCount} upcomingCount={upcomingCount} />
-        {view === "calendar" ? (
-          <CalendarView
-            todos={todos}
-            lists={lists}
-            subtasks={subtasks}
-            googleCalendarData={googleCalendarData}
-            onOpenTodo={setOpenTodoId}
-            onToggleComplete={handleToggleComplete}
-            onAddTodo={addTodo}
-            onAddSubtask={addSubtask}
-            onToggleSubtask={toggleSubtask}
-            onEditSubtask={updateSubtask}
-            onDeleteSubtask={deleteSubtask}
-            onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
-            onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
-            onDropTodoOnDate={(todoId, dateKey) => updateTodo(todoId, { due_date: dateKey })}
-          />
-        ) : (
-          <TaskListView
-            view={view}
-            lists={lists}
-            todos={todos}
-            subtasks={subtasks}
-            googleCalendarData={googleCalendarData}
-            onAddTodo={addTodo}
-            onToggleComplete={handleToggleComplete}
-            onAddSubtask={addSubtask}
-            onToggleSubtask={toggleSubtask}
-            onEditSubtask={updateSubtask}
-            onDeleteSubtask={deleteSubtask}
-            onUpdateDueDate={(id, date) => updateTodo(id, { due_date: date })}
-            onUpdateRecurrence={(id, recurrence) => updateTodo(id, { recurrence })}
-            onOpenTodo={setOpenTodoId}
-          />
-        )}
-      </div>
-      {openTodo && (
-        <TaskModal
-          todo={openTodo}
-          lists={lists}
-          subtasks={subtasks.filter((s) => s.todo_id === openTodo.id)}
-          onClose={() => setOpenTodoId(null)}
-          onUpdate={updateTodo}
-          onDelete={deleteTodo}
-          onAddSubtask={addSubtask}
-          onToggleSubtask={toggleSubtask}
-          onDeleteSubtask={deleteSubtask}
-        />
-      )}
-    </div>
-  );
-}
-
-function NotesDashboard({ notes }: { notes: NotesData }) {
-  const { folders, notes: allNotes, loading, addFolder, renameFolder, setFolderColor, deleteFolder, addNote, updateNote, deleteNote, togglePinned } = notes;
-
-  const dialogs = useDialogs();
-  const isMobile = useIsMobile();
-  const [view, setView] = useState<"all" | "pinned" | string>("all");
-  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
-  // Same per-browser persisted collapse preference as Tasks' sidebar, kept
-  // under its own storage key so the two modules' sidebars can be
-  // collapsed independently.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
-    () => typeof window !== "undefined" && localStorage.getItem("notes-sidebar-collapsed") === "1"
-  );
-  function toggleSidebarCollapsed() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("notes-sidebar-collapsed", next ? "1" : "0");
-      return next;
-    });
-  }
-  // Same draggable-width pattern as Tasks' sidebar, own storage key.
-  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    if (typeof window === "undefined") return 240;
-    const stored = Number(localStorage.getItem("notes-sidebar-width"));
-    return stored >= SIDEBAR_MIN_WIDTH && stored <= SIDEBAR_MAX_WIDTH ? stored : 240;
-  });
-  function handleSidebarWidthChange(next: number) {
-    setSidebarWidth(next);
-    localStorage.setItem("notes-sidebar-width", String(next));
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
-        Loading…
-      </div>
-    );
-  }
-
-  const openNote = openNoteId ? allNotes.find((n) => n.id === openNoteId) : undefined;
-
-  const handleAddNote = async () => {
-    const folderId = view === "all" || view === "pinned" ? null : view;
-    const note = await addNote(folderId);
-    if (note) setOpenNoteId(note.id);
-  };
-
-  // Same reasoning as TasksDashboard's renderSidebar: a function, not a
-  // plain element, so the phone-width Lists sheet can render its own
-  // "100%"-wide instance without reusing the desktop-persisted sidebarWidth.
-  function renderNotesSidebar(width: number | "100%") {
-    return (
-      <NotesSidebar
-        folders={folders}
-        notes={allNotes}
-        view={view}
-        onSetView={setView}
-        onAddNote={handleAddNote}
-        onAddFolder={async () => {
-          const name = await dialogs.prompt({ message: "Folder name:" });
-          if (name) addFolder(name);
-        }}
-        onRenameFolder={renameFolder}
-        onSetFolderColor={setFolderColor}
-        onDeleteFolder={(id) => {
-          if (view === id) setView("all");
-          deleteFolder(id);
-        }}
-        collapsed={!isMobile && sidebarCollapsed}
-        width={width}
-      />
-    );
-  }
-  const sidebarElement = renderNotesSidebar(sidebarWidth);
-
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {isMobile ? (
-        <ListsSlotButton>{renderNotesSidebar("100%")}</ListsSlotButton>
-      ) : (
-        <CollapsibleSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={toggleSidebarCollapsed}
-          label="Notes sidebar"
-          width={sidebarWidth}
-          onWidthChange={handleSidebarWidthChange}
-        >
-          {sidebarElement}
-        </CollapsibleSidebar>
-      )}
-      <NotesListView
-        view={view}
-        folders={folders}
-        notes={allNotes}
-        onAddNote={handleAddNote}
-        onOpenNote={setOpenNoteId}
-        onTogglePinned={togglePinned}
-      />
-      {openNote && (
-        <NoteModal
-          note={openNote}
-          folders={folders}
-          onClose={() => setOpenNoteId(null)}
-          onUpdate={updateNote}
-          onDelete={deleteNote}
-          onTogglePinned={togglePinned}
-        />
-      )}
-    </div>
-  );
-}
 
 function LeadsDashboard({
   leads,
@@ -1002,11 +359,11 @@ function DealsDashboard({
     <div style={{ minHeight: "100vh" }}>
       <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Deals</h1>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Transactions</h1>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Every transaction you have access to.</p>
         </div>
         <button onClick={() => setShowNewDeal(true)} style={newDealButtonStyle}>
-          + New Deal
+          + New Transaction
         </button>
       </div>
       <DealsStatCards deals={deals} />
@@ -1073,133 +430,66 @@ function DealsDashboard({
 function PageContent({
   page,
   session,
-  tasksData,
   leadsData,
   pipelineData,
   dealsData,
   dealTemplatesData,
   tagsData,
-  notesData,
   profileData,
   theme,
-  googleCalendarData,
-  onNewTask,
   onMoveDealToPipeline,
 }: {
   page: Page;
   session: Session;
-  tasksData: TasksData;
   leadsData: LeadsData;
   pipelineData: PipelineData;
   dealsData: DealsData;
   dealTemplatesData: DealTemplatesData;
   tagsData: ReturnType<typeof useTags>;
-  notesData: NotesData;
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
-  googleCalendarData: ReturnType<typeof useGoogleCalendar>;
-  onNewTask: () => void;
   onMoveDealToPipeline: (deal: Deal) => void;
 }) {
   switch (page) {
-    case "tasks":
-      return <TasksDashboard tasks={tasksData} googleCalendarData={googleCalendarData} onNewTask={onNewTask} />;
     case "leads":
       return <LeadsDashboard leads={leadsData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
     case "pipeline":
       return <PipelineDashboard pipeline={pipelineData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
     case "deals":
       return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} onMoveDealToPipeline={onMoveDealToPipeline} />;
-    case "notes":
-      return <NotesDashboard notes={notesData} />;
     case "settings":
-      return (
-        <SettingsPage
-          session={session}
-          profileData={profileData}
-          theme={theme}
-          dealTemplatesData={dealTemplatesData}
-          tagsData={tagsData}
-          googleCalendarData={googleCalendarData}
-        />
-      );
+      return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} tagsData={tagsData} />;
   }
 }
 
 function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
-  const [page, setPage] = useState<Page>("tasks");
-  // Drives the phone-width chrome (BottomTabBar instead of TopNav's own
-  // pill row) — the same breakpoint TasksDashboard/NotesDashboard already
-  // use for their own sidebar-vs-drawer decision.
+  const [page, setPage] = useState<Page>("leads");
+  // Drives LeftNav vs. BottomTabBar/TopNav — a persistent sidebar has no
+  // real phone equivalent, so mobile gets the bottom-tab-bar pattern
+  // instead (same as this app's old native-tab-bar work).
   const isMobile = useIsMobile();
-  // Which of the two apps (Tasks+Notes vs Leads/Pipeline/Deals) is open —
-  // derived from the URL at load, kept in sync with browser back/forward
-  // via popstate, and pushed via switchApp below on an explicit switch (no
-  // full page reload, same in-memory session/data either way).
-  const [appId, setAppId] = useState<AppId>(() => (typeof window !== "undefined" ? appIdFromPath(window.location.pathname) : "tasks"));
 
-  useEffect(() => {
-    function onPopState() {
-      setAppId(appIdFromPath(window.location.pathname));
-    }
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  function switchApp(next: AppId) {
-    window.history.pushState({}, "", APP_CONFIG[next].path);
-    setAppId(next);
-    setPage(APP_CONFIG[next].defaultPage);
-  }
-
-  // Lifted above any single page so the header's global "+ Create" menu can
-  // create a Task/Lead/Pipeline/Deal — and pop its modal open in place, with
-  // no navigation — regardless of which page is currently showing.
-  const tasks = useTasks(session?.user.id);
   const leads = useLeads(session?.user.id);
   const pipeline = usePipeline(session?.user.id);
   const deals = useDeals(session?.user.id);
   const dealTemplates = useDealTemplates(session?.user.id);
   const tags = useTags(session?.user.id);
-  const notes = useNotes(session?.user.id);
   const profile = useProfile(session?.user.id);
   const theme = useTheme();
-  const googleCalendar = useGoogleCalendar(session?.user.id);
   const hiddenModules = profile.profile?.hidden_modules ?? NO_HIDDEN_MODULES;
 
-  // Runs once a real session exists so supabase.functions.invoke already
-  // has a valid Authorization header to send — Google's redirect back
-  // (?code=...&state=...) can land here before useAuth finishes resolving
-  // the session on a cold load, and the exchange would otherwise fire
-  // unauthenticated and fail.
-  useEffect(() => {
-    if (session) googleCalendar.handleOAuthCallback();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
-
-  // Two things keep `page` valid: (1) if it belongs to the *other* app
-  // (e.g. the URL was edited by hand, or a stale page carried over from
-  // before a switch) jump to this app's own default page — Settings is
-  // shared across both apps, so it's exempt; (2) if the currently-open
-  // module gets hidden (its nav tab just vanished), don't leave a dead
-  // page up with no way back — jump to the first module in *this app*
-  // that's still visible, or Settings if every one of this app's modules
-  // has been hidden.
+  // If the currently-open module gets hidden (its nav tab just vanished),
+  // don't leave a dead page up with no way back — jump to the first module
+  // that's still visible, or Settings if every one of them has been hidden.
   useEffect(() => {
     if (page === "settings") return;
-    const belongsToThisApp = APP_CONFIG[appId].navItems.some((m) => m.key === page);
-    if (!belongsToThisApp) {
-      setPage(APP_CONFIG[appId].defaultPage);
-      return;
-    }
     if (!hiddenModules.includes(page)) return;
-    const fallback = APP_CONFIG[appId].navItems.find((m) => !hiddenModules.includes(m.key));
+    const fallback = NAV_ITEMS.find((m) => !hiddenModules.includes(m.key));
     setPage(fallback?.key ?? "settings");
-  }, [page, hiddenModules, appId]);
+  }, [page, hiddenModules]);
 
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
   // Still needed even with the global +Create menu gone (see handleCreate's
   // removal below) — this one has a second caller, handleMoveDealToPipeline,
   // which opens the just-converted card the same way a fresh one from
@@ -1254,63 +544,63 @@ function App() {
     <DialogsProvider>
     <div style={{ minHeight: "100dvh", background: "var(--bg-app)" }}>
       {session ? (
-        // Signed-in app shell: a horizontal TopNav scoped to whichever app
-        // is currently open, stacked above that app's content — two
-        // distinct apps rather than one five-module nav (that was
-        // LeftNav.tsx, since removed).
+        // Signed-in app shell: LeftNav is a persistent sidebar beside the
+        // content on desktop; on mobile it's replaced by a slim top bar
+        // (TopNav) plus BottomTabBar for module navigation instead — a
+        // sidebar has no real phone equivalent.
         // 100dvh, not 100vh — see index.css's #root comment for why: this
         // is the container BottomTabBar.tsx's position:fixed bar lives
         // inside, and iOS Safari's vh-vs-visible-viewport mismatch is
         // exactly what was cutting that bar off.
-        <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
-          <TopNav
-            session={session}
-            profile={profile.profile}
-            page={page}
-            onSetPage={setPage}
-            hiddenModules={hiddenModules}
-            themeEffective={theme.effective}
-            onToggleTheme={theme.toggleEffective}
-            navItems={APP_CONFIG[appId].navItems}
-            otherAppLabel={APP_CONFIG[appId].otherAppLabel}
-            onSwitchApp={() => switchApp(appId === "tasks" ? "crm" : "tasks")}
-          />
-          <main
-            style={{
-              flex: 1,
-              minWidth: 0,
-              // Reserve room for the fixed BottomTabBar below so page content
-              // never renders underneath it — a no-op (0px) on desktop,
-              // where the bar isn't rendered at all.
-              paddingBottom: isMobile ? `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
-            }}
-          >
-            <PageContent
-              page={page}
+        <div style={{ display: "flex", minHeight: "100dvh" }}>
+          {!isMobile && (
+            <LeftNav
               session={session}
-              tasksData={tasks}
-              leadsData={leads}
-              pipelineData={pipeline}
-              dealsData={deals}
-              dealTemplatesData={dealTemplates}
-              tagsData={tags}
-              notesData={notes}
-              profileData={profile}
-              theme={theme}
-              googleCalendarData={googleCalendar}
-              onNewTask={() => setQuickAddOpen(true)}
-              onMoveDealToPipeline={handleMoveDealToPipeline}
-            />
-          </main>
-          {isMobile && (
-            <BottomTabBar
+              profile={profile.profile}
               page={page}
               onSetPage={setPage}
-              navItems={APP_CONFIG[appId].navItems}
               hiddenModules={hiddenModules}
-              insertSlotAfterKey={appId === "tasks" ? "tasks" : undefined}
+              themeEffective={theme.effective}
+              onToggleTheme={theme.toggleEffective}
+              navItems={NAV_ITEMS}
             />
           )}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+            {isMobile && (
+              <TopNav
+                session={session}
+                profile={profile.profile}
+                page={page}
+                onSetPage={setPage}
+                themeEffective={theme.effective}
+                onToggleTheme={theme.toggleEffective}
+              />
+            )}
+            <main
+              style={{
+                flex: 1,
+                minWidth: 0,
+                // Reserve room for the fixed BottomTabBar below so page content
+                // never renders underneath it — a no-op (0px) on desktop,
+                // where the bar isn't rendered at all.
+                paddingBottom: isMobile ? `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
+              }}
+            >
+              <PageContent
+                page={page}
+                session={session}
+                leadsData={leads}
+                pipelineData={pipeline}
+                dealsData={deals}
+                dealTemplatesData={dealTemplates}
+                tagsData={tags}
+                profileData={profile}
+                theme={theme}
+                onMoveDealToPipeline={handleMoveDealToPipeline}
+              />
+            </main>
+            {isMobile && <BottomTabBar page={page} onSetPage={setPage} navItems={NAV_ITEMS} hiddenModules={hiddenModules} />}
+          </div>
         </div>
       ) : (
         <>
@@ -1320,29 +610,10 @@ function App() {
             themeEffective={theme.effective}
             onToggleTheme={theme.toggleEffective}
           />
-          <Landing
-            onGetStarted={(appHint) => {
-              if (appHint) switchApp(appHint);
-              setAuthModal("signup");
-            }}
-          />
+          <Landing onGetStarted={() => setAuthModal("signup")} />
         </>
       )}
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
-
-      {quickAddOpen && (
-        <QuickAddTaskModal
-          lists={tasks.lists}
-          onClose={() => setQuickAddOpen(false)}
-          onCreate={async (listId, title, description, dueDate, recurrence, subtaskTitles, dueTime, durationMinutes) => {
-            const newTodo = await tasks.addTodo(listId, title, dueDate, { description, recurrence, dueTime, durationMinutes });
-            if (newTodo) {
-              for (const subtaskTitle of subtaskTitles) await tasks.addSubtask(newTodo.id, subtaskTitle);
-            }
-            setQuickAddOpen(false);
-          }}
-        />
-      )}
 
       {createPipelineCard && (
         <PipelineCardModal

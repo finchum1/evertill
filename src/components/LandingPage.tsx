@@ -3,24 +3,18 @@ import type { CSSProperties, ReactNode } from "react";
 import { LIST_COLOR_HEX } from "../types";
 
 // The public, logged-out landing page. Shown below the app's own Header
-// (which already renders the "Evertill" wordmark + Log in/Sign up), so
-// this component only owns the marketing content itself.
+// (which already renders the "Pipeline" wordmark + Log in/Sign up), so this
+// component only owns the marketing content itself.
 //
 // Each module section below is illustrated with a small hand-built preview
 // panel (not a captured screenshot) that reuses this app's real tokens and
-// component conventions (checkbox style, list-color dots, status pills, tag
-// colors) so it reads as a faithful recreation of the actual UI — crisp at
-// any resolution, and automatically correct in both light and dark theme.
-// The data inside every preview is entirely fictional.
-
-// Which app a "get started" click should land the new signup in — the two
-// apps are TasksApp (Tasks + Notes, at "/") and CRMApp (Leads + Pipeline +
-// Deals, at "/crm") in App.tsx. Undefined means "no preference," which
-// App.tsx's call site leaves on whichever app the visitor is already on.
-export type AppHint = "tasks" | "crm";
+// component conventions (list-color dots, status pills, tag colors) so it
+// reads as a faithful recreation of the actual UI — crisp at any resolution,
+// and automatically correct in both light and dark theme. The data inside
+// every preview is entirely fictional.
 
 interface LandingProps {
-  onGetStarted: (appHint?: AppHint) => void;
+  onGetStarted: () => void;
 }
 
 // The app's own component font stack — kept separate so the module preview
@@ -33,22 +27,18 @@ const APP_FONT_STACK = "'Inter', 'SF Pro Display', -apple-system, sans-serif";
 // database rather than the app's previous unloaded "Inter" fallback stack.
 const MARKETING_FONT_STACK = `'Plus Jakarta Sans', ${APP_FONT_STACK}`;
 
-// One shared, harmonized accent per module instead of five unrelated
-// saturated hues (the original indigo/sky/purple/amber/pink set read as an
-// arbitrary rainbow). Tasks deliberately points at the app's own live accent
-// token rather than a fixed hex — it's the one module every visitor has in
-// common (see the hero copy), so tying it to whatever accent color a
-// returning visitor already has selected reads as more "this is the real
-// product" than a hardcoded indigo that might not match their theme at all.
-// The other four stay fixed, deeper-toned hexes (Tailwind 600/700-ish, kept
-// under ~80% saturation) so they still read as distinct categories without
-// screaming.
+// One shared, harmonized accent per module. Leads/Pipeline stay fixed,
+// deeper-toned hexes (Tailwind 600/700-ish, kept under ~80% saturation) so
+// they read as distinct categories without screaming; Transactions
+// deliberately points at the app's own live accent token rather than a
+// fixed hex — it's the module every visitor will spend the most time in,
+// so tying its badge to whatever accent color a returning visitor already
+// has selected reads as more "this is the real product" than a hardcoded
+// hex that might not match their theme at all.
 const MODULE_COLOR = {
-  tasks: "var(--accent-strong)",
   leads: "#0284c7",
   pipeline: "#7c3aed",
-  deals: "#b45309",
-  notes: "#be185d",
+  transactions: "var(--accent-strong)",
 } as const;
 
 // One-shot scroll-in reveal: fades/slides content up the first time it
@@ -97,52 +87,6 @@ export function Landing({ onGetStarted }: LandingProps) {
       <Hero onGetStarted={onGetStarted} />
 
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px" }}>
-        <AppGroupIntro
-          label="The Tasks app"
-          title="Tasks and Notes, together"
-          description="Everyday to-dos and a real notes editor, sharing one top nav — nothing else competing for space."
-          ctaLabel="Get started with Tasks"
-          appHint="tasks"
-          onGetStarted={onGetStarted}
-        />
-        <ModuleSection
-          eyebrow="Tasks"
-          badgeColor={MODULE_COLOR.tasks}
-          icon={<TasksIcon />}
-          title="Every to-do, in the right place at the right time"
-          description="Folders, lists, Today, Upcoming, and a full Month/Week/Day calendar — with drag-and-drop between all of them."
-          bullets={[
-            "Recurring tasks roll forward automatically when checked off",
-            "Type “next Friday” or “tomorrow” in the title — it's parsed into a real due date",
-            "Subtasks, descriptions, and quick-add from anywhere in the app",
-          ]}
-          preview={<TasksPreview />}
-          reverse={false}
-        />
-        <ModuleSection
-          eyebrow="Notes"
-          badgeColor={MODULE_COLOR.notes}
-          icon={<NotesIcon />}
-          title="Real formatting, not just plain text"
-          description="Headings, bold, underline, and multicolor highlighting — organized into folders, with pinned notes at the top."
-          bullets={[
-            "A proper rich-text editor, not a bare textarea",
-            "Pin the notes you reference constantly",
-            "Folders keep unrelated notes from piling up",
-          ]}
-          preview={<NotesPreview />}
-          reverse
-        />
-
-        <AppGroupIntro
-          label="The CRM app"
-          title="Leads, Pipeline, and Deals — a CRM of its own"
-          description="A separate app, separate nav, built around working relationships and closing files rather than checking off to-dos."
-          ctaLabel="Get started with the CRM"
-          appHint="crm"
-          onGetStarted={onGetStarted}
-          topBorder
-        />
         <ModuleSection
           eyebrow="Leads"
           badgeColor={MODULE_COLOR.leads}
@@ -166,23 +110,23 @@ export function Landing({ onGetStarted }: LandingProps) {
           bullets={[
             "Custom stages that match how you think about timing",
             "Move a client to Active the moment they're ready",
-            "One click converts a busted Deal into Pipeline",
+            "One click converts a busted transaction back into Pipeline",
           ]}
           preview={<PipelinePreview />}
           reverse
         />
         <ModuleSection
-          eyebrow="Deals"
-          badgeColor={MODULE_COLOR.deals}
-          icon={<DealsIcon />}
+          eyebrow="Transactions"
+          badgeColor={MODULE_COLOR.transactions}
+          icon={<TransactionsIcon />}
           title="Every file, from acceptance to closing"
           description="A real transaction lifecycle — Active, In Escrow, Inspections, Pre-Closing, Closed — with a milestone timeline and a Tasks/Documents checklist from your own templates."
           bullets={[
+            "Track listings you're running on behalf of other agents by name",
             "Separate Buyer-side and Listing-side checklists",
             "A live stat dashboard across every open file",
-            "Contact fields and notes history per deal",
           ]}
-          preview={<DealsPreview />}
+          preview={<TransactionsPreview />}
           reverse={false}
           last
         />
@@ -195,7 +139,7 @@ export function Landing({ onGetStarted }: LandingProps) {
   );
 }
 
-function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
+function Hero({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <section
       style={{
@@ -231,7 +175,7 @@ function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
             marginBottom: 18,
           }}
         >
-          Evertill
+          Pipeline
         </div>
         <h1
           style={{
@@ -244,9 +188,9 @@ function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
             textWrap: "balance",
           }}
         >
-          Every task. Every deal.
+          Every lead. Every close.
           <br />
-          Two apps, one login.
+          One CRM.
         </h1>
         <p
           style={{
@@ -258,24 +202,26 @@ function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
             textWrap: "pretty",
           }}
         >
-          Tasks + Notes for everyday work, and a Leads, Pipeline, and Deals CRM for the
-          relationships and transactions you're closing. Run one, or run both.
+          Leads, Pipeline, and Transactions — the relationships you're working and the files
+          you're closing, in one place, on your phone or your desktop.
         </p>
         <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 40 }}>
-          <button onClick={() => onGetStarted()} className="landing-btn-primary" style={primaryButtonStyle}>
+          <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
             Create your account
           </button>
-          <a href="#tasks" className="landing-link-cta" style={linkCtaStyle}>
+          <a href="#leads" className="landing-link-cta" style={linkCtaStyle}>
             See what's inside
             <span className="landing-link-arrow" aria-hidden>
               <ArrowRightIcon />
             </span>
           </a>
         </div>
-        <div style={{ display: "flex", gap: 28, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-          <HeroAppGroup label="Tasks app" items={["Tasks", "Notes"]} />
-          <span aria-hidden style={{ width: 1, height: 32, background: "var(--border)", flexShrink: 0 }} />
-          <HeroAppGroup label="CRM app" items={["Leads", "Pipeline", "Deals"]} />
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          {["Leads", "Pipeline", "Transactions"].map((m) => (
+            <a key={m} href={`#${m.toLowerCase()}`} className="landing-pill" style={pillStyle}>
+              {m}
+            </a>
+          ))}
         </div>
       </div>
 
@@ -296,98 +242,10 @@ function Hero({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
           }}
         />
         <BrowserFrame>
-          <TasksPreview large />
+          <LeadsPreview large />
         </BrowserFrame>
       </div>
     </section>
-  );
-}
-
-// One labeled cluster of module pills in the hero — grouped so the two-app
-// split reads at a glance instead of five flat, ungrouped pills implying one
-// undifferentiated list of modules.
-function HeroAppGroup({ label, items }: { label: string; items: string[] }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-        {label}
-      </span>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-        {items.map((m) => (
-          <a key={m} href={`#${m.toLowerCase()}`} className="landing-pill" style={pillStyle}>
-            {m}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// A neutral, peer-level section header introducing one whole app (not one
-// module) before its own ModuleSections — deliberately un-colored (unlike
-// ModuleSection's per-module eyebrow) so it reads as "this is a separate
-// app" rather than just another module in the same list.
-function AppGroupIntro({
-  label,
-  title,
-  description,
-  ctaLabel,
-  appHint,
-  onGetStarted,
-  topBorder,
-}: {
-  label: string;
-  title: string;
-  description: string;
-  ctaLabel: string;
-  appHint: AppHint;
-  onGetStarted: (appHint?: AppHint) => void;
-  topBorder?: boolean;
-}) {
-  return (
-    <Reveal>
-      <div
-        style={{
-          textAlign: "center",
-          maxWidth: 620,
-          margin: "0 auto",
-          padding: topBorder ? "80px 0 8px" : "64px 0 8px",
-          borderTop: topBorder ? "1px solid var(--border)" : "none",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            marginBottom: 14,
-          }}
-        >
-          {label}
-        </div>
-        <h2
-          style={{
-            fontSize: 32,
-            fontWeight: 800,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.02em",
-            margin: "0 0 14px",
-            lineHeight: 1.18,
-            textWrap: "balance",
-          }}
-        >
-          {title}
-        </h2>
-        <p style={{ fontSize: 15.5, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 auto 24px", maxWidth: 480, textWrap: "pretty" }}>
-          {description}
-        </p>
-        <button onClick={() => onGetStarted(appHint)} className="landing-btn-primary" style={primaryButtonStyle}>
-          {ctaLabel}
-        </button>
-      </div>
-    </Reveal>
   );
 }
 
@@ -424,8 +282,8 @@ function ModuleSection({
           borderRadius: 11,
           // color-mix (not a hex+alpha-suffix string) so this works whether
           // badgeColor is a plain hex value or a CSS var() reference (the
-          // Tasks module points its badge at var(--accent-strong) so it
-          // always matches whatever accent the visitor already has active).
+          // Transactions module points its badge at var(--accent-strong) so
+          // it always matches whatever accent the visitor already has active).
           background: `color-mix(in srgb, ${badgeColor} 14%, transparent)`,
           color: badgeColor,
           marginBottom: 18,
@@ -504,10 +362,10 @@ function Highlights() {
     { icon: <ThemeIcon />, title: "Dark, light, or system", body: "Plus four accent colors to match your style." },
     {
       icon: <ToggleIcon />,
-      title: "Two apps, or just one",
-      body: "Run Tasks + Notes, the CRM, or both under the same login — then hide any individual module you don't need from Settings.",
+      title: "Hide what you don't use",
+      body: "Turn off any individual module you don't need from Settings — the nav only shows what you actually use.",
     },
-    { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Tasks, leads, clients, calendar days — drag them wherever they go." },
+    { icon: <DragIcon />, title: "Drag-and-drop everywhere", body: "Leads, clients, calendar days — drag them wherever they go." },
     { icon: <LockIcon />, title: "Your own private workspace", body: "Self-service signup, your data scoped to your account alone." },
   ];
   return (
@@ -527,7 +385,7 @@ function Highlights() {
   );
 }
 
-function FinalCta({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void }) {
+function FinalCta({ onGetStarted }: { onGetStarted: () => void }) {
   return (
     <Reveal>
       <section style={{ textAlign: "center", padding: "88px 24px" }}>
@@ -541,12 +399,12 @@ function FinalCta({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void 
             textWrap: "balance",
           }}
         >
-          One account. Both apps whenever you need them.
+          One account. Every deal, wherever you are.
         </h2>
         <p style={{ color: "var(--text-secondary)", fontSize: 15.5, margin: "0 0 28px" }}>
-          Create your account once — jump into Tasks, the CRM, or both, and switch anytime from the nav.
+          Create your account once — Leads, Pipeline, and Transactions, on your phone or your desktop.
         </p>
-        <button onClick={() => onGetStarted()} className="landing-btn-primary" style={primaryButtonStyle}>
+        <button onClick={onGetStarted} className="landing-btn-primary" style={primaryButtonStyle}>
           Create your account
         </button>
       </section>
@@ -555,7 +413,7 @@ function FinalCta({ onGetStarted }: { onGetStarted: (appHint?: AppHint) => void 
 }
 
 function Footer() {
-  const links = ["Tasks", "Notes", "Leads", "Pipeline", "Deals"];
+  const links = ["Leads", "Pipeline", "Transactions"];
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "28px 24px" }}>
       <div
@@ -570,8 +428,8 @@ function Footer() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Evertill</span>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Two apps, one login — Tasks + Notes, and a Leads/Pipeline/Deals CRM.</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Pipeline</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>A CRM for Leads, Pipeline, and Transactions.</span>
         </div>
         <nav style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
           {links.map((l) => (
@@ -580,7 +438,7 @@ function Footer() {
             </a>
           ))}
         </nav>
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>© {new Date().getFullYear()} Evertill</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>© {new Date().getFullYear()} Pipeline</span>
       </div>
     </footer>
   );
@@ -612,84 +470,9 @@ function BrowserFrame({ children }: { children: ReactNode }) {
 }
 
 // ---------- Module preview mockups ----------
-// Fictional data only. Styled to match the real components (AnimatedCheckbox,
-// list-color dots, tag pills, status pills) but simplified — these are not
-// interactive and don't import the real hooks/components.
-
-function TasksPreview({ large }: { large?: boolean }) {
-  const rows: { title: string; done?: boolean; date?: string; overdue?: boolean; sub?: number; color: string; list: string }[] = [
-    { title: "Submit Q3 invoice", date: "Wed, Jul 22", overdue: true, color: LIST_COLOR_HEX.blue, list: "Freelance" },
-    { title: "Finish reading for Chem 101", sub: 2, color: LIST_COLOR_HEX.indigo, list: "School" },
-    { title: "Send pitch deck to investors", done: true, color: LIST_COLOR_HEX.indigo, list: "Startup" },
-    { title: "Confirm venue for launch event", date: "Fri, Aug 7", color: LIST_COLOR_HEX.teal, list: "Events" },
-  ];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: large ? 10 : 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Today</span>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>+ Add task</span>
-      </div>
-      {rows.map((r) => (
-        <div
-          key={r.title}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "9px 12px",
-            borderRadius: 9,
-            border: "1px solid var(--border)",
-            background: "var(--bg-panel)",
-          }}
-        >
-          <span
-            style={{
-              width: 17,
-              height: 17,
-              borderRadius: 99,
-              flexShrink: 0,
-              border: `2px solid ${r.done ? "var(--accent)" : "var(--border-strong)"}`,
-              background: r.done ? "var(--accent)" : "transparent",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {r.done && (
-              <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                <path d="M1.5 5.2L4 7.7L8.5 2.3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </span>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: r.done ? "var(--text-muted)" : "var(--text-primary)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {r.title}
-            </span>
-            {(r.date || r.sub) && (
-              <span style={{ display: "flex", gap: 8, fontSize: 11, color: "var(--text-secondary)" }}>
-                {r.date && <span style={{ color: r.overdue ? "var(--danger)" : "var(--text-secondary)", fontWeight: 600 }}>{r.date}</span>}
-                {r.sub && <span>☑ {r.sub}</span>}
-              </span>
-            )}
-          </div>
-          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0 }}>
-            <span style={{ width: 6, height: 6, borderRadius: 99, background: r.color }} />
-            {r.list}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// Fictional data only. Styled to match the real components (list-color
+// dots, tag pills, status pills) but simplified — these are not interactive
+// and don't import the real hooks/components.
 
 function KanbanPreview({
   columns,
@@ -744,27 +527,29 @@ function KanbanPreview({
   );
 }
 
-function LeadsPreview() {
+function LeadsPreview({ large }: { large?: boolean }) {
   return (
-    <KanbanPreview
-      columns={[
-        {
-          label: "New Lead",
-          color: LIST_COLOR_HEX.purple,
-          cards: [{ title: "Morgan Hale", value: "$410,000", tag: { label: "Buyer", color: "#3b82f6" } }],
-        },
-        {
-          label: "Contacted",
-          color: LIST_COLOR_HEX.green,
-          cards: [{ title: "Priya Shah", value: "$268,000", tag: { label: "Listing", color: "#a855f7" } }],
-        },
-        {
-          label: "Qualified",
-          color: LIST_COLOR_HEX.indigo,
-          cards: [{ title: "Diego Fields", value: "$525,000", tag: { label: "Buyer", color: "#3b82f6" } }],
-        },
-      ]}
-    />
+    <div style={{ display: "flex", flexDirection: "column", gap: large ? 10 : 8 }}>
+      <KanbanPreview
+        columns={[
+          {
+            label: "New Lead",
+            color: LIST_COLOR_HEX.purple,
+            cards: [{ title: "Morgan Hale", value: "$410,000", tag: { label: "Buyer", color: "#3b82f6" } }],
+          },
+          {
+            label: "Contacted",
+            color: LIST_COLOR_HEX.green,
+            cards: [{ title: "Priya Shah", value: "$268,000", tag: { label: "Listing", color: "#a855f7" } }],
+          },
+          {
+            label: "Qualified",
+            color: LIST_COLOR_HEX.indigo,
+            cards: [{ title: "Diego Fields", value: "$525,000", tag: { label: "Buyer", color: "#3b82f6" } }],
+          },
+        ]}
+      />
+    </div>
   );
 }
 
@@ -780,15 +565,15 @@ function PipelinePreview() {
   );
 }
 
-function DealsPreview() {
+function TransactionsPreview() {
   const stats = [
     { label: "Active", count: 3, color: "#3b82f6" },
     { label: "In Escrow", count: 2, color: "#6366f1" },
     { label: "Pre-Closing", count: 1, color: "#a855f7" },
   ];
   const rows = [
-    { address: "482 Birchwood Ln", type: "BUYER SIDE", status: "In Escrow", color: "#6366f1", step: 2 },
-    { address: "119 Harbor Ct", type: "LISTING SIDE", status: "Pre-Closing", color: "#a855f7", step: 3 },
+    { address: "482 Birchwood Ln", type: "BUYER SIDE", status: "In Escrow", color: "#6366f1", step: 2, agent: "Dana Ruiz" },
+    { address: "119 Harbor Ct", type: "LISTING SIDE", status: "Pre-Closing", color: "#a855f7", step: 3, agent: "Marcus Lee" },
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -806,6 +591,7 @@ function DealsPreview() {
             <div>
               <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em" }}>{r.type}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{r.address}</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-secondary)", marginTop: 2 }}>Agent: {r.agent}</div>
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, color: r.color, background: `${r.color}20`, borderRadius: 99, padding: "3px 9px" }}>
               {r.status}
@@ -832,56 +618,8 @@ function DealsPreview() {
   );
 }
 
-function NotesPreview() {
-  return (
-    <div style={{ display: "flex", gap: 12 }}>
-      <div style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 9, padding: "12px 14px", background: "var(--bg-panel)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Client project brief</span>
-          <PinIcon />
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-body)", lineHeight: 1.5 }}>
-          Final deliverables{" "}
-          <mark style={{ background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 3px" }}>due by Friday</mark>{" "}
-          — confirm scope before starting.
-        </div>
-      </div>
-      <div style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 9, padding: "12px 14px", background: "var(--bg-panel)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>New hire checklist</div>
-        <div style={{ fontSize: 12, color: "var(--text-body)", lineHeight: 1.5 }}>
-          <strong>Week one:</strong> account setup, tool access, intro call with the team.
-        </div>
-        <span style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 600, color: "var(--text-muted)", border: "1px solid var(--border-strong)", borderRadius: 5, padding: "2px 7px" }}>
-          Onboarding
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ color: "var(--accent)" }}>
-      <path
-        d="M8 1.5L9.5 5L13.5 6.5L10.5 9.5L11 14L8 11.5L5 14L5.5 9.5L2.5 6.5L6.5 5L8 1.5Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 // ---------- Small section icons (decorative, landing-page only) ----------
 
-function TasksIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M6.5 10L8.5 12L13.5 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 function LeadsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -897,19 +635,12 @@ function PipelineIcon() {
     </svg>
   );
 }
-function DealsIcon() {
+function TransactionsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <path d="M3 8.5H17" stroke="currentColor" strokeWidth="1.5" />
       <path d="M6.5 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-function NotesIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M5 3H15V17L10 14.5L5 17V3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

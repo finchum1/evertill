@@ -111,7 +111,7 @@ export function AuthModal({ initialMode, onClose }: AuthModalProps) {
         </button>
 
         <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-          Evertill
+          Pipeline
         </div>
         {/* h2, not h1 — this always opens over the logged-out Landing page,
             which already owns the page's one <h1> (the hero headline). */}

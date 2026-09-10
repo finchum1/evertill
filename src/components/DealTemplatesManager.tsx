@@ -47,7 +47,7 @@ export function DealTemplatesManager({ dealTemplatesData, onBack }: DealTemplate
         <button onClick={onBack} style={backButtonStyle}>
           ← Settings
         </button>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Deal Templates</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Transaction Templates</h1>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

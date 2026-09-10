@@ -136,7 +136,7 @@ export function DealModal({
           <button
             onClick={async () => {
               const ok = await dialogs.confirm({
-                message: `Move "${deal.address}" back to Pipeline? This removes it from Deals — use this when a deal busts.`,
+                message: `Move "${deal.address}" back to Pipeline? This removes it from Transactions — use this when a deal busts.`,
               });
               if (ok) {
                 onMoveToPipeline(deal);

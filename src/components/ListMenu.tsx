@@ -20,14 +20,14 @@ interface ListMenuProps {
   deleteMessage?: string;
 }
 
-// Small anchored popover (same pattern as CreateMenu) — color swatch picker,
-// an inline-editable rename field (was a window.prompt(); a browser dialog
-// for renaming something you can already see and click on is a bigger
-// interruption than the action deserves — see DialogHost.tsx for where
-// prompt() is still the right call, e.g. creating a brand-new item that has
-// no on-screen row yet), and a themed delete confirmation.
-// Reused for Tasks lists as well as Lead/Pipeline columns, hence itemNoun.
-export function ListMenu({ name, color, onRename, onSetColor, onDelete, itemNoun = "tasks", deleteMessage }: ListMenuProps) {
+// Small anchored popover — color swatch picker, an inline-editable rename
+// field (was a window.prompt(); a browser dialog for renaming something you
+// can already see and click on is a bigger interruption than the action
+// deserves — see DialogHost.tsx for where prompt() is still the right call,
+// e.g. creating a brand-new item that has no on-screen row yet), and a
+// themed delete confirmation. Shared by Leads' and Pipeline's own column
+// menus, hence itemNoun.
+export function ListMenu({ name, color, onRename, onSetColor, onDelete, itemNoun = "items", deleteMessage }: ListMenuProps) {
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(name);

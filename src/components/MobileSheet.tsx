@@ -4,24 +4,24 @@ import { useIsMobile } from "../hooks/useMediaQuery";
 
 interface MobileSheetProps {
   onClose: () => void;
-  // The desktop dialog's own sizing — each of TaskModal/NoteModal/
-  // LeadCardModal had slightly different values here before this component
-  // existed. Ignored on phone widths entirely (a bottom sheet is always
-  // full-width); maxHeight still caps how tall the sheet can grow there.
+  // The desktop dialog's own sizing — each of NewDealModal/LeadCardModal/
+  // PipelineCardModal/DealModal had slightly different values here before
+  // this component existed. Ignored on phone widths entirely (a bottom
+  // sheet is always full-width); maxHeight still caps how tall the sheet
+  // can grow there.
   maxWidth: number;
   maxHeight?: string;
   // Mobile only: forces the sheet to exactly maxHeight instead of just
   // capping it there — a short piece of content (a couple of fields) would
-  // otherwise leave the sheet only as tall as it needs to be, which reads
-  // as a small popup rather than the large, immersive editing surface
-  // NoteModal wants (its rich-text body should get real room to work in,
-  // not just whatever its current content happens to need).
+  // otherwise leave the sheet only as tall as it needs to be, which reads as
+  // a small popup rather than a large, immersive editing surface for a
+  // caller whose content should get real room to work in, not just
+  // whatever its current content happens to need.
   fillHeight?: boolean;
-  // Every current caller (TaskModal, NoteModal, etc.) passes bare content
-  // that relies on this sheet's own padding — TasksListsButton's Lists
-  // sheet is the first to pass a child (Sidebar) that already carries its
-  // own internal padding designed for a drawer/rail context, where this
-  // sheet's default would just double it up.
+  // Most callers pass bare content that relies on this sheet's own padding
+  // — a caller passing a child that already carries its own internal
+  // padding designed for a drawer/rail context can override it here instead
+  // of having this sheet's default double it up.
   contentPadding?: CSSProperties["padding"];
   children: ReactNode;
 }
@@ -112,9 +112,9 @@ export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", fillHeight,
             // Only when fillHeight also gave the panel itself a fixed
             // height, not auto — flex:1 on a child needs a sized flex
             // container to actually grow into, and would otherwise fight
-            // unpredictably with the plain max-height cap the other sheets
-            // (Lists, task/lead/deal detail) rely on to just hug their own
-            // content instead of always filling the full cap.
+            // unpredictably with the plain max-height cap most sheets rely
+            // on to just hug their own content instead of always filling
+            // the full cap.
             ...(fillHeight ? { flex: 1 } : null),
           }}
         >

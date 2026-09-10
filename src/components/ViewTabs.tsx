@@ -18,24 +18,19 @@ export const BOARD_VIEW_LABELS: Record<BoardSubView, string> = {
 };
 export const DEFAULT_BOARD_VIEW_ORDER: BoardSubView[] = ["board", "list", "calendar", "value"];
 
-// Generic pill-tab row — originally board-sub-view-specific, generalized so
-// Tasks' own Today/Upcoming/Calendar/Completed switcher (App.tsx's
-// TasksViewTabs) can reuse the identical visual language via a plain
-// {key, label} array instead of a bespoke copy of tabButtonStyle. The
-// optional `badge` renders a small count next to a tab's label — Tasks
-// uses this for due-today/due-later counts, board sub-views don't need it.
+// Generic pill-tab row shared by Leads/Pipeline/Transactions' own board
+// sub-view switchers (Board/List/Calendar/Value, plus Transactions' own
+// "Agents" tab) via a plain {key, label} array instead of each dashboard
+// keeping a bespoke copy of tabButtonStyle. The optional `badge` renders a
+// small count next to a tab's label, for any future consumer that needs one
+// (no current one does).
 export function ViewTabs<T extends string>({
   tabs,
   active,
   onChange,
 }: {
   tabs: { key: T; label: string; badge?: number }[];
-  // Plain string, not T — Tasks' own view state can be a list id that
-  // matches none of these tabs (viewing a specific list rather than one of
-  // Today/Upcoming/Calendar/Completed), and that's a legitimate "nothing
-  // highlighted" state, not an error, so this shouldn't require active to
-  // be a member of T.
-  active: string;
+  active: T;
   onChange: (view: T) => void;
 }) {
   return (

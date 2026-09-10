@@ -11,7 +11,7 @@ interface TagPickerProps {
 }
 
 // Anchored pill + popover (same self-contained trigger/panel pattern as
-// DatePickerField/ListMenu/CreateMenu) replacing the old fixed Buyer/Listing
+// DatePickerField/ListMenu) replacing the old fixed Buyer/Listing
 // checkboxes — a multi-select, creatable dropdown backed by the shared,
 // user-editable tags list (Settings > Tags). Uses the same capture-phase
 // document listener as DatePickerField for outside-click dismissal rather

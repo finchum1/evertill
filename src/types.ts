@@ -25,83 +25,19 @@ export const LIST_COLOR_HEX: Record<ListColor, string> = {
   pink: "#ec4899",
 };
 
-export type Recurrence = "none" | "daily" | "weekly" | "monthly" | "weekday" | "yearly";
-
-export interface TodoFolder {
-  id: string;
-  user_id: string;
-  name: string;
-  sort_order: number;
-  created_at: string;
-}
-
-export interface TodoList {
-  id: string;
-  user_id: string;
-  folder_id: string | null;
-  name: string;
-  color: ListColor;
-  is_inbox: boolean;
-  sort_order: number;
-  created_at: string;
-}
-
-export interface Todo {
-  id: string;
-  user_id: string;
-  list_id: string;
-  title: string;
-  description: string | null;
-  due_date: string | null; // 'YYYY-MM-DD'
-  due_time: string | null; // 'HH:MM', 24-hour, local wall-clock — null unless due_date is also set
-  duration_minutes: number | null; // set together with due_time, null when due_time is null
-  completed: boolean;
-  recurrence: Recurrence;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TodoSubtask {
-  id: string;
-  user_id: string;
-  todo_id: string;
-  title: string;
-  checked: boolean;
-  sort_order: number;
-  created_at: string;
-}
-
-// A "view" is either a special view key or a list's own id (list ids are
-// UUIDs, so they never collide with the two special keys below).
-export type View = "today" | "upcoming" | string;
-
-export type Page = "tasks" | "leads" | "pipeline" | "deals" | "notes" | "settings";
+export type Page = "leads" | "pipeline" | "deals" | "settings";
 
 // Single source of truth for which modules can be hidden from Settings >
 // Modules — "settings" is deliberately never in this list, since it's
-// reached via the header's avatar button, not the nav row or Create menu,
-// so it's never hideable. Add a new entry here when a future module ships.
+// reached via the account row, not the nav rail, so it's never hideable.
+// Add a new entry here when a future module ships. "deals" keeps its
+// internal key (see App.tsx's NAV_ITEMS comment) with "Transactions" as
+// its user-facing label here too.
 export const HIDEABLE_MODULES: { key: Page; label: string }[] = [
-  { key: "tasks", label: "Tasks" },
-  { key: "notes", label: "Notes" },
   { key: "leads", label: "Leads" },
   { key: "pipeline", label: "Pipeline" },
-  { key: "deals", label: "Deals" },
+  { key: "deals", label: "Transactions" },
 ];
-
-// One toast per task completion, snapshotting the exact prior completed/
-// due_date so Undo can restore it directly rather than toggling again —
-// toggleTodoComplete is asymmetric for recurring tasks (see useTasks.ts),
-// so a second toggle wouldn't undo the first, it would advance it again.
-export interface CompletionToast {
-  id: string;
-  title: string;
-  todoId: string;
-  prevCompleted: boolean;
-  prevDueDate: string | null;
-  timeoutId: number;
-}
 
 // A shared, user-editable tag (Settings > Tags) — reuses the same
 // ListColor palette as lists/columns. Applied to Lead and Pipeline cards
@@ -319,66 +255,3 @@ export interface DealContactField {
   created_at: string;
 }
 
-// Notes module: note_folders -> notes, two levels only (unlike Tasks'
-// folder -> list -> item depth) — a note folder is the direct, colored
-// content container, so it reuses the same ListColor palette rather than
-// introducing a separate color system.
-export interface NoteFolder {
-  id: string;
-  user_id: string;
-  name: string;
-  color: ListColor;
-  sort_order: number;
-  created_at: string;
-}
-
-// folder_id is nullable — an unfiled note still shows up in "All Notes".
-export interface Note {
-  id: string;
-  user_id: string;
-  folder_id: string | null;
-  title: string;
-  body: string;
-  pinned: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-// A linked Google account. Never carries access_token/refresh_token to the
-// frontend — those columns exist in the DB but this type only covers what
-// useGoogleCalendar actually selects (id/email/created_at), which is all
-// Settings' "connected accounts" list needs.
-export interface GoogleAccount {
-  id: string;
-  user_id: string;
-  email: string;
-  created_at: string;
-}
-
-export interface GoogleCalendarEntry {
-  id: string;
-  user_id: string;
-  google_account_id: string;
-  calendar_id: string;
-  summary: string;
-  color: string | null;
-  visible: boolean;
-  created_at: string;
-}
-
-// Shape returned by the google-calendar-events Edge Function — not a DB
-// row, so no id/user_id-style fields beyond what's needed to render and
-// dedupe an event.
-export interface GoogleEvent {
-  id: string;
-  calendarId: string;
-  calendarSummary: string;
-  accountEmail: string;
-  title: string;
-  start: string; // ISO datetime for timed events, 'YYYY-MM-DD' for all-day
-  end: string;
-  allDay: boolean;
-  color: string | null;
-  htmlLink: string | null;
-}

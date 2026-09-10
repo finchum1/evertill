@@ -22,10 +22,10 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-// The one breakpoint this app needs: below it, the Sidebar/NotesSidebar
-// switch from always-visible-in-the-flex-row to an off-canvas drawer (see
-// TasksDashboard/NotesDashboard in App.tsx) since a fixed 240px sidebar
-// plus content has no room to breathe under ~480px of remaining width.
+// The one breakpoint this app needs: below it, App.tsx swaps LeftNav's
+// persistent sidebar for TopNav's slim bar + BottomTabBar (a sidebar has no
+// real phone equivalent), and every modal/sheet becomes a MobileSheet
+// bottom sheet instead of a centered dialog.
 export function useIsMobile(): boolean {
   return useMediaQuery("(max-width: 767px)");
 }

@@ -14,10 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Evertill',
-        short_name: 'Evertill',
-        description:
-          "Evertill is two apps under one login: Tasks + Notes for everyday work, and a Leads, Pipeline, and Deals CRM for the relationships and transactions you're closing.",
+        name: 'Pipeline',
+        short_name: 'Pipeline',
+        description: 'A CRM for Leads, Pipeline, and Transactions — working relationships and closing files from your phone or desktop.',
         // Matches --bg-app (src/index.css) — the color the OS chrome
         // (status bar, task switcher, splash screen background) shows
         // around the app, so it reads as a continuation of the UI itself

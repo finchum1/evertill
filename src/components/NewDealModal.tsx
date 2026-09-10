@@ -33,7 +33,7 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* h2, not h1 — this is a modal dialog title, and the Deals page
             behind it already owns the page's one <h1>. */}
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Deal</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>New Transaction</h2>
 
         <label style={labelStyle}>
           Property address
@@ -59,7 +59,7 @@ export function NewDealModal({ onClose, onCreate }: NewDealModalProps) {
           <input
             value={agentName}
             onChange={(e) => setAgentName(e.target.value)}
-            placeholder="Whose listing/deal is this?"
+            placeholder="Whose listing/transaction is this?"
             style={inputStyle}
           />
         </label>

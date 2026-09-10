@@ -1,43 +1,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { CSSProperties, ReactNode, RefObject } from "react";
-import type { Recurrence } from "../types";
-import { addDays, addMonths, dateToKey, formatTimeOfDay, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
+import type { CSSProperties } from "react";
+import { addDays, addMonths, dateToKey, nextWeekday, parseDateKey, todayKey } from "../lib/dates";
 
 interface DatePickerFieldProps {
   value: string | null;
   onChange: (value: string | null) => void;
-  recurrence?: Recurrence;
-  onRecurrenceChange?: (r: Recurrence) => void;
-  // Time-of-day + duration live in this same panel (right above Repeat,
-  // Todoist-style) rather than as a separate always-visible row next to the
-  // date pill — only rendered when a date is actually picked (due_time can't
-  // outlive its due_date) and only when the caller opts in by passing these.
-  dueTime?: string | null;
-  onDueTimeChange?: (v: string | null) => void;
-  durationMinutes?: number | null;
-  onDurationMinutesChange?: (v: number | null) => void;
-  // Lets a caller swap in its own trigger element (e.g. TaskRow's compact
-  // text badge) while still reusing this component's popover/panel wholesale
-  // — otherwise every consumer wanting the same picker experience with a
-  // different-looking trigger would have to duplicate the whole panel.
-  renderTrigger?: (args: { onClick: () => void; triggerRef: RefObject<HTMLButtonElement | null> }) => ReactNode;
 }
-
-// Named presets rather than a free-form end-time field — matches the
-// reference UI exactly and keeps duration entry a single tap instead of
-// two time fields' worth of typing.
-const DURATION_OPTIONS: { label: string; minutes: number | null }[] = [
-  { label: "No duration", minutes: null },
-  { label: "15m", minutes: 15 },
-  { label: "30m", minutes: 30 },
-  { label: "45m", minutes: 45 },
-  { label: "1h", minutes: 60 },
-  { label: "1h30m", minutes: 90 },
-  { label: "2h", minutes: 120 },
-  { label: "2h30m", minutes: 150 },
-  { label: "3h", minutes: 180 },
-  { label: "4h", minutes: 240 },
-];
 
 // Lets a parent open the popover programmatically (e.g. Leads/Pipeline
 // prompting for a next-activity date right after a note is logged) without
@@ -47,7 +15,6 @@ export interface DatePickerFieldHandle {
 }
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-const RECURRENCE_OPTIONS: Recurrence[] = ["daily", "weekly", "weekday", "monthly", "yearly"];
 
 function shortLabel(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short" });
@@ -55,60 +22,15 @@ function shortLabel(d: Date): string {
 function fullShortcutLabel(d: Date): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
-function ordinal(n: number): string {
-  const rem100 = n % 100;
-  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1:
-      return `${n}st`;
-    case 2:
-      return `${n}nd`;
-    case 3:
-      return `${n}rd`;
-    default:
-      return `${n}th`;
-  }
-}
-
-// Two-part (bold main + muted detail) label for each repeat option, computed
-// against whichever date is currently relevant — the picked due date if one
-// is set, otherwise today — so "Every week" always shows the actual weekday
-// it'll land on, matching the reference's "Every week on Thursday" style.
-function recurrenceOption(r: Recurrence, refDate: Date): { main: string; detail?: string } {
-  switch (r) {
-    case "daily":
-      return { main: "Every day" };
-    case "weekly":
-      return { main: "Every week", detail: `on ${refDate.toLocaleDateString(undefined, { weekday: "long" })}` };
-    case "weekday":
-      return { main: "Every weekday", detail: "(Mon – Fri)" };
-    case "monthly":
-      return { main: "Every month", detail: `on the ${ordinal(refDate.getDate())}` };
-    case "yearly":
-      return {
-        main: "Every year",
-        detail: `on ${refDate.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`,
-      };
-    default:
-      return { main: "Does not repeat" };
-  }
-}
 
 // Anchored pill + popover (same self-contained trigger/panel pattern as
-// ListMenu/CreateMenu) replacing the native <input type="date">, styled after
-// a Todoist-style quick date picker: smart shortcuts, a month grid, and an
-// optional Repeat row when recurrence props are supplied.
-export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerFieldProps>(function DatePickerField(
-  { value, onChange, recurrence, onRecurrenceChange, dueTime, onDueTimeChange, durationMinutes, onDurationMinutesChange, renderTrigger },
-  ref
-) {
+// ListMenu) replacing the native <input type="date">, styled after a
+// Todoist-style quick date picker: smart shortcuts plus a month grid.
+export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerFieldProps>(function DatePickerField({ value, onChange }, ref) {
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => (value ? parseDateKey(value) : new Date()));
   const [panelMaxHeight, setPanelMaxHeight] = useState(420);
   const [panelAlign, setPanelAlign] = useState<"left" | "right">("left");
-  const [repeatOpen, setRepeatOpen] = useState(false);
-  const [timeOpen, setTimeOpen] = useState(false);
-  const [durationOpen, setDurationOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -136,14 +58,10 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
     setPanelMaxHeight(Math.max(200, Math.min(420, available)));
     // The panel is a fixed 280px wide, anchored to the trigger's left edge by
     // default — fine for a composer near the left of a narrow form, but a
-    // trigger sitting near the right edge of a wide row (e.g. TaskRow's due-
-    // date badge) would push most of the panel off-screen with no way to
-    // reach it. Flip to anchoring off the trigger's right edge instead
-    // whenever there isn't enough room to the right.
+    // trigger sitting near the right edge of a wide row would push most of
+    // the panel off-screen with no way to reach it. Flip to anchoring off
+    // the trigger's right edge instead whenever there isn't enough room.
     setPanelAlign(rect && window.innerWidth - rect.left < 280 + 16 ? "right" : "left");
-    setRepeatOpen(false);
-    setTimeOpen(false);
-    setDurationOpen(false);
     setOpen(true);
   }
 
@@ -169,12 +87,6 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
 
   function pick(d: Date | null) {
     onChange(d ? dateToKey(d) : null);
-    // due_time can't outlive its due_date — clearing the date clears any
-    // time along with it, same invariant enforced at every write path.
-    if (!d) {
-      onDueTimeChange?.(null);
-      onDurationMinutesChange?.(null);
-    }
     setOpen(false);
   }
 
@@ -195,241 +107,100 @@ export const DatePickerField = forwardRef<DatePickerFieldHandle, DatePickerField
       onClick={(e) => e.stopPropagation()}
       style={{ position: "relative", display: "inline-block" }}
     >
-      {renderTrigger ? (
-        renderTrigger({ onClick: () => (open ? setOpen(false) : openPopover()), triggerRef })
-      ) : (
-        // A <span role="button"> clear control used to live nested inside
-        // this trigger <button> — interactive content nested inside a
-        // <button> is invalid HTML, and in practice makes the inner control
-        // unreachable to screen readers regardless of its own aria-label
-        // (they only ever expose the outer button). Two sibling buttons
-        // inside a shared pill instead: real markup, both independently
-        // reachable by keyboard/screen reader.
-        <span style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}>
-          <button
-            ref={triggerRef}
-            type="button"
-            onClick={() => (open ? setOpen(false) : openPopover())}
-            aria-label={value ? undefined : "Choose date"}
-            style={triggerInnerButtonStyle}
-          >
-            <CalendarIcon />
-            {label()}
+      {/* A <span role="button"> clear control used to live nested inside
+          this trigger <button> — interactive content nested inside a
+          <button> is invalid HTML, and in practice makes the inner control
+          unreachable to screen readers regardless of its own aria-label
+          (they only ever expose the outer button). Two sibling buttons
+          inside a shared pill instead: real markup, both independently
+          reachable by keyboard/screen reader. */}
+      <span style={{ ...pillStyle, ...(value ? pillActiveStyle : {}) }}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => (open ? setOpen(false) : openPopover())}
+          aria-label={value ? undefined : "Choose date"}
+          style={triggerInnerButtonStyle}
+        >
+          <CalendarIcon />
+          {label()}
+        </button>
+        {value && (
+          <button type="button" onClick={() => pick(null)} aria-label="Clear date" style={clearButtonStyle}>
+            ×
           </button>
-          {value && (
-            <button type="button" onClick={() => pick(null)} aria-label="Clear date" style={clearButtonStyle}>
-              ×
-            </button>
-          )}
-        </span>
-      )}
+        )}
+      </span>
 
       {open && (
-        <>
-          <div
-            style={{
-              ...panelStyle,
-              maxHeight: panelMaxHeight,
-              ...(panelAlign === "right" ? { left: "auto", right: 0 } : {}),
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {shortcuts.map((s) => (
-                <button key={s.label} type="button" onClick={() => pick(s.date)} style={rowButtonStyle}>
-                  {s.icon}
-                  <span style={{ flex: 1, textAlign: "left" }}>{s.label}</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{shortLabel(s.date)}</span>
-                </button>
-              ))}
-              <button type="button" onClick={() => pick(null)} style={rowButtonStyle}>
-                <NoDateIcon />
-                <span style={{ flex: 1, textAlign: "left" }}>No Date</span>
+        <div
+          style={{
+            ...panelStyle,
+            maxHeight: panelMaxHeight,
+            ...(panelAlign === "right" ? { left: "auto", right: 0 } : {}),
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {shortcuts.map((s) => (
+              <button key={s.label} type="button" onClick={() => pick(s.date)} style={rowButtonStyle}>
+                {s.icon}
+                <span style={{ flex: 1, textAlign: "left" }}>{s.label}</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{shortLabel(s.date)}</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => pick(null)} style={rowButtonStyle}>
+              <NoDateIcon />
+              <span style={{ flex: 1, textAlign: "left" }}>No Date</span>
+            </button>
+          </div>
+
+          <div style={dividerStyle} />
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, -1))} aria-label="Previous month" style={navButtonStyle}>
+                ‹
+              </button>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                {displayMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+              </span>
+              <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, 1))} aria-label="Next month" style={navButtonStyle}>
+                ›
               </button>
             </div>
-
-            <div style={dividerStyle} />
-
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, -1))} aria-label="Previous month" style={navButtonStyle}>
-                  ‹
-                </button>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
-                  {displayMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-                </span>
-                <button type="button" onClick={() => setDisplayMonth((m) => addMonths(m, 1))} aria-label="Next month" style={navButtonStyle}>
-                  ›
-                </button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
-                {WEEKDAY_LABELS.map((w, i) => (
-                  <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textAlign: "center" }}>
-                    {w}
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-                {days.map((d) => {
-                  const key = dateToKey(d);
-                  const inMonth = d.getMonth() === displayMonth.getMonth();
-                  const isToday = key === tkey;
-                  const isSelected = key === value;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => pick(d)}
-                      style={{
-                        ...dayButtonStyle,
-                        opacity: inMonth ? 1 : 0.35,
-                        background: isSelected ? "var(--accent-strong)" : isToday ? "var(--accent-today-bg)" : "transparent",
-                        color: isSelected ? "#fff" : isToday ? "var(--accent)" : "var(--text-body)",
-                        fontWeight: isToday || isSelected ? 700 : 400,
-                      }}
-                    >
-                      {d.getDate()}
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
+              {WEEKDAY_LABELS.map((w, i) => (
+                <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textAlign: "center" }}>
+                  {w}
+                </div>
+              ))}
             </div>
-
-            {((onDueTimeChange && value) || onRecurrenceChange) && <div style={dividerStyle} />}
-
-            {onDueTimeChange && value && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setTimeOpen((o) => !o)}
-                  style={{ ...rowButtonStyle, ...(timeOpen ? repeatHeaderOpenStyle : {}) }}
-                >
-                  <ClockIcon />
-                  <span style={{ flex: 1, textAlign: "left" }}>{dueTime ? formatTimeOfDay(dueTime) : "Time"}</span>
-                  {dueTime && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDueTimeChange(null);
-                        onDurationMinutesChange?.(null);
-                        setTimeOpen(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onDueTimeChange(null);
-                          onDurationMinutesChange?.(null);
-                          setTimeOpen(false);
-                        }
-                      }}
-                      aria-label="Remove time"
-                      style={clearRowButtonStyle}
-                    >
-                      ×
-                    </span>
-                  )}
-                </button>
-                {timeOpen && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "2px 8px 6px" }}>
-                    <input
-                      type="time"
-                      value={dueTime ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value || null;
-                        onDueTimeChange(v);
-                        if (!v) onDurationMinutesChange?.(null);
-                        else if (durationMinutes == null) onDurationMinutesChange?.(30);
-                      }}
-                      style={timeInputStyle}
-                    />
-                    {dueTime && onDurationMinutesChange && (
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => setDurationOpen((o) => !o)}
-                          style={{ ...rowButtonStyle, ...(durationOpen ? repeatHeaderOpenStyle : {}), padding: "7px 8px" }}
-                        >
-                          <span style={{ flex: 1, textAlign: "left" }}>
-                            {DURATION_OPTIONS.find((o) => o.minutes === durationMinutes)?.label ?? "No duration"}
-                          </span>
-                        </button>
-                        {durationOpen && (
-                          <div style={{ display: "flex", flexDirection: "column", marginTop: 2, maxHeight: 160, overflowY: "auto" }}>
-                            {DURATION_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.label}
-                                type="button"
-                                onClick={() => {
-                                  onDurationMinutesChange(opt.minutes);
-                                  setDurationOpen(false);
-                                }}
-                                style={{ ...rowButtonStyle, ...(durationMinutes === opt.minutes ? repeatSelectedRowStyle : {}) }}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {onRecurrenceChange && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setRepeatOpen((o) => !o)}
-                  style={{ ...rowButtonStyle, ...(repeatOpen ? repeatHeaderOpenStyle : {}) }}
-                >
-                  <RepeatIcon />
-                  <span style={{ flex: 1, textAlign: "left" }}>
-                    {recurrence && recurrence !== "none" ? recurrenceOption(recurrence, value ? parseDateKey(value) : today).main : "Repeat"}
-                  </span>
-                </button>
-                {repeatOpen && (
-                  <div style={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
-                    {RECURRENCE_OPTIONS.map((r) => {
-                      const opt = recurrenceOption(r, value ? parseDateKey(value) : today);
-                      return (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => {
-                            onRecurrenceChange(r);
-                            setRepeatOpen(false);
-                          }}
-                          style={{ ...rowButtonStyle, ...(recurrence === r ? repeatSelectedRowStyle : {}) }}
-                        >
-                          <span style={{ flex: 1, textAlign: "left" }}>
-                            {opt.main}
-                            {opt.detail && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> {opt.detail}</span>}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {recurrence && recurrence !== "none" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onRecurrenceChange("none");
-                          setRepeatOpen(false);
-                        }}
-                        style={{ ...rowButtonStyle, color: "var(--danger)" }}
-                      >
-                        <span style={{ flex: 1, textAlign: "left" }}>Does not repeat</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+              {days.map((d) => {
+                const key = dateToKey(d);
+                const inMonth = d.getMonth() === displayMonth.getMonth();
+                const isToday = key === tkey;
+                const isSelected = key === value;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => pick(d)}
+                    style={{
+                      ...dayButtonStyle,
+                      opacity: inMonth ? 1 : 0.35,
+                      background: isSelected ? "var(--accent-strong)" : isToday ? "var(--accent-today-bg)" : "transparent",
+                      color: isSelected ? "#fff" : isToday ? "var(--accent)" : "var(--text-body)",
+                      fontWeight: isToday || isSelected ? 700 : 400,
+                    }}
+                  >
+                    {d.getDate()}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -479,27 +250,6 @@ function NoDateIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <circle cx="7" cy="7" r="5" stroke="var(--text-muted)" strokeWidth="1.4" />
       <path d="M3.5 10.5L10.5 3.5" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-function ClockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="5.5" stroke="var(--text-secondary)" strokeWidth="1.3" />
-      <path d="M7 4V7L9 8.5" stroke="var(--text-secondary)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function RepeatIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path
-        d="M2.5 6.5C2.5 4.3 4.3 2.5 6.5 2.5H10M10 2.5L8 0.5M10 2.5L8 4.5M11.5 7.5C11.5 9.7 9.7 11.5 7.5 11.5H4M4 11.5L6 13.5M4 11.5L6 9.5"
-        stroke="var(--text-secondary)"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }
@@ -608,36 +358,4 @@ const dayButtonStyle: CSSProperties = {
   padding: "6px 0",
   cursor: "pointer",
   textAlign: "center",
-};
-
-const repeatHeaderOpenStyle: CSSProperties = {
-  background: "var(--border)",
-};
-
-const repeatSelectedRowStyle: CSSProperties = {
-  color: "var(--accent-light)",
-};
-
-const timeInputStyle: CSSProperties = {
-  background: "var(--border)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 8,
-  color: "var(--text-primary)",
-  fontSize: 13,
-  padding: "6px 8px",
-  outline: "none",
-  fontFamily: "inherit",
-  minHeight: 24,
-};
-
-const clearRowButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 20,
-  minHeight: 20,
-  color: "var(--text-muted)",
-  cursor: "pointer",
-  fontSize: 14,
-  lineHeight: 1,
 };
