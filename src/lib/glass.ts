@@ -1,26 +1,29 @@
 import type { CSSProperties } from "react";
 
-// Apple's "Liquid Glass" material, approximated for the web. The first pass
-// at this (a flat translucent tint + a single 1px inset highlight) read as
-// "a bit blurry," not "glass" — real Liquid Glass is brighter than what's
-// behind it (light gathering through the material, not just dimming it),
-// has a diagonal specular sheen rather than a flat highlight line, and
-// floating surfaces (a tab bar, a sheet) sit visibly *above* content with
-// real elevation, not flush against it. Four ingredients now:
+// Apple's "Liquid Glass" material, approximated for the web. Round two of
+// tuning this: the previous version's strong diagonal sheen + brightness
+// boost + bright bevel, spread across a LARGE surface (a modal panel
+// covering most of the screen) in dark theme, read as a glossy "mirror
+// finish" rather than soft frosted glass — a look that can work on a small
+// button or pill (a glint reads intentional there) reads artificial at
+// that scale. Toned down across the board: a much softer sheen, a gentler
+// brightness lift, and a subtler bevel — still translucent/blurred/
+// saturated (the actual "glass" identity), just frosted rather than
+// polished. Four ingredients:
 //   - backgroundColor: a translucent tint of the panel color, so it still
 //     tracks the current theme/accent instead of a fixed hex
-//   - backgroundImage: a diagonal white sheen, bright at one corner and
-//     fading out — an actual highlight sweep, not a flat line
-//   - backdrop-filter blur + saturate + brightness: brightness is what
-//     makes the blurred backdrop read as "light passing through glass"
-//     instead of "a dark smear," on top of the usual blur/saturate
-//   - boxShadow: an inset top-lit / bottom-shadowed bevel (the material has
-//     visible thickness, like a real pane of glass) plus, when `elevated`,
-//     an outer drop shadow so a floating surface (BottomTabBar's pill,
-//     MobileSheet's dialog/sheet) visibly sits above the content behind it
-//     — non-floating chrome that's flush against the page edge (LeftNav,
-//     TopNav) skips the elevation shadow, since there's no "above" for a
-//     flush edge panel to float over.
+//   - backgroundImage: a faint diagonal sheen — present, but a hint rather
+//     than a visible highlight sweep
+//   - backdrop-filter blur + saturate + brightness: a light brightness
+//     lift is still what keeps this reading as "glass" rather than "a dark
+//     smear," just dialed back from a mirror-like boost
+//   - boxShadow: a subtle inset top-lit / bottom-shadowed bevel (the
+//     material still has a little visible thickness) plus, when
+//     `elevated`, an outer drop shadow so a floating surface (BottomTabBar's
+//     pill, MobileSheet's dialog/sheet) visibly sits above the content
+//     behind it — non-floating chrome flush against the page edge
+//     (LeftNav, TopNav) skips the elevation shadow, since there's no
+//     "above" for a flush edge panel to float over.
 // Callers spread the result into their existing style object rather than
 // using a CSS class, matching this codebase's inline-style-only convention
 // (see useMediaQuery.ts's own comment on why - a stylesheet media query
@@ -37,12 +40,12 @@ export function glassStyle(reduceTransparency: boolean, elevated = false): CSSPr
     };
   }
 
-  const bevel = "inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.12)";
+  const bevel = "inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(0, 0, 0, 0.1)";
   return {
-    backgroundColor: "color-mix(in srgb, var(--bg-panel) 72%, transparent)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%, rgba(255, 255, 255, 0.06) 100%)",
-    backdropFilter: "blur(28px) saturate(190%) brightness(1.15)",
-    WebkitBackdropFilter: "blur(28px) saturate(190%) brightness(1.15)",
+    backgroundColor: "color-mix(in srgb, var(--bg-panel) 80%, transparent)",
+    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.02) 100%)",
+    backdropFilter: "blur(26px) saturate(140%) brightness(1.04)",
+    WebkitBackdropFilter: "blur(26px) saturate(140%) brightness(1.04)",
     boxShadow: elevated ? `${bevel}, 0 12px 34px -10px rgba(var(--shadow-color), 0.55)` : bevel,
   };
 }
@@ -78,9 +81,9 @@ export function glassBubbleStyle(reduceTransparency: boolean): CSSProperties {
     return { background: "var(--bg-panel)" };
   }
   return {
-    background: "color-mix(in srgb, var(--bg-panel) 55%, transparent)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%)",
-    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.08), 0 4px 14px -4px rgba(var(--shadow-color), 0.4)",
+    background: "color-mix(in srgb, var(--bg-panel) 62%, transparent)",
+    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.04) 100%)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.08), 0 4px 14px -4px rgba(var(--shadow-color), 0.4)",
   };
 }
 
@@ -95,7 +98,7 @@ export function glassBubbleStyle(reduceTransparency: boolean): CSSProperties {
 export function glassButtonStyle(): CSSProperties {
   return {
     backgroundColor: "var(--accent-strong)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%)",
-    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.15), 0 8px 20px -8px rgba(var(--shadow-color), 0.55)",
+    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.05) 100%)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 8px 20px -8px rgba(var(--shadow-color), 0.55)",
   };
 }
