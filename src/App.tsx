@@ -117,7 +117,11 @@ function LeadsDashboard({
 
   return (
     <div style={{ minHeight: "100vh" }}>
-      <div style={{ padding: "20px 24px 0" }}>
+      {/* Bottom padding, not just top — without it the List/Calendar/Value
+          wrapper divs below (each "0 24px 20px", no top padding of their
+          own) sat flush against these tabs, same bleeding-together issue
+          DealsDashboard's own tab row had. */}
+      <div style={{ padding: "20px 24px 16px" }}>
         <ViewTabs tabs={DEFAULT_BOARD_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "board" && (
@@ -231,7 +235,9 @@ function PipelineDashboard({
 
   return (
     <div style={{ minHeight: "100vh" }}>
-      <div style={{ padding: "20px 24px 0" }}>
+      {/* Bottom padding, not just top — see LeadsDashboard's identical
+          comment on this same pattern above. */}
+      <div style={{ padding: "20px 24px 16px" }}>
         <ViewTabs tabs={DEFAULT_BOARD_VIEW_ORDER.map((key) => ({ key, label: BOARD_VIEW_LABELS[key] }))} active={subView} onChange={setSubView} />
       </div>
       {subView === "board" && (
