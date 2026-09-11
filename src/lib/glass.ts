@@ -1,51 +1,48 @@
 import type { CSSProperties } from "react";
 
-// Apple's "Liquid Glass" material, approximated for the web. Round two of
-// tuning this: the previous version's strong diagonal sheen + brightness
-// boost + bright bevel, spread across a LARGE surface (a modal panel
-// covering most of the screen) in dark theme, read as a glossy "mirror
-// finish" rather than soft frosted glass — a look that can work on a small
-// button or pill (a glint reads intentional there) reads artificial at
-// that scale. Toned down across the board: a much softer sheen, a gentler
-// brightness lift, and a subtler bevel — still translucent/blurred/
-// saturated (the actual "glass" identity), just frosted rather than
-// polished. Four ingredients:
+// Apple's "Liquid Glass" material, approximated for the web. Round three of
+// tuning this: a diagonal sheen (a linear-gradient highlight sweeping one
+// corner to the other) read as a "mirror finish" rather than glass — a
+// visible streak, not a material. Dropped entirely. What actually reads as
+// "polished glass" instead is a bevel running around ALL FOUR edges (like
+// real cut glass, or a glossy app icon) rather than just a lit top edge —
+// done here with two diagonal inset shadows (one from the top-left corner,
+// one from the bottom-right) rather than the single top-only highlight
+// used before, so every side of the surface picks up a hint of light or
+// shadow, not only the top. Three ingredients now:
 //   - backgroundColor: a translucent tint of the panel color, so it still
 //     tracks the current theme/accent instead of a fixed hex
-//   - backgroundImage: a faint diagonal sheen — present, but a hint rather
-//     than a visible highlight sweep
 //   - backdrop-filter blur + saturate + brightness: a light brightness
-//     lift is still what keeps this reading as "glass" rather than "a dark
-//     smear," just dialed back from a mirror-like boost
-//   - boxShadow: a subtle inset top-lit / bottom-shadowed bevel (the
-//     material still has a little visible thickness) plus, when
-//     `elevated`, an outer drop shadow so a floating surface (BottomTabBar's
-//     pill, MobileSheet's dialog/sheet) visibly sits above the content
-//     behind it — non-floating chrome flush against the page edge
-//     (LeftNav, TopNav) skips the elevation shadow, since there's no
-//     "above" for a flush edge panel to float over.
+//     lift is what keeps a blurred backdrop reading as "glass" rather than
+//     "a dark smear" — restored closer to a real polish now that the
+//     diagonal sheen (the actual source of the old "mirror" look) is gone
+//   - boxShadow: the all-sides bevel above, plus, when `elevated`, an
+//     outer drop shadow so a floating surface (BottomTabBar's pill,
+//     MobileSheet's dialog/sheet) visibly sits above the content behind it
+//     — non-floating chrome flush against the page edge (LeftNav, TopNav)
+//     skips the elevation shadow, since there's no "above" for a flush
+//     edge panel to float over.
 // Callers spread the result into their existing style object rather than
 // using a CSS class, matching this codebase's inline-style-only convention
 // (see useMediaQuery.ts's own comment on why - a stylesheet media query
 // can't reach into a style={{}} prop).
 export function glassStyle(reduceTransparency: boolean, elevated = false): CSSProperties {
   if (reduceTransparency) {
-    // No blur, no sheen, no tint - a plain solid panel, exactly what every
-    // one of these surfaces rendered before this feature existed. Still
-    // elevated (a real shadow, not a glass one) so a floating surface
-    // doesn't lose its sense of depth entirely.
+    // No blur, no tint - a plain solid panel, exactly what every one of
+    // these surfaces rendered before this feature existed. Still elevated
+    // (a real shadow, not a glass one) so a floating surface doesn't lose
+    // its sense of depth entirely.
     return {
       background: "var(--bg-panel)",
       boxShadow: elevated ? "0 8px 30px -8px rgba(var(--shadow-color), 0.45)" : undefined,
     };
   }
 
-  const bevel = "inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(0, 0, 0, 0.1)";
+  const bevel = "inset 1px 1px 0 rgba(255, 255, 255, 0.14), inset -1px -1px 0 rgba(0, 0, 0, 0.14)";
   return {
-    backgroundColor: "color-mix(in srgb, var(--bg-panel) 80%, transparent)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.02) 100%)",
-    backdropFilter: "blur(26px) saturate(140%) brightness(1.04)",
-    WebkitBackdropFilter: "blur(26px) saturate(140%) brightness(1.04)",
+    backgroundColor: "color-mix(in srgb, var(--bg-panel) 76%, transparent)",
+    backdropFilter: "blur(26px) saturate(160%) brightness(1.08)",
+    WebkitBackdropFilter: "blur(26px) saturate(160%) brightness(1.08)",
     boxShadow: elevated ? `${bevel}, 0 12px 34px -10px rgba(var(--shadow-color), 0.55)` : bevel,
   };
 }
@@ -56,14 +53,14 @@ export function glassStyle(reduceTransparency: boolean, elevated = false): CSSPr
 // directly on an already-blurred one doubles the compositing cost for no
 // visible gain, and easily looks murky rather than crisp. This is what a
 // solid control resting on top of glass actually looks like: a lifted,
-// subtly tinted capsule with a small top highlight, not another pane of
-// glass. Uses --border-strong (not a fixed white wash) so the tint stays
-// visible against the panel in light theme too, where a white-on-white
-// wash would all but disappear.
+// subtly tinted capsule with the same all-sides bevel as glassStyle, not
+// another pane of glass. Uses --border-strong (not a fixed white wash) so
+// the tint stays visible against the panel in light theme too, where a
+// white-on-white wash would all but disappear.
 export function glassChipStyle(active: boolean): CSSProperties {
   return {
     background: active ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--border-strong) 35%, transparent)",
-    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.14)",
+    boxShadow: "inset 1px 1px 0 rgba(255, 255, 255, 0.14), inset -1px -1px 0 rgba(0, 0, 0, 0.1)",
   };
 }
 
@@ -81,24 +78,22 @@ export function glassBubbleStyle(reduceTransparency: boolean): CSSProperties {
     return { background: "var(--bg-panel)" };
   }
   return {
-    background: "color-mix(in srgb, var(--bg-panel) 62%, transparent)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.04) 100%)",
-    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.08), 0 4px 14px -4px rgba(var(--shadow-color), 0.4)",
+    background: "color-mix(in srgb, var(--bg-panel) 60%, transparent)",
+    boxShadow: "inset 1px 1px 0 rgba(255, 255, 255, 0.22), inset -1px -1px 0 rgba(0, 0, 0, 0.14), 0 4px 14px -4px rgba(var(--shadow-color), 0.4)",
   };
 }
 
 // A primary-action "glass button" — "+ Add Column," "+ New Transaction,"
 // and the like. Real Liquid Glass buttons aren't fully see-through even
 // when colored (that would tank contrast for their label text); they keep
-// a solid, legible fill and get the glass identity from the same diagonal
-// sheen + bevel + elevation the rest of this file uses, layered on top of
-// the solid color instead of replacing it. No backdrop-filter here — a
-// small button has essentially nothing worth blurring behind it, and
-// skipping it avoids yet another compositing layer for no visible gain.
+// a solid, legible fill and get the glass identity from the same all-sides
+// bevel + elevation the rest of this file uses, layered on top of the
+// solid color instead of replacing it. No backdrop-filter here — a small
+// button has essentially nothing worth blurring behind it, and skipping it
+// avoids yet another compositing layer for no visible gain.
 export function glassButtonStyle(): CSSProperties {
   return {
     backgroundColor: "var(--accent-strong)",
-    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.05) 100%)",
-    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 8px 20px -8px rgba(var(--shadow-color), 0.55)",
+    boxShadow: "inset 1px 1px 0 rgba(255, 255, 255, 0.3), inset -1px -1px 0 rgba(0, 0, 0, 0.18), 0 8px 20px -8px rgba(var(--shadow-color), 0.55)",
   };
 }
