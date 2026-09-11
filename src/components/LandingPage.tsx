@@ -629,18 +629,18 @@ function LeadsIcon() {
 }
 function PipelineIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M3 6H17M3 10H17M3 14H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="17" cy="14" r="1.6" fill="currentColor" />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <rect x="3" y="3" width="4" height="14" rx="1.3" />
+      <rect x="8" y="3" width="4" height="9" rx="1.3" />
+      <rect x="13" y="3" width="4" height="14" rx="1.3" />
     </svg>
   );
 }
 function TransactionsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3 8.5H17" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M6.5 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 6.5V13.5M12.5 8.3H8.7a1.35 1.35 0 0 0 0 2.7h2.6a1.35 1.35 0 0 1 0 2.7H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

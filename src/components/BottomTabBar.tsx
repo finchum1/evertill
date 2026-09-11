@@ -165,24 +165,29 @@ export function ModuleIcon({ page, active }: { page: Page; active: boolean }) {
         </svg>
       );
     case "pipeline":
+      // A kanban board — three columns of varying height, the way Trello/
+      // Linear-style board icons read at a glance — replacing the old
+      // three-line-plus-dot glyph, which read more like a filter/funnel
+      // than a board.
       return (
-        <svg {...outlineAttrs} strokeWidth={active ? 2.1 : 1.6} style={outlineStyle}>
-          <path d="M3 6H17M3 10H17M3 14H12" strokeLinecap="round" />
-          <circle cx="17" cy="14" r="1.5" style={{ fill: color }} stroke="none" />
+        <svg width={size} height={size} viewBox="0 0 20 20" strokeWidth={1.6} style={{ fill: active ? color : "none", stroke: active ? "none" : color }}>
+          <rect x="3" y="3" width="4" height="14" rx="1.3" />
+          <rect x="8" y="3" width="4" height="9" rx="1.3" />
+          <rect x="13" y="3" width="4" height="14" rx="1.3" />
         </svg>
       );
     case "deals":
+      // A dollar sign — replacing the old document/card glyph, which read
+      // as generic paperwork rather than the actual financial transactions
+      // this module tracks.
       return active ? (
         <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="4" width="14" height="12" rx="2.5" style={{ fill: color }} />
-          <path d="M3 8.5H17" stroke="#fff" strokeWidth="1.4" />
-          <path d="M6.5 12H10" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" />
+          <rect x="3" y="3" width="14" height="14" rx="4" style={{ fill: color }} />
+          <path d="M10 6V14M13 8H8.6a1.5 1.5 0 1 0 0 3H11.4a1.5 1.5 0 1 1 0 3H7" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
         <svg {...outlineAttrs} style={outlineStyle}>
-          <rect x="3" y="4" width="14" height="12" rx="2" />
-          <path d="M3 8.5H17" />
-          <path d="M6.5 12H10" strokeLinecap="round" />
+          <path d="M10 6V14M13 8H8.6a1.5 1.5 0 1 0 0 3H11.4a1.5 1.5 0 1 1 0 3H7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     default:
