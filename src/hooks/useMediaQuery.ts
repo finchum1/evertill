@@ -29,3 +29,13 @@ export function useMediaQuery(query: string): boolean {
 export function useIsMobile(): boolean {
   return useMediaQuery("(max-width: 767px)");
 }
+
+// Backs the app's translucent "glass" chrome (see lib/glass.ts) — a visitor
+// who's asked their OS to reduce transparency gets a fully solid panel
+// instead of a blurred, semi-opaque one. An @media query in a stylesheet
+// can't override a same-property inline style regardless of specificity, so
+// this can't be a plain CSS media query the way it would be on a normal
+// site — every glass surface has to branch on this hook's value itself.
+export function usePrefersReducedTransparency(): boolean {
+  return useMediaQuery("(prefers-reduced-transparency: reduce)");
+}

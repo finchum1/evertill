@@ -3,6 +3,8 @@ import type { Page } from "../types";
 import type { Profile } from "../hooks/useProfile";
 import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
+import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
+import { glassStyle } from "../lib/glass";
 
 interface TopNavProps {
   session: Session;
@@ -22,6 +24,8 @@ interface TopNavProps {
 // second line, the exact "crowded, strange navigation" this app's nav has
 // already been reworked around once before).
 export function TopNav({ session, profile, page, onSetPage, themeEffective, onToggleTheme }: TopNavProps) {
+  const reduceTransparency = usePrefersReducedTransparency();
+
   return (
     <div
       style={{
@@ -37,6 +41,7 @@ export function TopNav({ session, profile, page, onSetPage, themeEffective, onTo
         padding: "calc(16px + env(safe-area-inset-top)) 24px 16px",
         borderBottom: "1px solid var(--border)",
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+        ...glassStyle(reduceTransparency),
       }}
     >
       <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Pipeline</div>

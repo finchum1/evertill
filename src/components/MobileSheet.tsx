@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
-import { useIsMobile } from "../hooks/useMediaQuery";
+import { useIsMobile, usePrefersReducedTransparency } from "../hooks/useMediaQuery";
+import { glassStyle } from "../lib/glass";
 
 interface MobileSheetProps {
   onClose: () => void;
@@ -47,6 +48,7 @@ const DISMISS_THRESHOLD = 120;
 // the right shape rather than needing a remount.
 export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", fillHeight, contentPadding, children }: MobileSheetProps) {
   const isMobile = useIsMobile();
+  const reduceTransparency = usePrefersReducedTransparency();
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [entered, setEntered] = useState(false);
@@ -64,7 +66,7 @@ export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", fillHeight,
   if (!isMobile) {
     return (
       <div onClick={onClose} style={backdropStyle}>
-        <div onClick={(e) => e.stopPropagation()} style={{ ...dialogPanelStyle, maxWidth, maxHeight }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ ...dialogPanelStyle(reduceTransparency), maxWidth, maxHeight }}>
           {children}
         </div>
       </div>
@@ -95,7 +97,7 @@ export function MobileSheet({ onClose, maxWidth, maxHeight = "85vh", fillHeight,
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          ...sheetPanelStyle,
+          ...sheetPanelStyle(reduceTransparency),
           maxHeight,
           height: fillHeight ? maxHeight : undefined,
           transform: entered ? `translateY(${dragY}px)` : "translateY(100%)",
@@ -136,20 +138,24 @@ const backdropStyle: CSSProperties = {
   padding: 24,
 };
 
-// Identical to what TaskModal/NoteModal/LeadCardModal each used to render
-// directly — unchanged desktop appearance.
-const dialogPanelStyle: CSSProperties = {
-  width: "100%",
-  overflowY: "auto",
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border)",
-  borderRadius: 16,
-  padding: "28px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 16,
-  fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-};
+// Same base shape every dialog used to hand-roll before this component
+// existed, now with the app's "Liquid Glass" material (lib/glass.ts) in
+// place of a flat panel color — a floating sheet reading as an actual
+// physical surface over the dimmed backdrop rather than a flat rectangle.
+function dialogPanelStyle(reduceTransparency: boolean): CSSProperties {
+  return {
+    width: "100%",
+    overflowY: "auto",
+    border: "1px solid var(--border)",
+    borderRadius: 16,
+    padding: "28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+    ...glassStyle(reduceTransparency),
+  };
+}
 
 // No padding, and stacks its one child at the bottom edge (flexDirection
 // column + justifyContent flex-end) — the sheet itself is full-bleed
@@ -165,17 +171,19 @@ const sheetBackdropStyle: CSSProperties = {
   zIndex: 50,
 };
 
-const sheetPanelStyle: CSSProperties = {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border)",
-  borderBottom: "none",
-  borderRadius: "20px 20px 0 0",
-  fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-  paddingBottom: "env(safe-area-inset-bottom)",
-};
+function sheetPanelStyle(reduceTransparency: boolean): CSSProperties {
+  return {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    border: "1px solid var(--border)",
+    borderBottom: "none",
+    borderRadius: "20px 20px 0 0",
+    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+    paddingBottom: "env(safe-area-inset-bottom)",
+    ...glassStyle(reduceTransparency),
+  };
+}
 
 const dragHandleZoneStyle: CSSProperties = {
   display: "flex",

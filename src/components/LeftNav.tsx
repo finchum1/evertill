@@ -5,6 +5,8 @@ import type { Profile } from "../hooks/useProfile";
 import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
 import { ModuleIcon, TAB_ICON_SIZE } from "./BottomTabBar";
+import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
+import { glassStyle } from "../lib/glass";
 
 interface LeftNavProps {
   session: Session;
@@ -26,9 +28,10 @@ interface LeftNavProps {
 // useIsMobile(), never both.
 export function LeftNav({ session, profile, page, onSetPage, hiddenModules, themeEffective, onToggleTheme, navItems }: LeftNavProps) {
   const visibleNavItems = navItems.filter((item) => !hiddenModules.includes(item.key));
+  const reduceTransparency = usePrefersReducedTransparency();
 
   return (
-    <nav style={railStyle}>
+    <nav style={{ ...railStyle, ...glassStyle(reduceTransparency) }}>
       <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", padding: "4px 10px 22px" }}>
         Pipeline
       </div>

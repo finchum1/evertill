@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Page } from "../types";
+import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
+import { glassStyle } from "../lib/glass";
 
 interface BottomTabBarProps {
   page: Page;
@@ -14,9 +16,10 @@ interface BottomTabBarProps {
 // native navigation actually reads on a small screen.
 export function BottomTabBar({ page, onSetPage, navItems, hiddenModules }: BottomTabBarProps) {
   const visibleItems = navItems.filter((item) => !hiddenModules.includes(item.key));
+  const reduceTransparency = usePrefersReducedTransparency();
 
   return (
-    <nav style={barStyle}>
+    <nav style={barStyle(reduceTransparency)}>
       {visibleItems.map((item) => {
         const active = page === item.key;
         return (
@@ -52,37 +55,39 @@ export const TAB_ICON_SIZE = 23;
 
 export const ICON_SLOT_STYLE: CSSProperties = { width: TAB_ICON_SIZE, height: TAB_ICON_SIZE, flexShrink: 0 };
 
-const barStyle: CSSProperties = {
-  position: "fixed",
-  left: 0,
-  right: 0,
-  bottom: 0,
-  // BOTTOM_TAB_BAR_HEIGHT is the actual content height (icon + label);
-  // the safe-area inset is added on top of it here, not carved out of it.
-  // Everything on the page uses the global `* { box-sizing: border-box }`
-  // (index.css), so a plain `height: BOTTOM_TAB_BAR_HEIGHT` would count
-  // paddingBottom below as part of that same 54px box — on a phone with a
-  // home indicator (safe-area-inset-bottom ~34px) that left only ~20px of
-  // real content room for the ~40px-tall icon+label stack, which overflowed
-  // evenly above and below the box (justifyContent: center) and rendered
-  // as the bar's own top border cutting through the middle of the icon.
-  height: `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))`,
-  display: "flex",
-  // A translucent blurred "material," not a flat panel — reads as an
-  // actual app-shell tab bar rather than a strip of the page glued to the
-  // bottom, and lets scrolled content softly show through underneath.
-  background: "color-mix(in srgb, var(--bg-panel) 82%, transparent)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  borderTop: "1px solid var(--border)",
-  // A no-op in a normal browser tab (env() resolves to 0), but keeps this
-  // bar clear of the home indicator if the page is ever added to the home
-  // screen and launched full-screen instead.
-  paddingBottom: "env(safe-area-inset-bottom)",
-  paddingLeft: "env(safe-area-inset-left)",
-  paddingRight: "env(safe-area-inset-right)",
-  zIndex: 30,
-};
+function barStyle(reduceTransparency: boolean): CSSProperties {
+  return {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // BOTTOM_TAB_BAR_HEIGHT is the actual content height (icon + label);
+    // the safe-area inset is added on top of it here, not carved out of it.
+    // Everything on the page uses the global `* { box-sizing: border-box }`
+    // (index.css), so a plain `height: BOTTOM_TAB_BAR_HEIGHT` would count
+    // paddingBottom below as part of that same 54px box — on a phone with a
+    // home indicator (safe-area-inset-bottom ~34px) that left only ~20px of
+    // real content room for the ~40px-tall icon+label stack, which overflowed
+    // evenly above and below the box (justifyContent: center) and rendered
+    // as the bar's own top border cutting through the middle of the icon.
+    height: `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))`,
+    display: "flex",
+    // The "Liquid Glass" material (lib/glass.ts) — translucent, blurred,
+    // saturated, with a light-catching top-edge highlight — so this reads
+    // as an actual floating app-shell tab bar rather than a strip of the
+    // page glued to the bottom, and lets scrolled content softly show
+    // through underneath as it passes.
+    ...glassStyle(reduceTransparency),
+    borderTop: "1px solid var(--border)",
+    // A no-op in a normal browser tab (env() resolves to 0), but keeps this
+    // bar clear of the home indicator if the page is ever added to the home
+    // screen and launched full-screen instead.
+    paddingBottom: "env(safe-area-inset-bottom)",
+    paddingLeft: "env(safe-area-inset-left)",
+    paddingRight: "env(safe-area-inset-right)",
+    zIndex: 30,
+  };
+}
 
 function tabButtonStyle(active: boolean): CSSProperties {
   return {
