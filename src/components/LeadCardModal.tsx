@@ -202,10 +202,17 @@ function navButtonStyle(enabled: boolean): CSSProperties {
   };
 }
 
+// background: "none" used to leave these fields with no visible fill at
+// all against the glass modal panel behind them (lib/glass.ts's lightened,
+// blurred background left var(--border-strong)'s already-subtle border
+// with essentially no contrast to read against, especially in light theme)
+// — every other modal's own inputStyle already fills with var(--border)
+// instead, which is a distinctly different color from the panel itself
+// regardless of theme or glass. Matching that here.
 const inputStyle: CSSProperties = {
   display: "block",
   width: "100%",
-  background: "none",
+  background: "var(--border)",
   border: "1px solid var(--border-strong)",
   borderRadius: 8,
   color: "var(--text-primary)",
