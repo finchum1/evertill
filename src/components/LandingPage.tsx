@@ -640,7 +640,7 @@ function TransactionsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10 6.5V13.5M12.5 8.3H8.7a1.35 1.35 0 0 0 0 2.7h2.6a1.35 1.35 0 0 1 0 2.7H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 4.5V15.5M13 6.6H8.4a1.7 1.7 0 1 0 0 3.4H11.6a1.7 1.7 0 1 1 0 3.4H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

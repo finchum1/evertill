@@ -183,11 +183,11 @@ export function ModuleIcon({ page, active }: { page: Page; active: boolean }) {
       return active ? (
         <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
           <rect x="3" y="3" width="14" height="14" rx="4" style={{ fill: color }} />
-          <path d="M10 6V14M13 8H8.6a1.5 1.5 0 1 0 0 3H11.4a1.5 1.5 0 1 1 0 3H7" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 4V16M13.5 6.2H8.3a1.8 1.8 0 1 0 0 3.8H11.7a1.8 1.8 0 1 1 0 3.8H6.5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
         <svg {...outlineAttrs} style={outlineStyle}>
-          <path d="M10 6V14M13 8H8.6a1.5 1.5 0 1 0 0 3H11.4a1.5 1.5 0 1 1 0 3H7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 4V16M13.5 6.2H8.3a1.8 1.8 0 1 0 0 3.8H11.7a1.8 1.8 0 1 1 0 3.8H6.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     default:
