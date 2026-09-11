@@ -8,6 +8,7 @@ import { TopNav } from "./components/TopNav";
 import { LeftNav } from "./components/LeftNav";
 import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
+import { HomeDashboard } from "./components/HomeDashboard";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { LeadCardMini } from "./components/LeadCardMini";
@@ -35,7 +36,7 @@ import { SettingsPage } from "./components/SettingsPage";
 import { DialogsProvider, useDialogs } from "./components/DialogHost";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import { DEAL_STATUSES, DEAL_STATUS_LIST_COLOR } from "./types";
-import type { Deal, ListColor, Page, Tag } from "./types";
+import type { Deal, DealType, ListColor, Page, PipelineCard, Tag } from "./types";
 
 const DEALS_VIEW_ORDER: BoardSubView[] = ["list", "board", "agents", "calendar", "value"];
 
@@ -57,6 +58,7 @@ const EMPTY_TAG_IDS: string[] = [];
 // "Transactions" — renaming the internal identifier throughout would touch
 // dozens of files for zero user-visible benefit.
 const NAV_ITEMS: { key: Page; label: string }[] = [
+  { key: "home", label: "Home" },
   { key: "leads", label: "Leads" },
   { key: "pipeline", label: "Pipeline" },
   { key: "deals", label: "Transactions" },
@@ -71,10 +73,19 @@ function LeadsDashboard({
   leads,
   tags,
   onCreateTag,
+  initialOpenCardId,
+  onInitialCardOpened,
 }: {
   leads: LeadsData;
   tags: Tag[];
   onCreateTag: (label: string, color: ListColor) => Promise<Tag | undefined>;
+  // Set by Home's "reach out" list (via App.tsx) to deep-link straight into
+  // one card's modal on top of this page — cleared right back to null via
+  // onInitialCardOpened once consumed, so it doesn't reopen on every
+  // re-render (e.g. after the card's own data changes) or fight with the
+  // user closing it and picking a different card.
+  initialOpenCardId?: string | null;
+  onInitialCardOpened?: () => void;
 }) {
   const {
     columns,
@@ -97,6 +108,13 @@ function LeadsDashboard({
   const dialogs = useDialogs();
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
+
+  useEffect(() => {
+    if (!initialOpenCardId) return;
+    setOpenCardId(initialOpenCardId);
+    onInitialCardOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOpenCardId]);
 
   if (loading) {
     return (
@@ -182,10 +200,18 @@ function PipelineDashboard({
   pipeline,
   tags,
   onCreateTag,
+  onConvertToDeal,
+  initialOpenCardId,
+  onInitialCardOpened,
 }: {
   pipeline: PipelineData;
   tags: Tag[];
   onCreateTag: (label: string, color: ListColor) => Promise<Tag | undefined>;
+  onConvertToDeal: (card: PipelineCard) => void;
+  // Same deep-link pattern as LeadsDashboard's own initialOpenCardId — see
+  // its comment.
+  initialOpenCardId?: string | null;
+  onInitialCardOpened?: () => void;
 }) {
   const {
     columns,
@@ -209,6 +235,13 @@ function PipelineDashboard({
 
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [subView, setSubView] = useState<BoardSubView>("board");
+
+  useEffect(() => {
+    if (!initialOpenCardId) return;
+    setOpenCardId(initialOpenCardId);
+    onInitialCardOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOpenCardId]);
 
   if (loading) {
     return (
@@ -282,6 +315,10 @@ function PipelineDashboard({
           onDelete={deleteCard}
           onAddNote={addNote}
           onDeleteNote={deleteNote}
+          onConvertToDeal={(card) => {
+            onConvertToDeal(card);
+            setOpenCardId(null);
+          }}
           onPrev={prevCard ? () => setOpenCardId(prevCard.id) : undefined}
           onNext={nextCard ? () => setOpenCardId(nextCard.id) : undefined}
         />
@@ -294,10 +331,18 @@ function DealsDashboard({
   dealsData,
   dealTemplatesData,
   onMoveDealToPipeline,
+  initialOpenDealId,
+  onInitialDealOpened,
 }: {
   dealsData: DealsData;
   dealTemplatesData: DealTemplatesData;
   onMoveDealToPipeline: (deal: Deal) => void;
+  // Same deep-link pattern as LeadsDashboard/PipelineDashboard's own
+  // initialOpenCardId — set by App.tsx right after converting a Pipeline
+  // card into a transaction, so the brand-new transaction opens right away
+  // instead of leaving the user to find it themselves in the list/board.
+  initialOpenDealId?: string | null;
+  onInitialDealOpened?: () => void;
 }) {
   const {
     deals,
@@ -324,6 +369,13 @@ function DealsDashboard({
   const [openDealId, setOpenDealId] = useState<string | null>(null);
   const [showNewDeal, setShowNewDeal] = useState(false);
   const [subView, setSubView] = useState<BoardSubView>("list");
+
+  useEffect(() => {
+    if (!initialOpenDealId) return;
+    setOpenDealId(initialOpenDealId);
+    onInitialDealOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOpenDealId]);
 
   if (loading) {
     return (
@@ -444,6 +496,15 @@ function PageContent({
   profileData,
   theme,
   onMoveDealToPipeline,
+  onConvertToDeal,
+  onOpenLeadCard,
+  onOpenPipelineCard,
+  pendingOpenLeadCardId,
+  onLeadCardOpened,
+  pendingOpenPipelineCardId,
+  onPipelineCardOpened,
+  pendingOpenDealId,
+  onDealOpened,
 }: {
   page: Page;
   session: Session;
@@ -455,14 +516,58 @@ function PageContent({
   profileData: ReturnType<typeof useProfile>;
   theme: ReturnType<typeof useTheme>;
   onMoveDealToPipeline: (deal: Deal) => void;
+  onConvertToDeal: (card: PipelineCard) => void;
+  onOpenLeadCard: (id: string) => void;
+  onOpenPipelineCard: (id: string) => void;
+  pendingOpenLeadCardId: string | null;
+  onLeadCardOpened: () => void;
+  pendingOpenPipelineCardId: string | null;
+  onPipelineCardOpened: () => void;
+  pendingOpenDealId: string | null;
+  onDealOpened: () => void;
 }) {
   switch (page) {
+    case "home":
+      return (
+        <HomeDashboard
+          leads={leadsData.cards}
+          pipelineCards={pipelineData.cards}
+          deals={dealsData.deals}
+          onOpenLeadCard={onOpenLeadCard}
+          onOpenPipelineCard={onOpenPipelineCard}
+        />
+      );
     case "leads":
-      return <LeadsDashboard leads={leadsData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
+      return (
+        <LeadsDashboard
+          leads={leadsData}
+          tags={tagsData.tags}
+          onCreateTag={tagsData.addTag}
+          initialOpenCardId={pendingOpenLeadCardId}
+          onInitialCardOpened={onLeadCardOpened}
+        />
+      );
     case "pipeline":
-      return <PipelineDashboard pipeline={pipelineData} tags={tagsData.tags} onCreateTag={tagsData.addTag} />;
+      return (
+        <PipelineDashboard
+          pipeline={pipelineData}
+          tags={tagsData.tags}
+          onCreateTag={tagsData.addTag}
+          onConvertToDeal={onConvertToDeal}
+          initialOpenCardId={pendingOpenPipelineCardId}
+          onInitialCardOpened={onPipelineCardOpened}
+        />
+      );
     case "deals":
-      return <DealsDashboard dealsData={dealsData} dealTemplatesData={dealTemplatesData} onMoveDealToPipeline={onMoveDealToPipeline} />;
+      return (
+        <DealsDashboard
+          dealsData={dealsData}
+          dealTemplatesData={dealTemplatesData}
+          onMoveDealToPipeline={onMoveDealToPipeline}
+          initialOpenDealId={pendingOpenDealId}
+          onInitialDealOpened={onDealOpened}
+        />
+      );
     case "settings":
       return <SettingsPage session={session} profileData={profileData} theme={theme} dealTemplatesData={dealTemplatesData} tagsData={tagsData} />;
   }
@@ -471,7 +576,7 @@ function PageContent({
 function App() {
   const { session, loading } = useAuth();
   const [authModal, setAuthModal] = useState<"signin" | "signup" | null>(null);
-  const [page, setPage] = useState<Page>("leads");
+  const [page, setPage] = useState<Page>("home");
   // Drives LeftNav vs. BottomTabBar/TopNav — a persistent sidebar has no
   // real phone equivalent, so mobile gets the bottom-tab-bar pattern
   // instead (same as this app's old native-tab-bar work).
@@ -534,6 +639,54 @@ function App() {
     await deals.deleteDeal(deal.id);
     setPage("pipeline");
     if (newCard) setCreatePipelineCardId(newCard.id);
+  }
+
+  // The reverse conversion: a Pipeline client is ready to close, so turn
+  // their card into a transaction. Unlike handleMoveDealToPipeline above,
+  // the new transaction is opened via the pendingOpenDealId "deep link"
+  // pattern (see DealsDashboard's initialOpenDealId) rather than a second
+  // standalone modal instance here — DealModal takes far more props than
+  // PipelineCardModal, so duplicating its whole render tree at this level
+  // for one-time use wasn't worth it.
+  async function handleConvertPipelineToDeal(card: PipelineCard) {
+    const cardTagIds = pipeline.cardTagIds[card.id] ?? [];
+    const matchingTag = tags.tags.find(
+      (t) => cardTagIds.includes(t.id) && (t.label.toLowerCase() === "buyer" || t.label.toLowerCase() === "listing")
+    );
+    const type: DealType = matchingTag?.label.toLowerCase() === "listing" ? "Listing" : "Buyer";
+    const deal = await deals.addDeal(card.address || card.title, type, null, null);
+    if (deal) {
+      if (card.value) await deals.updateDeal(deal.id, { value: card.value });
+      await Promise.all([dealTemplates.seedDealChecklist(deal.id, deal.type), deals.seedContactFields(deal.id)]);
+      const cardNotes = pipeline.notes.filter((n) => n.card_id === card.id);
+      for (const note of cardNotes) {
+        await deals.addNote(deal.id, note.body);
+      }
+    }
+    await pipeline.deleteCard(card.id);
+    setPage("deals");
+    if (deal) setPendingOpenDealId(deal.id);
+  }
+
+  // Three separate "deep link into a specific card, then forget it"
+  // pending-open ids — one per module a card can land in from outside its
+  // own dashboard: Home's "reach out" list opens a Lead or Pipeline card,
+  // and converting a Pipeline card opens the transaction it just became.
+  // Each is cleared by its own dashboard the moment it's consumed (see
+  // initialOpenCardId/initialOpenDealId above) so it never reopens on a
+  // later, unrelated re-render.
+  const [pendingOpenLeadCardId, setPendingOpenLeadCardId] = useState<string | null>(null);
+  const [pendingOpenPipelineCardId, setPendingOpenPipelineCardId] = useState<string | null>(null);
+  const [pendingOpenDealId, setPendingOpenDealId] = useState<string | null>(null);
+
+  function openLeadCard(id: string) {
+    setPage("leads");
+    setPendingOpenLeadCardId(id);
+  }
+
+  function openPipelineCard(id: string) {
+    setPage("pipeline");
+    setPendingOpenPipelineCardId(id);
   }
 
   if (loading) {
@@ -603,6 +756,15 @@ function App() {
                 profileData={profile}
                 theme={theme}
                 onMoveDealToPipeline={handleMoveDealToPipeline}
+                onConvertToDeal={handleConvertPipelineToDeal}
+                onOpenLeadCard={openLeadCard}
+                onOpenPipelineCard={openPipelineCard}
+                pendingOpenLeadCardId={pendingOpenLeadCardId}
+                onLeadCardOpened={() => setPendingOpenLeadCardId(null)}
+                pendingOpenPipelineCardId={pendingOpenPipelineCardId}
+                onPipelineCardOpened={() => setPendingOpenPipelineCardId(null)}
+                pendingOpenDealId={pendingOpenDealId}
+                onDealOpened={() => setPendingOpenDealId(null)}
               />
             </main>
             {isMobile && <BottomTabBar page={page} onSetPage={setPage} navItems={NAV_ITEMS} hiddenModules={hiddenModules} />}
@@ -635,6 +797,10 @@ function App() {
           onDelete={pipeline.deleteCard}
           onAddNote={pipeline.addNote}
           onDeleteNote={pipeline.deleteNote}
+          onConvertToDeal={(card) => {
+            handleConvertPipelineToDeal(card);
+            setCreatePipelineCardId(null);
+          }}
         />
       )}
 

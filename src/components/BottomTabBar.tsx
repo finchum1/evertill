@@ -123,6 +123,16 @@ export function ModuleIcon({ page, active }: { page: Page; active: boolean }) {
   const outlineAttrs = { width: size, height: size, viewBox: "0 0 20 20", fill: "none" as const, strokeWidth: 1.6 };
   const outlineStyle = { stroke: color };
   switch (page) {
+    case "home":
+      return active ? (
+        <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+          <path d="M3 9L10 3L17 9V16.5C17 17.05 16.55 17.5 16 17.5H12.5V12.5H7.5V17.5H4C3.45 17.5 3 17.05 3 16.5V9Z" style={{ fill: color }} />
+        </svg>
+      ) : (
+        <svg {...outlineAttrs} style={outlineStyle}>
+          <path d="M3 9L10 3L17 9V16.5C17 17.05 16.55 17.5 16 17.5H12.5V12.5H7.5V17.5H4C3.45 17.5 3 17.05 3 16.5V9Z" strokeLinejoin="round" />
+        </svg>
+      );
     case "leads":
       return (
         <svg width={size} height={size} viewBox="0 0 20 20" strokeWidth={1.6} style={{ fill: active ? color : "none", stroke: active ? "none" : color }}>

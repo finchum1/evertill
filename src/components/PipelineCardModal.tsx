@@ -20,6 +20,11 @@ interface PipelineCardModalProps {
   onDelete: (id: string) => void;
   onAddNote: (cardId: string, body: string) => void;
   onDeleteNote: (id: string) => void;
+  // Turns this card into a transaction (Deals) once a client is ready to
+  // close — same module-to-module conversion invariant as Transactions'
+  // own "Move to Pipeline" (a card lives in exactly one module at a time),
+  // just in the opposite direction.
+  onConvertToDeal: (card: PipelineCard) => void;
   onPrev?: () => void;
   onNext?: () => void;
 }
@@ -37,6 +42,7 @@ export function PipelineCardModal({
   onDelete,
   onAddNote,
   onDeleteNote,
+  onConvertToDeal,
   onPrev,
   onNext,
 }: PipelineCardModalProps) {
@@ -161,6 +167,17 @@ export function PipelineCardModal({
           </button>
           <button
             onClick={async () => {
+              const ok = await dialogs.confirm({
+                message: `Convert "${card.title}" to a transaction? This removes it from Pipeline and creates a new transaction in Transactions.`,
+              });
+              if (ok) onConvertToDeal(card);
+            }}
+            style={secondaryButtonStyle}
+          >
+            Convert to Transaction
+          </button>
+          <button
+            onClick={async () => {
               const ok = await dialogs.confirm({ message: `Delete "${card.title}"? This can't be undone.`, danger: true, confirmLabel: "Delete" });
               if (ok) {
                 onDelete(card.id);
@@ -225,6 +242,17 @@ const labelStyle: CSSProperties = {
 };
 
 const ghostButtonStyle: CSSProperties = {
+  background: "none",
+  border: "1px solid var(--border-strong)",
+  borderRadius: 8,
+  color: "var(--text-body)",
+  fontSize: 13,
+  fontWeight: 600,
+  padding: "8px 16px",
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle: CSSProperties = {
   background: "none",
   border: "1px solid var(--border-strong)",
   borderRadius: 8,

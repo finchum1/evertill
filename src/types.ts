@@ -25,7 +25,7 @@ export const LIST_COLOR_HEX: Record<ListColor, string> = {
   pink: "#ec4899",
 };
 
-export type Page = "leads" | "pipeline" | "deals" | "settings";
+export type Page = "home" | "leads" | "pipeline" | "deals" | "settings";
 
 // Single source of truth for which modules can be hidden from Settings >
 // Modules — "settings" is deliberately never in this list, since it's
