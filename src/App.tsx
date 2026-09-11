@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT } from "./components/BottomTabBar";
+import { BottomTabBar, BOTTOM_TAB_BAR_CLEARANCE } from "./components/BottomTabBar";
 import { useAuth } from "./hooks/useAuth";
 import { useLeads } from "./hooks/useLeads";
 import { usePipeline } from "./hooks/usePipeline";
@@ -690,8 +690,10 @@ function App() {
                 minWidth: 0,
                 // Reserve room for the fixed BottomTabBar below so page content
                 // never renders underneath it — a no-op (0px) on desktop,
-                // where the bar isn't rendered at all.
-                paddingBottom: isMobile ? `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
+                // where the bar isn't rendered at all. BOTTOM_TAB_BAR_CLEARANCE
+                // already covers the pill's own height plus the margin it
+                // floats above the bottom edge with.
+                paddingBottom: isMobile ? `calc(${BOTTOM_TAB_BAR_CLEARANCE}px + env(safe-area-inset-bottom))` : 0,
               }}
             >
               <PageContent

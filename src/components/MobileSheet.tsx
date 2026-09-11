@@ -153,7 +153,7 @@ function dialogPanelStyle(reduceTransparency: boolean): CSSProperties {
     flexDirection: "column",
     gap: 16,
     fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-    ...glassStyle(reduceTransparency),
+    ...glassStyle(reduceTransparency, true),
   };
 }
 
@@ -181,7 +181,7 @@ function sheetPanelStyle(reduceTransparency: boolean): CSSProperties {
     borderRadius: "20px 20px 0 0",
     fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
     paddingBottom: "env(safe-area-inset-bottom)",
-    ...glassStyle(reduceTransparency),
+    ...glassStyle(reduceTransparency, true),
   };
 }
 

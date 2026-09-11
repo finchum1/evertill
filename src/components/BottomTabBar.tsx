@@ -44,10 +44,24 @@ export function BottomTabBar({ page, onSetPage, navItems, hiddenModules }: Botto
   );
 }
 
-// Fixed height reserved by App.tsx's <main> padding-bottom so page content
-// never renders underneath this bar — kept as one constant so the two stay
-// in sync instead of two hand-tuned numbers drifting apart.
-export const BOTTOM_TAB_BAR_HEIGHT = 54;
+// The bar's own content height — unrelated to safe-area insets now (see
+// barStyle below), unlike the old edge-to-edge version where this constant
+// had to account for them internally.
+export const BOTTOM_TAB_BAR_HEIGHT = 60;
+
+// How far the floating pill sits inset from the screen edges/bottom — the
+// actual "Liquid Glass" signature (iOS 26's redesigned tab bar) is a
+// rounded pill that visibly floats above content with a gap all around it,
+// not a strip glued flush to the edges the way this bar used to render.
+const SIDE_MARGIN = 16;
+const BOTTOM_MARGIN = 14;
+
+// Total space App.tsx's <main> needs to reserve in its padding-bottom so
+// page content never renders underneath the floating pill — height, the
+// margin below it, and a little extra breathing room above it, kept as one
+// constant so it and the bar's own layout can't drift apart from each
+// other's hand-tuned numbers.
+export const BOTTOM_TAB_BAR_CLEARANCE = BOTTOM_TAB_BAR_HEIGHT + BOTTOM_MARGIN + 12;
 
 // Exported so LeftNav.tsx's own nav rows can size their icon slot with the
 // same wrapper-span pattern (see the comment above), just at their own size.
@@ -58,33 +72,25 @@ export const ICON_SLOT_STYLE: CSSProperties = { width: TAB_ICON_SIZE, height: TA
 function barStyle(reduceTransparency: boolean): CSSProperties {
   return {
     position: "fixed",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    // BOTTOM_TAB_BAR_HEIGHT is the actual content height (icon + label);
-    // the safe-area inset is added on top of it here, not carved out of it.
-    // Everything on the page uses the global `* { box-sizing: border-box }`
-    // (index.css), so a plain `height: BOTTOM_TAB_BAR_HEIGHT` would count
-    // paddingBottom below as part of that same 54px box — on a phone with a
-    // home indicator (safe-area-inset-bottom ~34px) that left only ~20px of
-    // real content room for the ~40px-tall icon+label stack, which overflowed
-    // evenly above and below the box (justifyContent: center) and rendered
-    // as the bar's own top border cutting through the middle of the icon.
-    height: `calc(${BOTTOM_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))`,
+    // max(), not a flat SIDE_MARGIN — on a landscape phone with a notch,
+    // env(safe-area-inset-left/right) can exceed this margin on its own;
+    // without the max() the pill would render half-hidden under the notch
+    // instead of just sitting a bit further from the true screen edge.
+    left: `max(${SIDE_MARGIN}px, env(safe-area-inset-left))`,
+    right: `max(${SIDE_MARGIN}px, env(safe-area-inset-right))`,
+    bottom: `calc(${BOTTOM_MARGIN}px + env(safe-area-inset-bottom))`,
+    height: BOTTOM_TAB_BAR_HEIGHT,
+    borderRadius: BOTTOM_TAB_BAR_HEIGHT / 2,
     display: "flex",
+    padding: "0 6px",
     // The "Liquid Glass" material (lib/glass.ts) — translucent, blurred,
-    // saturated, with a light-catching top-edge highlight — so this reads
-    // as an actual floating app-shell tab bar rather than a strip of the
-    // page glued to the bottom, and lets scrolled content softly show
-    // through underneath as it passes.
-    ...glassStyle(reduceTransparency),
-    borderTop: "1px solid var(--border)",
-    // A no-op in a normal browser tab (env() resolves to 0), but keeps this
-    // bar clear of the home indicator if the page is ever added to the home
-    // screen and launched full-screen instead.
-    paddingBottom: "env(safe-area-inset-bottom)",
-    paddingLeft: "env(safe-area-inset-left)",
-    paddingRight: "env(safe-area-inset-right)",
+    // saturated, brightened, with a diagonal sheen and a real elevation
+    // shadow (this is a floating pill now, not a flush edge-to-edge strip)
+    // — so this reads as an actual physical surface hovering above
+    // whatever's scrolling underneath it, not a strip of the page glued to
+    // the bottom.
+    ...glassStyle(reduceTransparency, true),
+    border: "1px solid color-mix(in srgb, var(--border-strong) 55%, transparent)",
     zIndex: 30,
   };
 }
