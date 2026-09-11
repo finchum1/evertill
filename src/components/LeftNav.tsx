@@ -6,7 +6,7 @@ import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
 import { ModuleIcon, TAB_ICON_SIZE } from "./BottomTabBar";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
-import { glassStyle, glassChipStyle } from "../lib/glass";
+import { glassStyle, glassChipStyle, glassBubbleStyle } from "../lib/glass";
 
 interface LeftNavProps {
   session: Session;
@@ -40,7 +40,7 @@ export function LeftNav({ session, profile, page, onSetPage, hiddenModules, them
         {visibleNavItems.map((item) => {
           const active = page === item.key;
           return (
-            <button key={item.key} onClick={() => onSetPage(item.key)} style={navRowStyle(active)}>
+            <button key={item.key} onClick={() => onSetPage(item.key)} style={navRowStyle(active, reduceTransparency)}>
               <span style={{ width: TAB_ICON_SIZE, height: TAB_ICON_SIZE, flexShrink: 0 }}>
                 <ModuleIcon page={item.key} active={active} />
               </span>
@@ -98,23 +98,23 @@ const railStyle: CSSProperties = {
   height: `calc(100dvh - ${SIDEBAR_MARGIN * 2}px)`,
 };
 
-// Same translucent color-mix pill TopNav's old horizontal navItemStyle used
-// (and LeadsBoard/PipelineBoard's tag pills elsewhere) — one shared "active"
-// treatment across the app rather than a new one invented for this rail.
-function navRowStyle(active: boolean): CSSProperties {
+// The active row is the same clear glass bubble (lib/glass.ts) ViewTabs'
+// active tab uses — a lifted, translucent capsule with the accent color
+// carried by its label text, not a flat colored-tint rectangle.
+function navRowStyle(active: boolean, reduceTransparency: boolean): CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    background: active ? "color-mix(in srgb, var(--accent) 16%, transparent)" : "transparent",
     border: "none",
-    borderRadius: 8,
+    borderRadius: 12,
     color: active ? "var(--accent-light)" : "var(--text-secondary)",
     fontSize: 13,
-    fontWeight: 600,
+    fontWeight: active ? 700 : 600,
     padding: "9px 10px",
     cursor: "pointer",
     transition: "background 120ms ease, color 120ms ease",
+    ...(active ? glassBubbleStyle(reduceTransparency) : { background: "transparent" }),
   };
 }
 

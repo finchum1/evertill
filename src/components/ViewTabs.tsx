@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
-import { glassStyle } from "../lib/glass";
+import { glassStyle, glassBubbleStyle } from "../lib/glass";
 
 // Board sub-views (Leads/Pipeline/Deals) are the original and still only
 // consumer of this shape — kept here (rather than inline per dashboard in
@@ -45,14 +45,15 @@ export function ViewTabs<T extends string>({
     // sideways, which is the standard, native-feeling way iOS itself
     // handles an overflowing segmented/chip row.
     //
-    // A glass track (lib/glass.ts) with the active tab as a solid capsule
-    // riding on top of it — the same segmented-control-on-glass pattern
-    // iOS itself uses, and unlike LeftNav's account row this sits directly
-    // on the plain page background, not on another glass surface, so a
-    // real blurred layer here doesn't stack translucency on translucency.
+    // A glass track (lib/glass.ts) with the active tab as its own clear
+    // glass bubble (glassBubbleStyle) riding on top — the same segmented-
+    // control-on-glass pattern iOS itself uses, and unlike LeftNav's
+    // account row this track sits directly on the plain page background,
+    // not on another glass surface, so a real blurred layer here doesn't
+    // stack translucency on translucency.
     <div style={{ display: "inline-flex", gap: 4, flexWrap: "nowrap", overflowX: "auto", padding: 4, borderRadius: 14, ...glassStyle(reduceTransparency) }}>
       {tabs.map((tab) => (
-        <button key={tab.key} onClick={() => onChange(tab.key)} style={tabButtonStyle(active === tab.key)}>
+        <button key={tab.key} onClick={() => onChange(tab.key)} style={tabButtonStyle(active === tab.key, reduceTransparency)}>
           {tab.label}
           {!!tab.badge && (
             <span style={{ fontSize: 11, marginLeft: 6, opacity: active === tab.key ? 0.85 : 0.65 }}>{tab.badge}</span>
@@ -63,16 +64,19 @@ export function ViewTabs<T extends string>({
   );
 }
 
-const tabButtonStyle = (active: boolean): CSSProperties => ({
-  background: active ? "var(--accent-strong)" : "none",
+// The active tab is a clear glass bubble (lib/glass.ts) carrying the accent
+// color on its own LABEL text, not a solid accent-colored fill — asked for
+// after a solid-red "Board" pill read as a flat colored rectangle rather
+// than glass.
+const tabButtonStyle = (active: boolean, reduceTransparency: boolean): CSSProperties => ({
   border: "none",
   borderRadius: 10,
-  color: active ? "#fff" : "var(--text-tertiary)",
+  color: active ? "var(--accent-light)" : "var(--text-tertiary)",
   fontSize: 13,
-  fontWeight: 600,
+  fontWeight: 700,
   padding: "6px 14px",
   cursor: "pointer",
   flexShrink: 0,
   whiteSpace: "nowrap",
-  boxShadow: active ? "inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 8px -2px rgba(var(--shadow-color), 0.5)" : "none",
+  ...(active ? glassBubbleStyle(reduceTransparency) : { background: "none" }),
 });

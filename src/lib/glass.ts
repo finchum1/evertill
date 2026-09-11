@@ -64,6 +64,26 @@ export function glassChipStyle(active: boolean): CSSProperties {
   };
 }
 
+// The "selected" indicator for a segmented control or nav row that already
+// sits on top of a glass surface (ViewTabs' track, LeftNav's own panel) —
+// a clear, lifted glass bubble with the accent color carried by its LABEL
+// text, not a solid accent-colored fill. Lighter/more opaque than the
+// track behind it so it still visibly separates as its own bubble, but
+// still translucent — "glass," not "a colored rectangle." No backdrop-
+// filter of its own for the same reason glassChipStyle skips one: it's
+// already resting on an already-blurred surface, so a second blur layer
+// here would just double the compositing cost for no visible gain.
+export function glassBubbleStyle(reduceTransparency: boolean): CSSProperties {
+  if (reduceTransparency) {
+    return { background: "var(--bg-panel)" };
+  }
+  return {
+    background: "color-mix(in srgb, var(--bg-panel) 55%, transparent)",
+    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.08), 0 4px 14px -4px rgba(var(--shadow-color), 0.4)",
+  };
+}
+
 // A primary-action "glass button" — "+ Add Column," "+ New Transaction,"
 // and the like. Real Liquid Glass buttons aren't fully see-through even
 // when colored (that would tank contrast for their label text); they keep
