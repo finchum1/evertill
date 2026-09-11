@@ -46,7 +46,12 @@ export function PipelineBoard({
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12 }}>
+      {/* minHeight, not just whatever the tallest column's content needs —
+          an empty (or nearly-empty) column otherwise shrank this whole row
+          down to just its header's height, which left a column's "..."
+          rename/color/delete menu popping open with nowhere to render
+          inside the visible page and forcing a scroll down to reach it. */}
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12, minHeight: "75vh" }}>
         {columns.map((column) => {
           const columnCards = cards.filter((c) => c.column_id === column.id);
           const columnValue = columnCards.reduce((sum, c) => sum + Number(c.value), 0);

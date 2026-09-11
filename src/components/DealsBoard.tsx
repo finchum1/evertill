@@ -33,7 +33,11 @@ export function DealsBoard({ deals, checklistItems, onOpenDeal }: DealsBoardProp
           </select>
         </label>
       )}
-      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12 }}>
+      {/* minHeight, not just whatever the tallest column's content needs —
+          an empty (or nearly-empty) column otherwise shrank this whole row
+          down to just its header's height, leaving very little room to
+          work with. Same fix as LeadsBoard.tsx/PipelineBoard.tsx. */}
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12, minHeight: "75vh" }}>
         {DEAL_STATUSES.map((status) => {
           const statusDeals = visibleDeals.filter((d) => d.status === status);
           const statusValue = statusDeals.reduce((sum, d) => sum + Number(d.value), 0);
