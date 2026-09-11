@@ -108,27 +108,34 @@ function ReachOutRow({ item, divider, onOpen }: { item: ReachOutItem; divider: b
   return (
     <div onClick={onOpen} style={rowStyle(divider)}>
       <span style={tagStyle(MODULE_COLOR[item.module])}>{MODULE_LABEL[item.module]}</span>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text-primary)",
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {item.title}
-      </span>
+      {/* Name and due date stacked - the date reads as "when to follow up
+          with this person" much more clearly directly under their name
+          than off to the side sharing a line with unrelated info. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.title}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: dateColor }}>
+          {overdue ? "Overdue · " : dueToday ? "Today · " : ""}
+          {formatDueDate(item.dueDate)}
+        </span>
+      </div>
       {item.lastActivityText && (
         <span
           style={{
             fontSize: 12,
             color: "var(--text-muted)",
-            flex: 1,
-            minWidth: 0,
+            maxWidth: 220,
+            flexShrink: 0,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -137,10 +144,6 @@ function ReachOutRow({ item, divider, onOpen }: { item: ReachOutItem; divider: b
           {item.lastActivityText}
         </span>
       )}
-      <span style={{ fontSize: 12, fontWeight: 700, color: dateColor, flexShrink: 0 }}>
-        {overdue ? "Overdue · " : dueToday ? "Today · " : ""}
-        {formatDueDate(item.dueDate)}
-      </span>
     </div>
   );
 }
