@@ -6,7 +6,7 @@ import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
 import { ModuleIcon, TAB_ICON_SIZE } from "./BottomTabBar";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
-import { glassStyle } from "../lib/glass";
+import { glassStyle, glassChipStyle } from "../lib/glass";
 
 interface LeftNavProps {
   session: Session;
@@ -31,7 +31,7 @@ export function LeftNav({ session, profile, page, onSetPage, hiddenModules, them
   const reduceTransparency = usePrefersReducedTransparency();
 
   return (
-    <nav style={{ ...railStyle, ...glassStyle(reduceTransparency) }}>
+    <nav style={{ ...railStyle, ...glassStyle(reduceTransparency, true) }}>
       <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", padding: "4px 10px 22px" }}>
         Pipeline
       </div>
@@ -72,18 +72,30 @@ export function LeftNav({ session, profile, page, onSetPage, hiddenModules, them
   );
 }
 
+const SIDEBAR_MARGIN = 16;
+
 const railStyle: CSSProperties = {
   width: 232,
   flexShrink: 0,
   display: "flex",
   flexDirection: "column",
   padding: "20px 14px",
-  borderRight: "1px solid var(--border)",
+  border: "1px solid color-mix(in srgb, var(--border-strong) 55%, transparent)",
+  borderRadius: 20,
   fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-  // A real sidebar, not page content that happens to sit on the left — it
-  // scrolls on its own if the nav list ever grows past viewport height,
-  // independent of whichever dashboard is scrolling on the right.
-  minHeight: "100dvh",
+  // A detached floating panel (Liquid Glass's actual signature — see
+  // BottomTabBar.tsx's own floating pill) rather than a flush edge-to-edge
+  // rail: inset from the top/left/bottom, with the content column sitting
+  // right up against its right edge. alignSelf: flex-start keeps this
+  // box's own height from being stretched to match its (often much taller)
+  // sibling — without that, position: sticky below would have no room to
+  // ever actually "stick," since the box would already span the full
+  // scrollable height.
+  margin: `${SIDEBAR_MARGIN}px 0 ${SIDEBAR_MARGIN}px ${SIDEBAR_MARGIN}px`,
+  alignSelf: "flex-start",
+  position: "sticky",
+  top: SIDEBAR_MARGIN,
+  height: `calc(100dvh - ${SIDEBAR_MARGIN * 2}px)`,
 };
 
 // Same translucent color-mix pill TopNav's old horizontal navItemStyle used
@@ -106,15 +118,19 @@ function navRowStyle(active: boolean): CSSProperties {
   };
 }
 
+// A lifted glass "chip" (lib/glass.ts), not another blurred glass layer —
+// this already sits inside the sidebar's own glass panel, so it reads as a
+// solid capsule resting on top of the glass rather than a second pane of
+// it (see glassChipStyle's own comment on why stacking blur is avoided).
 function accountRowStyle(active: boolean): CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    background: active ? "var(--border)" : "none",
     border: "none",
-    borderRadius: 8,
-    padding: "6px 8px",
+    borderRadius: 999,
+    padding: "6px 12px 6px 6px",
     cursor: "pointer",
+    ...glassChipStyle(active),
   };
 }

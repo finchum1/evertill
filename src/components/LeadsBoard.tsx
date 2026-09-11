@@ -5,6 +5,7 @@ import type { LeadCard, LeadColumn, ListColor, Tag } from "../types";
 import { LEAD_CARD_DRAG_MIME } from "../lib/dragTypes";
 import { LeadCardMini } from "./LeadCardMini";
 import { ListMenu } from "./ListMenu";
+import { glassButtonStyle } from "../lib/glass";
 
 interface LeadsBoardProps {
   columns: LeadColumn[];
@@ -138,13 +139,13 @@ export function LeadsBoard({
 }
 
 const primaryButtonStyle: CSSProperties = {
-  background: "var(--accent-strong)",
+  ...glassButtonStyle(),
   border: "none",
-  borderRadius: 8,
+  borderRadius: 999,
   color: "#fff",
   fontSize: 13,
   fontWeight: 600,
-  padding: "8px 16px",
+  padding: "8px 18px",
   cursor: "pointer",
 };
 

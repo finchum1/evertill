@@ -46,3 +46,36 @@ export function glassStyle(reduceTransparency: boolean, elevated = false): CSSPr
     boxShadow: elevated ? `${bevel}, 0 12px 34px -10px rgba(var(--shadow-color), 0.55)` : bevel,
   };
 }
+
+// A "chip" that rests ON TOP of a glass surface (LeftNav's account row and
+// ThemeToggleButton both sit inside/near an already-blurred glass panel)
+// without blurring anything itself — a second backdrop-filter layered
+// directly on an already-blurred one doubles the compositing cost for no
+// visible gain, and easily looks murky rather than crisp. This is what a
+// solid control resting on top of glass actually looks like: a lifted,
+// subtly tinted capsule with a small top highlight, not another pane of
+// glass. Uses --border-strong (not a fixed white wash) so the tint stays
+// visible against the panel in light theme too, where a white-on-white
+// wash would all but disappear.
+export function glassChipStyle(active: boolean): CSSProperties {
+  return {
+    background: active ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--border-strong) 35%, transparent)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.14)",
+  };
+}
+
+// A primary-action "glass button" — "+ Add Column," "+ New Transaction,"
+// and the like. Real Liquid Glass buttons aren't fully see-through even
+// when colored (that would tank contrast for their label text); they keep
+// a solid, legible fill and get the glass identity from the same diagonal
+// sheen + bevel + elevation the rest of this file uses, layered on top of
+// the solid color instead of replacing it. No backdrop-filter here — a
+// small button has essentially nothing worth blurring behind it, and
+// skipping it avoids yet another compositing layer for no visible gain.
+export function glassButtonStyle(): CSSProperties {
+  return {
+    backgroundColor: "var(--accent-strong)",
+    backgroundImage: "linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.15), 0 8px 20px -8px rgba(var(--shadow-color), 0.55)",
+  };
+}

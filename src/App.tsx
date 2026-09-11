@@ -9,6 +9,7 @@ import { LeftNav } from "./components/LeftNav";
 import { Landing } from "./components/LandingPage";
 import { AuthModal } from "./components/AuthModal";
 import { HomeDashboard } from "./components/HomeDashboard";
+import { glassButtonStyle } from "./lib/glass";
 import { LeadsBoard } from "./components/LeadsBoard";
 import { LeadCardModal } from "./components/LeadCardModal";
 import { LeadCardMini } from "./components/LeadCardMini";
@@ -800,13 +801,13 @@ function App() {
 export default App;
 
 const newDealButtonStyle = {
-  background: "var(--accent-strong)",
+  ...glassButtonStyle(),
   border: "none",
-  borderRadius: 8,
+  borderRadius: 999,
   color: "#fff",
   fontSize: 13,
   fontWeight: 600,
-  padding: "8px 16px",
+  padding: "8px 18px",
   cursor: "pointer",
 };
 

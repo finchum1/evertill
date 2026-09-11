@@ -1,3 +1,5 @@
+import { glassChipStyle } from "../lib/glass";
+
 // Logged-out top bar only — sits above <Landing> (App.tsx's own comment on
 // that render branch explains why: Landing renders no header of its own,
 // relying entirely on this one for the "Pipeline" wordmark + Log in/Sign
@@ -61,11 +63,17 @@ export function ThemeToggleButton({ effective, onToggle }: { effective: "dark" |
         height: 32,
         flexShrink: 0,
         borderRadius: 99,
-        border: "1px solid var(--border-strong)",
-        background: "none",
+        border: "none",
         color: "var(--text-secondary)",
         cursor: "pointer",
         padding: 0,
+        // A lifted glass chip (lib/glass.ts) rather than a plain outlined
+        // circle — this button sits on LeftNav's/TopNav's own glass bars
+        // (and, on the logged-out marketing header, plain page background),
+        // so a solid tinted capsule reads as "a real control resting on
+        // glass" without stacking a second blurred layer on top of one
+        // that's often already blurred underneath it.
+        ...glassChipStyle(false),
       }}
     >
       {effective === "dark" ? <SunIcon /> : <MoonIcon />}
