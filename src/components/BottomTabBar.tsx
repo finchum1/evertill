@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Page } from "../types";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
-import { glassStyle } from "../lib/glass";
+import { glassStyle, glassBubbleStyle } from "../lib/glass";
 
 interface BottomTabBarProps {
   page: Page;
@@ -23,7 +23,7 @@ export function BottomTabBar({ page, onSetPage, navItems, hiddenModules }: Botto
       {visibleItems.map((item) => {
         const active = page === item.key;
         return (
-          <button key={item.key} className="native-tab-btn" onClick={() => onSetPage(item.key)} style={tabButtonStyle(active)}>
+          <button key={item.key} className="native-tab-btn" onClick={() => onSetPage(item.key)} style={tabButtonStyle(active, reduceTransparency)}>
             {/* A plain block-level box with its own explicit width/height,
                 not just the <svg>'s own width/height attributes — iOS
                 Safari doesn't reliably respect an SVG's intrinsic size as
@@ -54,7 +54,13 @@ export const BOTTOM_TAB_BAR_HEIGHT = 60;
 // rounded pill that visibly floats above content with a gap all around it,
 // not a strip glued flush to the edges the way this bar used to render.
 const SIDE_MARGIN = 16;
-const BOTTOM_MARGIN = 14;
+// Was 14 - fine in a plain Safari tab (env(safe-area-inset-bottom) is 0
+// there), but combined with a real home indicator's ~34px inset once
+// installed to the home screen and launched standalone, the pill sat with
+// a noticeably large, "floating too high" gap below it. 8px still clears
+// the indicator (the safe-area env() addition below is what actually does
+// that job) while sitting closer to the true bottom edge.
+const BOTTOM_MARGIN = 8;
 
 // Total space App.tsx's <main> needs to reserve in its padding-bottom so
 // page content never renders underneath the floating pill — height, the
@@ -95,7 +101,13 @@ function barStyle(reduceTransparency: boolean): CSSProperties {
   };
 }
 
-function tabButtonStyle(active: boolean): CSSProperties {
+// The active tab gets its own small clear glass bubble (lib/glass.ts) —
+// margin insets it a few px from the bar's own top/bottom edges so the
+// bubble reads as a distinct rounded shape sitting inside the pill, not a
+// full-height block spanning it. No backdrop-filter of its own (same
+// reasoning as every other glassBubbleStyle/glassChipStyle use in this
+// app) — it's already resting on the bar's own already-blurred glass.
+function tabButtonStyle(active: boolean, reduceTransparency: boolean): CSSProperties {
   return {
     flex: 1,
     display: "flex",
@@ -103,10 +115,12 @@ function tabButtonStyle(active: boolean): CSSProperties {
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    background: "none",
     border: "none",
     color: active ? "var(--accent-light)" : "var(--text-muted)",
     cursor: "pointer",
+    margin: "6px 3px",
+    borderRadius: 16,
+    ...(active ? glassBubbleStyle(reduceTransparency) : { background: "none" }),
   };
 }
 

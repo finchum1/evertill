@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Deal, LeadCard, PipelineCard } from "../types";
 import { formatCurrency } from "../lib/format";
 import { addDays, dateToKey, formatDueDate, isOverdue, todayKey } from "../lib/dates";
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 interface HomeDashboardProps {
   leads: LeadCard[];
@@ -33,6 +34,7 @@ const REACH_OUT_WINDOW_DAYS = 7;
 // module (see App.tsx's openLeadCard/openPipelineCard) rather than trying
 // to edit anything about the card here.
 export function HomeDashboard({ leads, pipelineCards, deals, onOpenLeadCard, onOpenPipelineCard }: HomeDashboardProps) {
+  const isMobile = useIsMobile();
   const openTransactions = deals.filter((d) => d.status !== "Closed");
   const openTransactionsValue = openTransactions.reduce((sum, d) => sum + Number(d.value), 0);
 
@@ -55,7 +57,14 @@ export function HomeDashboard({ leads, pipelineCards, deals, onOpenLeadCard, onO
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+      {/* minmax(0, 1fr), not a bare 1fr — a grid track's default min-width
+          is auto (its content's own min-content size), not 0, so a wide
+          value like a dollar amount could force its own column wider than
+          an equal 1/4 share and push the last card past the edge of the
+          screen entirely. 2 columns on mobile, not 4 — four real dollar-
+          amount/count cards at phone width don't have room to each show
+          their label without wrapping badly even with minmax(0, ...). */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${isMobile ? 2 : 4}, minmax(0, 1fr))`, gap: 14, marginBottom: 28 }}>
         <StatCard label="LEADS" value={String(leads.length)} color={MODULE_COLOR.leads} />
         <StatCard label="PIPELINE" value={String(pipelineCards.length)} color={MODULE_COLOR.pipeline} />
         <StatCard label="OPEN TRANSACTIONS" value={String(openTransactions.length)} color="var(--accent-strong)" />
@@ -95,7 +104,7 @@ const MODULE_LABEL: Record<ReachOutModule, string> = { leads: "Lead", pipeline: 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div style={statCardStyle}>
-      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
       <div style={statLabelStyle}>{label}</div>
     </div>
   );
@@ -153,6 +162,13 @@ const statCardStyle: CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 12,
   padding: "16px 18px",
+  // minWidth: 0 - a grid/flex item's default min-width is auto (its own
+  // content's min-content size), which is what let a wide dollar-amount
+  // value force this card past its fair 1/4-of-the-row share in the first
+  // place; this plus overflow: hidden is what actually lets the value's own
+  // text-overflow: ellipsis (see StatCard) do anything.
+  minWidth: 0,
+  overflow: "hidden",
 };
 
 const statLabelStyle: CSSProperties = {
