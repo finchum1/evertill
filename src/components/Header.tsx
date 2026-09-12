@@ -1,4 +1,5 @@
 import { glassChipStyle } from "../lib/glass";
+import { PipelineWordmark } from "./PipelineWordmark";
 
 // Logged-out top bar only — sits above <Landing> (App.tsx's own comment on
 // that render branch explains why: Landing renders no header of its own,
@@ -33,7 +34,7 @@ export function Header({ onLogin, onSignup, themeEffective, onToggleTheme }: Hea
         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Pipeline</div>
+      <PipelineWordmark themeEffective={themeEffective} iconSize={22} fontSize={15} />
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <ThemeToggleButton effective={themeEffective} onToggle={onToggleTheme} />
         <div style={{ display: "flex", gap: 10 }}>

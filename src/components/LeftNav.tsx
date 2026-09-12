@@ -5,6 +5,7 @@ import type { Profile } from "../hooks/useProfile";
 import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
 import { ModuleIcon, TAB_ICON_SIZE } from "./BottomTabBar";
+import { PipelineWordmark } from "./PipelineWordmark";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
 import { glassStyle, glassChipStyle, glassBubbleStyle } from "../lib/glass";
 
@@ -32,8 +33,8 @@ export function LeftNav({ session, profile, page, onSetPage, hiddenModules, them
 
   return (
     <nav style={{ ...railStyle, ...glassStyle(reduceTransparency, true) }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", padding: "4px 10px 22px" }}>
-        Pipeline
+      <div style={{ padding: "4px 10px 22px" }}>
+        <PipelineWordmark themeEffective={themeEffective} iconSize={24} fontSize={16} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

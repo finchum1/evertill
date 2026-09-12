@@ -3,6 +3,7 @@ import type { Page } from "../types";
 import type { Profile } from "../hooks/useProfile";
 import { Avatar } from "./Avatar";
 import { ThemeToggleButton } from "./Header";
+import { PipelineWordmark } from "./PipelineWordmark";
 import { usePrefersReducedTransparency } from "../hooks/useMediaQuery";
 import { glassStyle } from "../lib/glass";
 
@@ -44,7 +45,7 @@ export function TopNav({ session, profile, page, onSetPage, themeEffective, onTo
         ...glassStyle(reduceTransparency),
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Pipeline</div>
+      <PipelineWordmark themeEffective={themeEffective} iconSize={22} fontSize={15} />
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <ThemeToggleButton effective={themeEffective} onToggle={onToggleTheme} />
         <button

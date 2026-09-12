@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { DealContactField } from "../types";
 import { useDialogs } from "./DialogHost";
-import { PhoneActions, EmailActions } from "./ContactActions";
+import { ContactActionRow } from "./ContactActions";
 import { looksLikePhoneLabel, looksLikeEmailLabel } from "../lib/contactLinks";
 
 interface DealContactsTabProps {
@@ -55,16 +55,28 @@ export function DealContactsTab({ dealId, contactFields, onEnsure, onAdd, onUpda
         <div key={group.label || "__custom"}>
           {group.label && <div style={groupHeaderStyle}>{group.label}</div>}
           <div style={cardStyle}>
-            {group.fields.map((field, i) => (
-              <ContactFieldRow
-                key={field.id}
-                field={field}
-                isLast={i === group.fields.length - 1}
-                deletable={!group.label}
-                onUpdate={onUpdate}
-                onDelete={onDelete}
-              />
-            ))}
+            {/* A named group (Buyer/Seller/Co-op Agent/Lender/Title) always
+                seeds its identity field first (see FIXED_CONTACT_FIELDS) —
+                the Call/Text/Email row sits right under that "name" row,
+                before the rest of the group's own fields, the same "buttons
+                under the name" placement Lead/PipelineCardModal use for
+                their own Phone/Email. Ungrouped custom fields have no such
+                identity field to anchor a row under, so they stay a plain
+                flat list, unchanged. */}
+            {group.label ? (
+              <NamedContactGroup fields={group.fields} onUpdate={onUpdate} onDelete={onDelete} />
+            ) : (
+              group.fields.map((field, i) => (
+                <ContactFieldRow
+                  key={field.id}
+                  field={field}
+                  isLast={i === group.fields.length - 1}
+                  deletable
+                  onUpdate={onUpdate}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </div>
         </div>
       ))}
@@ -72,6 +84,35 @@ export function DealContactsTab({ dealId, contactFields, onEnsure, onAdd, onUpda
         + Add custom field
       </button>
     </div>
+  );
+}
+
+function NamedContactGroup({
+  fields,
+  onUpdate,
+  onDelete,
+}: {
+  fields: DealContactField[];
+  onUpdate: (id: string, value: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [nameField, ...restFields] = fields;
+  const phoneField = fields.find((f) => looksLikePhoneLabel(f.label));
+  const emailField = fields.find((f) => looksLikeEmailLabel(f.label));
+  const showActions = !!phoneField || !!emailField;
+
+  return (
+    <>
+      <ContactFieldRow field={nameField} isLast={false} deletable={false} onUpdate={onUpdate} onDelete={onDelete} />
+      {showActions && (
+        <div style={{ padding: "2px 14px 14px", borderBottom: restFields.length > 0 ? "1px solid var(--border)" : "none" }}>
+          <ContactActionRow phone={phoneField?.value} email={emailField?.value} />
+        </div>
+      )}
+      {restFields.map((field, i) => (
+        <ContactFieldRow key={field.id} field={field} isLast={i === restFields.length - 1} deletable={false} onUpdate={onUpdate} onDelete={onDelete} />
+      ))}
+    </>
   );
 }
 
@@ -89,13 +130,6 @@ function ContactFieldRow({
   onDelete: (id: string) => void;
 }) {
   const [value, setValue] = useState(field.value);
-  // No separate "field type" on a contact row (see lib/dealContactFields.ts)
-  // — matching the label text against "phone"/"email" is the only signal
-  // available for whether this row's value is worth a call/text/email
-  // action, but it covers every seeded field ("Buyer Phone," "Seller
-  // Email," etc.) and any custom field a user names similarly.
-  const isPhone = looksLikePhoneLabel(field.label);
-  const isEmail = looksLikeEmailLabel(field.label);
 
   return (
     <div style={{ ...rowStyle, borderBottom: isLast ? "none" : "1px solid var(--border)" }}>
@@ -106,8 +140,6 @@ function ContactFieldRow({
         onBlur={() => value !== field.value && onUpdate(field.id, value)}
         style={rowInputStyle}
       />
-      {isPhone && <PhoneActions phone={value} />}
-      {isEmail && <EmailActions email={value} />}
       {deletable && (
         <button onClick={() => onDelete(field.id)} style={removeButtonStyle}>
           ×
