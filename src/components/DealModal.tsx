@@ -8,6 +8,7 @@ import { DealContactsTab } from "./DealContactsTab";
 import { checklistProgress } from "../lib/dealChecklistProgress";
 import { useDialogs } from "./DialogHost";
 import { MobileSheet } from "./MobileSheet";
+import { ContactActionRow } from "./ContactActions";
 
 interface DealModalProps {
   deal: Deal;
@@ -93,6 +94,8 @@ export function DealModal({
           onBlur={() => address.trim() && address !== deal.address && onUpdate(deal.id, { address: address.trim() })}
           style={{ ...inputStyle, fontSize: 20, fontWeight: 700, border: "none", padding: "0", background: "none" }}
         />
+
+        <ContactActionRow address={address} />
 
         <div>
           <div style={progressTrackStyle}>

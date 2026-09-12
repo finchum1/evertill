@@ -69,7 +69,7 @@ export function LeadCardModal({
           </div>
         </div>
 
-        <ContactActionRow phone={phone} email={email} />
+        <ContactActionRow phone={phone} email={email} address={address} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={labelStyle}>
