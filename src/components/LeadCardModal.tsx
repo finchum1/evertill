@@ -6,6 +6,7 @@ import type { DatePickerFieldHandle } from "./DatePickerField";
 import { TagPicker } from "./TagPicker";
 import { useDialogs } from "./DialogHost";
 import { MobileSheet } from "./MobileSheet";
+import { PhoneActions, EmailActions } from "./ContactActions";
 
 interface LeadCardModalProps {
   card: LeadCard;
@@ -107,11 +108,17 @@ export function LeadCardModal({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={labelStyle}>
-            Phone
+            <span style={labelRowStyle}>
+              Phone
+              <PhoneActions phone={phone} />
+            </span>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => onUpdate(card.id, { phone: phone || null })} style={inputStyle} />
           </label>
           <label style={labelStyle}>
-            Email
+            <span style={labelRowStyle}>
+              Email
+              <EmailActions email={email} />
+            </span>
             <input value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => onUpdate(card.id, { email: email || null })} style={inputStyle} />
           </label>
         </div>
@@ -229,6 +236,12 @@ const labelStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 6,
+};
+
+const labelRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
 };
 
 const ghostButtonStyle: CSSProperties = {

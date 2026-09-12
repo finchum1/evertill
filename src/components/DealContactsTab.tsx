@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { DealContactField } from "../types";
 import { useDialogs } from "./DialogHost";
+import { PhoneActions, EmailActions } from "./ContactActions";
+import { looksLikePhoneLabel, looksLikeEmailLabel } from "../lib/contactLinks";
 
 interface DealContactsTabProps {
   dealId: string;
@@ -87,6 +89,13 @@ function ContactFieldRow({
   onDelete: (id: string) => void;
 }) {
   const [value, setValue] = useState(field.value);
+  // No separate "field type" on a contact row (see lib/dealContactFields.ts)
+  // — matching the label text against "phone"/"email" is the only signal
+  // available for whether this row's value is worth a call/text/email
+  // action, but it covers every seeded field ("Buyer Phone," "Seller
+  // Email," etc.) and any custom field a user names similarly.
+  const isPhone = looksLikePhoneLabel(field.label);
+  const isEmail = looksLikeEmailLabel(field.label);
 
   return (
     <div style={{ ...rowStyle, borderBottom: isLast ? "none" : "1px solid var(--border)" }}>
@@ -97,6 +106,8 @@ function ContactFieldRow({
         onBlur={() => value !== field.value && onUpdate(field.id, value)}
         style={rowInputStyle}
       />
+      {isPhone && <PhoneActions phone={value} />}
+      {isEmail && <EmailActions email={value} />}
       {deletable && (
         <button onClick={() => onDelete(field.id)} style={removeButtonStyle}>
           ×
